@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   X,
-} from "lucide-react";
+} from "lucide-react"
 import {
   AnimatePresence,
   motion,
@@ -24,16 +24,22 @@ import {
   useScroll,
   useSpring,
   useTransform,
-} from "motion/react";
-import GlobeLocationPicker, { SelectedLocation } from "./components/GlobeLocationPicker";
-import PotholeReportModal from "./components/PotholeReportModal";
+} from "motion/react"
+import GlobeLocationPicker, {
+  SelectedLocation,
+} from "./components/GlobeLocationPicker"
+import PotholeReportModal from "./components/PotholeReportModal"
+import IssueDetailDrawer from "./components/IssueDetailDrawer"
+import CityTriageDashboard from "./components/CityTriageDashboard"
+import { RoadIssue, UserRole } from "./types/roadguard"
+import { RoadIssueService } from "./services/roadIssueService"
 
 // Continuous cinematic urban road visual assets (Golden-hour city asphalt journey)
-const heroRoadImage = "/images/hero_road.jpg";
-const detectionAsphaltImage = "/images/detection_asphalt.jpg";
-const aerialGridImage = "/images/aerial_grid.jpg";
-const repairedRoadImage = "/images/repaired_road.jpg";
-const cityPanoramaImage = "/images/city_panorama.jpg";
+const heroRoadImage = "/images/hero_road.jpg"
+const detectionAsphaltImage = "/images/detection_asphalt.jpg"
+const aerialGridImage = "/images/aerial_grid.jpg"
+const repairedRoadImage = "/images/repaired_road.jpg"
+const cityPanoramaImage = "/images/city_panorama.jpg"
 
 const navItems = [
   ["Home", "home"],
@@ -42,15 +48,15 @@ const navItems = [
   ["Resolution", "repair"],
   ["Impact", "impact"],
   ["About", "community"],
-];
+]
 
 type ButtonLinkProps = {
-  href?: string;
-  children: React.ReactNode;
-  variant?: "primary" | "secondary" | "dark";
-  onClick?: (e: React.MouseEvent) => void;
-  className?: string;
-};
+  href?: string
+  children: React.ReactNode
+  variant?: "primary" | "secondary" | "dark"
+  onClick?: (e: React.MouseEvent) => void
+  className?: string
+}
 
 function ButtonLink({
   href,
@@ -69,7 +75,7 @@ function ButtonLink({
         <span>{children}</span>
         <ArrowDownRight size={17} aria-hidden="true" />
       </button>
-    );
+    )
   }
   return (
     <a
@@ -80,17 +86,17 @@ function ButtonLink({
       <span>{children}</span>
       <ArrowDownRight size={17} aria-hidden="true" />
     </a>
-  );
+  )
 }
 
 function DottedTitle({
   children,
   className = "",
 }: {
-  children: React.ReactNode;
-  className?: string;
+  children: React.ReactNode
+  className?: string
 }) {
-  return <h2 className={`dot-title ${className}`}>{children}</h2>;
+  return <h2 className={`dot-title ${className}`}>{children}</h2>
 }
 
 function Reveal({
@@ -98,13 +104,13 @@ function Reveal({
   className = "",
   delay = 0,
 }: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
+  children: React.ReactNode
+  className?: string
+  delay?: number
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const visible = useInView(ref, { once: true, margin: "-12%" });
-  const reduce = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null)
+  const visible = useInView(ref, { once: true, margin: "-12%" })
+  const reduce = useReducedMotion()
   return (
     <motion.div
       ref={ref}
@@ -115,25 +121,29 @@ function Reveal({
     >
       {children}
     </motion.div>
-  );
+  )
 }
 
 function Header({
   active,
   onOpenGlobe,
+  onOpenTriage,
+  issuesCount,
 }: {
-  active: string;
-  onOpenGlobe: () => void;
+  active: string
+  onOpenGlobe: () => void
+  onOpenTriage: () => void
+  issuesCount: number
 }) {
-  const [open, setOpen] = useState(false);
-  const { scrollY } = useScroll();
-  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false)
+  const { scrollY } = useScroll()
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     return scrollY.on("change", (latest) => {
-      setScrolled(latest > 60);
-    });
-  }, [scrollY]);
+      setScrolled(latest > 60)
+    })
+  }, [scrollY])
 
   return (
     <header className={`nav-shell ${scrolled ? "nav-scrolled" : ""}`}>
@@ -147,23 +157,31 @@ function Header({
       </a>
       <nav className="desktop-nav" aria-label="Main navigation">
         {navItems.map(([label, id]) => (
-          <a
-            className={active === id ? "active" : ""}
-            href={`#${id}`}
-            key={id}
-          >
+          <a className={active === id ? "active" : ""} href={`#${id}`} key={id}>
             {label}
           </a>
         ))}
       </nav>
-      <ButtonLink
-        onClick={(e) => {
-          e.preventDefault();
-          onOpenGlobe();
-        }}
-      >
-        Report a pothole
-      </ButtonLink>
+      <div className="nav-actions-group">
+        <button
+          type="button"
+          onClick={onOpenTriage}
+          className="nav-triage-button glass"
+          title="Open City Risk Triage Dashboard"
+        >
+          <Activity size={14} className="text-vermilion" />
+          <span>Triage</span>
+          <span className="nav-count-badge">{issuesCount}</span>
+        </button>
+        <ButtonLink
+          onClick={(e) => {
+            e.preventDefault()
+            onOpenGlobe()
+          }}
+        >
+          Report a pothole
+        </ButtonLink>
+      </div>
       <button
         className="menu-toggle"
         onClick={() => setOpen(!open)}
@@ -191,11 +209,23 @@ function Header({
                 {label}
               </a>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onOpenTriage()
+              }}
+              className="nav-triage-button glass mb-2"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              <Activity size={14} className="text-vermilion" />
+              <span>City Risk Triage ({issuesCount})</span>
+            </button>
             <ButtonLink
               onClick={(e) => {
-                e.preventDefault();
-                setOpen(false);
-                onOpenGlobe();
+                e.preventDefault()
+                setOpen(false)
+                onOpenGlobe()
               }}
             >
               Report a pothole
@@ -204,44 +234,43 @@ function Header({
         )}
       </AnimatePresence>
     </header>
-  );
+  )
 }
 
 /* =========================================================================
    00 / HERO: Continuous road approach — wide city view to pothole zoom
    ========================================================================= */
 function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
-  const containerRef = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const containerRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
 
   // Scroll linked forward progression
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
-  });
+  })
 
   const smooth = useSpring(scrollYProgress, {
     stiffness: 95,
     damping: 26,
     restDelta: 0.001,
-  });
+  })
 
   // Approaching the visible pothole in the lower foreground
-  const roadScale = useTransform(smooth, [0, 1], [1, reduce ? 1 : 1.32]);
-  const roadY = useTransform(smooth, [0, 1], ["0%", reduce ? "0%" : "12%"]);
-  const roadFilter = useTransform(
-    smooth,
-    [0, 1],
-    ["contrast(1.08) brightness(0.96)", "contrast(1.15) brightness(0.9)"]
-  );
+  const roadScale = useTransform(smooth, [0, 1], [1, reduce ? 1 : 1.32])
+  const roadY = useTransform(smooth, [0, 1], ["0%", reduce ? "0%" : "12%"])
+  const roadFilter = useTransform(smooth, [0, 1], [
+    "contrast(1.08) brightness(0.96)",
+    "contrast(1.15) brightness(0.9)",
+  ])
 
   // Parallax on hero text and UI overlays
-  const textY = useTransform(smooth, [0, 0.75], ["0%", reduce ? "0%" : "-26%"]);
-  const textOpacity = useTransform(smooth, [0, 0.65], [1, reduce ? 1 : 0.15]);
+  const textY = useTransform(smooth, [0, 0.75], ["0%", reduce ? "0%" : "-26%"])
+  const textOpacity = useTransform(smooth, [0, 0.65], [1, reduce ? 1 : 0.15])
 
   // Target lock reticle on the pothole as camera draws near
-  const reticleOpacity = useTransform(smooth, [0.25, 0.8], [0, 1]);
-  const reticleScale = useTransform(smooth, [0.25, 0.8], [0.75, 1.05]);
+  const reticleOpacity = useTransform(smooth, [0.25, 0.8], [0, 1])
+  const reticleScale = useTransform(smooth, [0.25, 0.8], [0.75, 1.05])
 
   return (
     <section id="home" className="hero" ref={containerRef}>
@@ -308,8 +337,8 @@ function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
             <div className="button-row">
               <ButtonLink
                 onClick={(e) => {
-                  e.preventDefault();
-                  onOpenGlobe();
+                  e.preventDefault()
+                  onOpenGlobe()
                 }}
               >
                 Report a pothole
@@ -357,33 +386,37 @@ function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         SCROLL TO SCAN <ArrowDownRight size={18} />
       </a>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
    01 / DETECTION: Zoom into asphalt, reveal vermilion frames & analysis
    ========================================================================= */
 function Detection() {
-  const containerRef = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const containerRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"],
-  });
+  })
 
   const smooth = useSpring(scrollYProgress, {
     stiffness: 90,
     damping: 28,
-  });
+  })
 
   // Deep macro zoom into asphalt texture
-  const scale = useTransform(smooth, [0, 0.5, 1], [1.18, 1.04, 1.0]);
-  const y = useTransform(smooth, [0, 1], [-40, reduce ? 0 : 50]);
-  const overlayY = useTransform(smooth, [0, 1], [30, -25]);
+  const scale = useTransform(smooth, [0, 0.5, 1], [1.18, 1.04, 1.0])
+  const y = useTransform(smooth, [0, 1], [-40, reduce ? 0 : 50])
+  const overlayY = useTransform(smooth, [0, 1], [30, -25])
 
   return (
-    <section id="detection" className="detection section-dark" ref={containerRef}>
+    <section
+      id="detection"
+      className="detection section-dark"
+      ref={containerRef}
+    >
       <div className="section-grid section-heading">
         <div>
           <p className="eyebrow light">
@@ -511,7 +544,7 @@ function Detection() {
         </div>
       </div>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
@@ -542,7 +575,7 @@ const issues = [
     depth: "22mm",
     impact: "Water ingress / 180 cars/hr",
     lat: "51.5061° N, 0.1310° W",
-    coordinates: { lat: 51.5061, lng: -0.1310 },
+    coordinates: { lat: 51.5061, lng: -0.131 },
   },
   {
     id: 3,
@@ -555,7 +588,7 @@ const issues = [
     depth: "Repaved",
     impact: "Restored & sealed 2 days ago",
     lat: "51.5120° N, 0.1190° W",
-    coordinates: { lat: 51.5120, lng: -0.1190 },
+    coordinates: { lat: 51.512, lng: -0.119 },
   },
   {
     id: 4,
@@ -570,31 +603,57 @@ const issues = [
     lat: "51.5034° N, 0.1288° W",
     coordinates: { lat: 51.5034, lng: -0.1288 },
   },
-];
+]
 
-function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any) => void }) {
-  const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState(issues[0]);
+function RiskMap({
+  onSelectIssueForGlobe,
+  onOpenDetails,
+  onOpenTriage,
+}: {
+  onSelectIssueForGlobe: (issue: any) => void
+  onOpenDetails: (issueId: string) => void
+  onOpenTriage: () => void
+}) {
+  const [filter, setFilter] = useState("all")
+  const [selected, setSelected] = useState(issues[0])
   const shown = issues.filter(
-    (item) => filter === "all" || item.status === filter
-  );
+    (item) => filter === "all" || item.status === filter,
+  )
 
-  const containerRef = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const getCorrespondingIssueId = (numId: number) => {
+    switch (numId) {
+      case 1:
+        return "RG-10492"
+      case 2:
+        return "RG-28190"
+      case 3:
+        return "RG-39104"
+      case 4:
+      default:
+        return "RG-49201"
+    }
+  }
+
+  const containerRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
 
   // Scroll linked 3D elevation tilt: lifts from road plane to bird's eye
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"],
-  });
+  })
 
   const smooth = useSpring(scrollYProgress, {
     stiffness: 85,
     damping: 26,
-  });
+  })
 
-  const mapRotateX = useTransform(smooth, [0, 0.5, 1], [reduce ? 0 : 12, 0, reduce ? 0 : -6]);
-  const mapScale = useTransform(smooth, [0, 0.5, 1], [0.96, 1, 0.98]);
+  const mapRotateX = useTransform(smooth, [0, 0.5, 1], [
+    reduce ? 0 : 12,
+    0,
+    reduce ? 0 : -6,
+  ])
+  const mapScale = useTransform(smooth, [0, 0.5, 1], [0.96, 1, 0.98])
 
   return (
     <section id="risk-map" className="map-section" ref={containerRef}>
@@ -619,8 +678,16 @@ function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any
           <div className="map-toolbar">
             {[
               ["all", "All issues", issues.length],
-              ["high", "High priority", issues.filter((i) => i.status === "high").length],
-              ["resolved", "Resolved", issues.filter((i) => i.status === "resolved").length],
+              [
+                "high",
+                "High priority",
+                issues.filter((i) => i.status === "high").length,
+              ],
+              [
+                "resolved",
+                "Resolved",
+                issues.filter((i) => i.status === "resolved").length,
+              ],
             ].map(([value, label, count]) => (
               <button
                 className={filter === value ? "selected" : ""}
@@ -676,7 +743,11 @@ function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any
           </div>
 
           {/* Highlighted high-risk connected route */}
-          <svg className="map-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <svg
+            className="map-route-svg"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
             <path
               d="M 24 35 Q 34 55 43 76"
               className="route-path-line"
@@ -718,9 +789,7 @@ function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any
             >
               <div className="risk-panel-top">
                 <span className="risk-tag">
-                  <span
-                    className={`status-pill ${selected.status}`}
-                  />
+                  <span className={`status-pill ${selected.status}`} />
                   RISK SIGNAL
                 </span>
                 <span className="risk-coords">{selected.lat}</span>
@@ -751,13 +820,24 @@ function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any
                 </div>
               </div>
 
-              <button
-                className="risk-cta"
-                onClick={() => onSelectIssueForGlobe(selected)}
-              >
-                <span>Inspect on 3D Globe</span>
-                <Globe size={15} />
-              </button>
+              <div className="risk-cta-group">
+                <button
+                  className="risk-cta"
+                  onClick={() => onSelectIssueForGlobe(selected)}
+                >
+                  <span>Inspect on 3D Globe</span>
+                  <Globe size={15} />
+                </button>
+                <button
+                  className="risk-cta-secondary glass"
+                  onClick={() =>
+                    onOpenDetails(getCorrespondingIssueId(selected.id))
+                  }
+                >
+                  <span>Review Verification & Risk</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </motion.aside>
           </AnimatePresence>
 
@@ -772,58 +852,74 @@ function RiskMap({ onSelectIssueForGlobe }: { onSelectIssueForGlobe: (issue: any
         </motion.div>
       </Reveal>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
    03 / REPAIR: Follow road into repair scene, damaged vs repaired split
    ========================================================================= */
 function RepairJourney() {
-  const [step, setStep] = useState(3);
-  const [sliderPos, setSliderPos] = useState(75);
-  const [isDragging, setIsDragging] = useState(false);
-  const visualRef = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useState(3)
+  const [sliderPos, setSliderPos] = useState(75)
+  const [isDragging, setIsDragging] = useState(false)
+  const visualRef = useRef<HTMLDivElement>(null)
 
   const stages = [
-    { title: "Reported", time: "Today · 09:14", desc: "Hazard detected by fleet camera" },
-    { title: "Under review", time: "Today · 10:02", desc: "Automated AI severity verification" },
-    { title: "Assigned", time: "Tomorrow · 08:30", desc: "Work order scheduled with crew" },
-    { title: "Repaired", time: "28 May · 16:45", desc: "Hot-mix asphalt laid & verified" },
-  ];
+    {
+      title: "Reported",
+      time: "Today · 09:14",
+      desc: "Hazard detected by fleet camera",
+    },
+    {
+      title: "Under review",
+      time: "Today · 10:02",
+      desc: "Automated AI severity verification",
+    },
+    {
+      title: "Assigned",
+      time: "Tomorrow · 08:30",
+      desc: "Work order scheduled with crew",
+    },
+    {
+      title: "Repaired",
+      time: "28 May · 16:45",
+      desc: "Hot-mix asphalt laid & verified",
+    },
+  ]
 
   // Sync step to split view slider position
   const handleStepClick = (index: number) => {
-    setStep(index);
-    const targetPercentages = [15, 38, 68, 98];
-    setSliderPos(targetPercentages[index]);
-  };
+    setStep(index)
+    const targetPercentages = [15, 38, 68, 98]
+    setSliderPos(targetPercentages[index])
+  }
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    updateSlider(e.clientX);
-  };
+    setIsDragging(true)
+    updateSlider(e.clientX)
+  }
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    updateSlider(e.clientX);
-  };
+    if (!isDragging) return
+    updateSlider(e.clientX)
+  }
 
   const handlePointerUp = () => {
-    setIsDragging(false);
-  };
+    setIsDragging(false)
+  }
 
   const updateSlider = (clientX: number) => {
-    if (!visualRef.current) return;
-    const rect = visualRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-    const percent = (x / rect.width) * 100;
-    setSliderPos(percent);
+    if (!visualRef.current) return
+    const rect = visualRef.current.getBoundingClientRect()
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width))
+    const percent = (x / rect.width) * 100
+    setSliderPos(percent)
 
-    if (percent < 25) setStep(0);
-    else if (percent < 50) setStep(1);
-    else if (percent < 80) setStep(2);
-    else setStep(3);
-  };
+    if (percent < 25) setStep(0)
+    else if (percent < 50) setStep(1)
+    else if (percent < 80) setStep(2)
+    else setStep(3)
+  }
 
   return (
     <section id="repair" className="repair section-dark">
@@ -839,8 +935,8 @@ function RepairJourney() {
           </DottedTitle>
         </div>
         <p className="section-copy">
-          A transparent journey from first evidence to verified repair—with every
-          handoff visible.
+          A transparent journey from first evidence to verified repair—with
+          every handoff visible.
         </p>
       </div>
 
@@ -895,7 +991,11 @@ function RepairJourney() {
           <motion.div
             className="damage-half"
             animate={{ width: `${100 - sliderPos}%` }}
-            transition={isDragging ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 25 }}
+            transition={
+              isDragging
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 120, damping: 25 }
+            }
             style={{
               backgroundImage: `url(${detectionAsphaltImage})`,
             }}
@@ -909,7 +1009,11 @@ function RepairJourney() {
           <motion.div
             className="slider-divider"
             animate={{ left: `${100 - sliderPos}%` }}
-            transition={isDragging ? { duration: 0 } : { type: "spring", stiffness: 120, damping: 25 }}
+            transition={
+              isDragging
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 120, damping: 25 }
+            }
           >
             <div className="slider-handle">
               <SlidersHorizontal size={14} />
@@ -933,35 +1037,35 @@ function RepairJourney() {
         </div>
       </div>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
    04 / IMPACT: Camera pulls back to wide city panorama & reveals metrics
    ========================================================================= */
 function Impact() {
-  const containerRef = useRef<HTMLElement>(null);
-  const reduce = useReducedMotion();
+  const containerRef = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"],
-  });
+  })
 
   const smooth = useSpring(scrollYProgress, {
     stiffness: 85,
     damping: 26,
-  });
+  })
 
-  const panoramaScale = useTransform(smooth, [0, 1], [1.14, reduce ? 1 : 1.0]);
-  const panoramaY = useTransform(smooth, [0, 1], [-35, reduce ? 0 : 35]);
+  const panoramaScale = useTransform(smooth, [0, 1], [1.14, reduce ? 1 : 1.0])
+  const panoramaY = useTransform(smooth, [0, 1], [-35, reduce ? 0 : 35])
 
   const metrics = [
     ["24,821", "Reports received", "+18% this month"],
     ["18,406", "Repairs completed", "Verified in 48h"],
     ["2.4 days", "Avg. response time", "-42% vs baseline"],
     ["14", "Participating cities", "Expanding Q3 2026"],
-  ];
+  ]
 
   return (
     <section id="impact" className="impact" ref={containerRef}>
@@ -1020,7 +1124,7 @@ function Impact() {
         </div>
       </div>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
@@ -1045,8 +1149,8 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         <div className="button-row">
           <ButtonLink
             onClick={(e) => {
-              e.preventDefault();
-              onOpenGlobe();
+              e.preventDefault()
+              onOpenGlobe()
             }}
           >
             Report a pothole
@@ -1105,7 +1209,7 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         </button>
       </div>
     </section>
-  );
+  )
 }
 
 /* =========================================================================
@@ -1141,11 +1245,19 @@ function Footer({ onOpenGlobe }: { onOpenGlobe: () => void }) {
 
         <div className="footer-contact-col">
           <span className="footer-col-title">COMMUNITY</span>
-          <p>Collaborating with local councils, cyclists, and drivers worldwide.</p>
+          <p>
+            Collaborating with local councils, cyclists, and drivers worldwide.
+          </p>
           <button
             onClick={onOpenGlobe}
             className="footer-sub-link"
-            style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left" }}
+            style={{
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
           >
             Launch 3D Globe Location Picker →
           </button>
@@ -1158,38 +1270,53 @@ function Footer({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         <a
           href="#home"
           onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            e.preventDefault()
+            window.scrollTo({ top: 0, behavior: "smooth" })
           }}
         >
           BACK TO TOP ↑
         </a>
       </div>
     </footer>
-  );
+  )
 }
 
 /* =========================================================================
    APP ROOT: Active section spy, 3D Globe picker & Pothole report modal
    ========================================================================= */
 export default function App() {
-  const [active, setActive] = useState("home");
-  const [isGlobeOpen, setIsGlobeOpen] = useState(false);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
+  const [active, setActive] = useState("home")
+  const [isGlobeOpen, setIsGlobeOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isTriageOpen, setIsTriageOpen] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedLocation, setSelectedLocation] =
+    useState<SelectedLocation | null>(null)
+
+  // Live Road Issues and Active Role
+  const [issues, setIssues] = useState<RoadIssue[]>(() =>
+    RoadIssueService.initialize(),
+  )
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>("authority")
+  const [selectedIssueForDrawer, setSelectedIssueForDrawer] =
+    useState<RoadIssue | null>(null)
+
+  const refreshIssues = () => {
+    setIssues(RoadIssueService.getAllIssues())
+  }
 
   // Open 3D Globe
   const handleOpenGlobe = () => {
-    setIsReportModalOpen(false);
-    setIsGlobeOpen(true);
-  };
+    setIsReportModalOpen(false)
+    setIsGlobeOpen(true)
+  }
 
   // Called when user selects & confirms location on 3D globe
   const handleConfirmLocation = (location: SelectedLocation) => {
-    setSelectedLocation(location);
-    setIsGlobeOpen(false);
-    setIsReportModalOpen(true);
-  };
+    setSelectedLocation(location)
+    setIsGlobeOpen(false)
+    setIsReportModalOpen(true)
+  }
 
   // Inspect existing map issue on globe
   const handleSelectIssueForGlobe = (issue: any) => {
@@ -1197,11 +1324,31 @@ export default function App() {
       setSelectedLocation({
         lat: issue.coordinates.lat,
         lng: issue.coordinates.lng,
-        address: `${issue.street}, London`,
-      });
+        address: `${issue.street || issue.address}, London`,
+      })
     }
-    setIsGlobeOpen(true);
-  };
+    setIsGlobeOpen(true)
+  }
+
+  // Inspect rich issue details drawer
+  const handleOpenIssueDetails = (issueOrId: RoadIssue | string) => {
+    let target: RoadIssue | undefined
+    if (typeof issueOrId === "string") {
+      target = RoadIssueService.getIssueById(issueOrId)
+    } else {
+      target = issueOrId
+    }
+    if (target) {
+      setSelectedIssueForDrawer(target)
+      setIsDrawerOpen(true)
+    }
+  }
+
+  // Called when an issue is updated via state machine or support
+  const handleIssueUpdated = (updated: RoadIssue) => {
+    refreshIssues()
+    setSelectedIssueForDrawer(updated)
+  }
 
   useEffect(() => {
     const sections = [
@@ -1213,30 +1360,39 @@ export default function App() {
       "community",
     ]
       .map((id) => document.getElementById(id))
-      .filter(Boolean) as HTMLElement[];
+      .filter(Boolean) as HTMLElement[]
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setActive(entry.target.id);
+            setActive(entry.target.id)
           }
-        });
+        })
       },
-      { rootMargin: "-35% 0px -45% 0px" }
-    );
+      { rootMargin: "-35% 0px -45% 0px" },
+    )
 
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, []);
+    sections.forEach((section) => observer.observe(section))
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="roadguard-app">
-      <Header active={active} onOpenGlobe={handleOpenGlobe} />
+      <Header
+        active={active}
+        onOpenGlobe={handleOpenGlobe}
+        onOpenTriage={() => setIsTriageOpen(true)}
+        issuesCount={issues.length}
+      />
       <main>
         <Hero onOpenGlobe={handleOpenGlobe} />
         <Detection />
-        <RiskMap onSelectIssueForGlobe={handleSelectIssueForGlobe} />
+        <RiskMap
+          onSelectIssueForGlobe={handleSelectIssueForGlobe}
+          onOpenDetails={handleOpenIssueDetails}
+          onOpenTriage={() => setIsTriageOpen(true)}
+        />
         <RepairJourney />
         <Impact />
         <Community onOpenGlobe={handleOpenGlobe} />
@@ -1253,15 +1409,60 @@ export default function App() {
             ? { lat: selectedLocation.lat, lng: selectedLocation.lng }
             : undefined
         }
+        issues={issues}
+        onSelectIssue={(issue) => {
+          setSelectedIssueForDrawer(issue)
+          setIsDrawerOpen(true)
+        }}
       />
 
-      {/* Pothole Report Telemetry Modal */}
+      {/* Pothole Report Telemetry Modal with AI Road Inspector & Risk Engine */}
       <PotholeReportModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         location={selectedLocation}
         onOpenGlobe={handleOpenGlobe}
+        onReportCreated={(newIssue) => {
+          refreshIssues()
+          setSelectedIssueForDrawer(newIssue)
+        }}
+      />
+
+      {/* City Risk & Triage Operations Dashboard */}
+      <CityTriageDashboard
+        isOpen={isTriageOpen}
+        onClose={() => setIsTriageOpen(false)}
+        issues={issues}
+        currentUserRole={currentUserRole}
+        onRoleChange={setCurrentUserRole}
+        onSelectIssue={(issue) => {
+          setSelectedIssueForDrawer(issue)
+          setIsDrawerOpen(true)
+        }}
+        onOpenGlobeForIssue={(issue) => {
+          setIsTriageOpen(false)
+          handleSelectIssueForGlobe(issue)
+        }}
+        onOpenReportModal={() => {
+          setIsTriageOpen(false)
+          setIsReportModalOpen(true)
+        }}
+        onRefreshData={refreshIssues}
+      />
+
+      {/* Deep Incident Details, Explainable Risk & Repair Verification Drawer */}
+      <IssueDetailDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        issue={selectedIssueForDrawer}
+        currentUserRole={currentUserRole}
+        onRoleChange={setCurrentUserRole}
+        onIssueUpdated={handleIssueUpdated}
+        onFlyToGlobe={(issue) => {
+          setIsDrawerOpen(false)
+          handleSelectIssueForGlobe(issue)
+        }}
       />
     </div>
-  );
+  )
 }
