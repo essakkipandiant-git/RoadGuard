@@ -1,0 +1,10 @@
+{
+  "description": "Explore AI-powered road damage detection, risk mapping, and repair tracking that helps communities report potholes and prioritize safer streets.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
