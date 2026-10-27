@@ -4,7 +4,7 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|cesium/|images/|favicon\\.svg|robots\\.txt|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

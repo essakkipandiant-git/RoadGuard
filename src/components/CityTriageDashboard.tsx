@@ -299,18 +299,16 @@ export default function CityTriageDashboard({
                     </p>
 
                     <div className="triage-card-footer">
-                      <div className="footer-left-metrics">
+                      <div
+                        className="footer-left-metrics"
+                        title={`${issue.supportingCount} confirmations · Depth: ${issue.detection.depthEstimateMm}mm · ${new Date(issue.createdAt).toLocaleDateString()}`}
+                      >
                         <span>
-                          <strong>{issue.supportingCount}</strong> Confirmations
+                          <strong>{issue.supportingCount}</strong> {issue.supportingCount === 1 ? "report" : "reports"}
                         </span>
                         <span>•</span>
                         <span>
-                          Depth:{" "}
-                          <strong>{issue.detection.depthEstimateMm}mm</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          {new Date(issue.createdAt).toLocaleDateString()}
+                          <strong>{issue.detection.depthEstimateMm}mm</strong> depth
                         </span>
                       </div>
 
@@ -324,7 +322,7 @@ export default function CityTriageDashboard({
                           className="triage-sub-btn"
                           title="View on 3D Globe"
                         >
-                          <Globe size={14} />
+                          <Globe size={13} />
                           <span>3D Globe</span>
                         </button>
 
@@ -332,9 +330,10 @@ export default function CityTriageDashboard({
                           type="button"
                           onClick={() => onSelectIssue(issue)}
                           className="triage-action-btn"
+                          title="Manage road issue workflow"
                         >
                           <span>Manage</span>
-                          <ArrowDownRight size={14} />
+                          <ArrowDownRight size={13} />
                         </button>
                       </div>
                     </div>

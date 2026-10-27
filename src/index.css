@@ -1283,19 +1283,25 @@
   font-weight: 600;
 }
 
-.status-pill {
+.risk-panel .status-pill,
+.status-pill.dot-only {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
-.status-pill.high {
+.risk-panel .status-pill.high,
+.status-pill.dot-only.high {
   background: var(--red);
 }
-.status-pill.open {
+.risk-panel .status-pill.open,
+.status-pill.dot-only.open {
   background: var(--ink);
 }
-.status-pill.resolved {
+.risk-panel .status-pill.resolved,
+.status-pill.dot-only.resolved {
   background: var(--olive);
 }
 
@@ -3066,15 +3072,30 @@ footer {
 .tracking-code-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: rgba(230, 83, 54, 0.1);
   border: 1px solid rgba(230, 83, 54, 0.35);
   border-radius: 999px;
-  padding: 6px 16px;
+  padding: 3px 8px;
   font-family: "DM Mono", monospace;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1.2;
   color: var(--red);
+  margin-bottom: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tracking-code-pill.small {
+  padding: 2px 7px;
+  font-size: 9.5px;
+}
+
+.report-success-step .tracking-code-pill {
+  padding: 6px 16px;
+  font-size: 11px;
   margin-bottom: 20px;
+  gap: 8px;
 }
 
 .success-copy {
@@ -3246,11 +3267,17 @@ footer {
 .status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  min-width: 0;
   padding: 3px 8px;
   border-radius: 6px;
-  font: 600 10px "DM Mono", monospace;
+  font: 600 10px/1.2 "DM Mono", monospace;
   letter-spacing: 0.05em;
   border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-pill.reported {
@@ -4558,22 +4585,29 @@ footer {
   font: 9px "DM Mono", monospace;
   letter-spacing: 0.06em;
   color: #8c8d87;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-num-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .metric-num-row strong {
-  font: 800 24px "DM Mono", monospace;
+  font: 800 22px/1 "DM Mono", monospace;
 }
 
 .metric-tag {
-  font: 500 10px "DM Mono", monospace;
+  font: 600 10px/1.2 "DM Mono", monospace;
   color: #687567;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .metric-tag.urgent {
@@ -4669,7 +4703,7 @@ footer {
 
 .triage-issue-card {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 120px minmax(0, 1fr);
   gap: 14px;
   padding: 14px;
   border-radius: 16px;
@@ -4733,19 +4767,29 @@ footer {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .triage-card-top-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .card-category-tag {
-  font: 600 9px "DM Mono", monospace;
-  color: #8c8d87;
-  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(36, 37, 34, 0.06);
+  font: 600 9px/1.2 "DM Mono", monospace;
+  color: #687567;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .triage-card-title {
@@ -4753,6 +4797,10 @@ footer {
   font-weight: 700;
   margin: 0 0 2px;
   color: var(--ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .triage-card-address {
@@ -4762,12 +4810,15 @@ footer {
   font-size: 12px;
   color: #687567;
   margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .triage-card-explanation-snippet {
   font-size: 11px;
   color: var(--ink);
-  line-height: 1.35;
+  line-height: 1.4;
   margin: 0 0 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -4779,16 +4830,23 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   border-top: 1px solid rgba(36, 37, 34, 0.08);
-  padding-top: 8px;
+  padding-top: 10px;
+  margin-top: auto;
 }
 
 .footer-left-metrics {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font: 11px "DM Mono", monospace;
+  gap: 5px;
+  font: 11px/1.2 "DM Mono", monospace;
   color: #8c8d87;
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .footer-left-metrics strong {
@@ -4798,33 +4856,62 @@ footer {
 .footer-right-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .triage-sub-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 4px 8px;
+  height: 28px;
+  padding: 0 9px;
   border-radius: 6px;
-  border: 1px solid rgba(36, 37, 34, 0.15);
-  background: rgba(255, 255, 255, 0.6);
-  font: 500 10px "DM Mono", monospace;
+  border: 1px solid rgba(36, 37, 34, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  font: 600 11px/1 "DM Mono", monospace;
   color: var(--ink);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.triage-sub-btn:hover {
+  background: #ffffff;
+  border-color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(36, 37, 34, 0.08);
 }
 
 .triage-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
   border-radius: 6px;
-  border: none;
+  border: 1px solid var(--ink);
   background: var(--ink);
   color: #f5f1e8;
-  font: 600 11px "DM Mono", monospace;
+  font: 600 11px/1 "DM Mono", monospace;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.triage-action-btn:hover {
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(36, 37, 34, 0.25);
 }
 
 .triage-empty-state {

@@ -494,6 +494,10 @@ export default function GlobeLocationPicker({
       credit: "© Esri, Maxar, Earthstar Geographics",
     })
 
+    satelliteProvider.errorEvent.addEventListener((e) => {
+      console.warn("Satellite imagery notice:", e)
+    })
+
     const viewer = new Cesium.Viewer(cesiumContainerRef.current, {
       animation: false,
       timeline: false,
@@ -505,9 +509,15 @@ export default function GlobeLocationPicker({
       fullscreenButton: false,
       infoBox: false,
       selectionIndicator: false,
+      skyBox: false,
       baseLayer: new Cesium.ImageryLayer(satelliteProvider),
       skyAtmosphere: new Cesium.SkyAtmosphere(),
     })
+
+    // Suppress fatal error modal popup and keep rendering smoothly
+    viewer.cesiumWidget.showErrorPanel = (title: string, message: string, error: any) => {
+      console.warn("Cesium render notice:", title, message, error)
+    }
 
     viewerRef.current = viewer
 
@@ -516,6 +526,11 @@ export default function GlobeLocationPicker({
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
       maximumLevel: 19,
     })
+
+    roadOverlayProvider.errorEvent.addEventListener((e) => {
+      console.warn("Road overlay imagery notice:", e)
+    })
+
     viewer.imageryLayers.addImageryProvider(roadOverlayProvider)
 
     viewer.scene.globe.enableLighting = false
@@ -619,6 +634,9 @@ export default function GlobeLocationPicker({
         maximumLevel: 19,
         credit: "© OpenStreetMap contributors",
       })
+      osmProvider.errorEvent.addEventListener((e) => {
+        console.warn("OSM imagery notice:", e)
+      })
       viewer.imageryLayers.addImageryProvider(osmProvider)
     } else {
       const satelliteProvider = new Cesium.UrlTemplateImageryProvider({
@@ -626,11 +644,17 @@ export default function GlobeLocationPicker({
         maximumLevel: 19,
         credit: "© Esri, Maxar",
       })
+      satelliteProvider.errorEvent.addEventListener((e) => {
+        console.warn("Satellite imagery notice:", e)
+      })
       viewer.imageryLayers.addImageryProvider(satelliteProvider)
 
       const roadOverlay = new Cesium.UrlTemplateImageryProvider({
         url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
         maximumLevel: 19,
+      })
+      roadOverlay.errorEvent.addEventListener((e) => {
+        console.warn("Road overlay imagery notice:", e)
       })
       viewer.imageryLayers.addImageryProvider(roadOverlay)
     }
