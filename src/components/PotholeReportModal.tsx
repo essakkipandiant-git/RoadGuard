@@ -15,6 +15,7 @@ import {
   Layers,
   Loader2,
   MapPin,
+  Navigation,
   RefreshCw,
   ShieldAlert,
   SlidersHorizontal,
@@ -45,6 +46,8 @@ import {
   supportExistingIssue,
 } from "../services/duplicateService"
 import { RoadIssueService } from "../services/roadIssueService"
+import { apiClient, mapBackendIssueToRoadIssue } from "../services/apiClient"
+import { validateMumbaiLocation } from "../services/mumbaiBoundaryClient"
 import PossibleDuplicateDialog from "./PossibleDuplicateDialog"
 
 type PotholeReportModalProps = {
@@ -53,6 +56,7 @@ type PotholeReportModalProps = {
   location: SelectedLocation | null
   onOpenGlobe: () => void
   onReportCreated?: (issue: RoadIssue) => void
+  onUpdateLocation?: (loc: SelectedLocation) => void
 }
 
 const DAMAGE_TYPES: {
@@ -131,7 +135,16 @@ export default function PotholeReportModal({
   location,
   onOpenGlobe,
   onReportCreated,
+  onUpdateLocation,
 }: PotholeReportModalProps) {
+  // Location & Boundary State
+  const [localLocation, setLocalLocation] = useState<SelectedLocation | null>(null)
+  const [isLocatingGPS, setIsLocatingGPS] = useState(false)
+  const activeLocation = localLocation || location
+  const boundaryStatus = activeLocation
+    ? validateMumbaiLocation(activeLocation.lat, activeLocation.lng)
+    : null
+
   // Form State
   const [selectedType, setSelectedType] = useState<DamageCategory>("cavity")
   const [selectedSeverity, setSelectedSeverity] =
@@ -191,21 +204,61 @@ export default function PotholeReportModal({
 
   // Check for duplicate issues when location or category updates
   useEffect(() => {
-    if (location && !isDuplicateDismissed) {
+    let isCancelled = false
+
+    async function checkDuplicates() {
+      if (!activeLocation || isDuplicateDismissed) return
+
+      // 1. Try real-time backend proximity check first
+      try {
+        const res = await apiClient.issues.checkDuplicate({
+          latitude: activeLocation.lat,
+          longitude: activeLocation.lng,
+          damageCategory: selectedType.toUpperCase(),
+          thresholdMeters: 40,
+        })
+
+        if (isCancelled) return
+
+        if (res.isDuplicate && res.matchedIssue) {
+          const matchedRoadIssue = mapBackendIssueToRoadIssue(res.matchedIssue)
+          setDuplicateResult({
+            isDuplicate: true,
+            existingIssue: matchedRoadIssue,
+            distanceMeters: Math.round(res.distanceMeters || 0),
+            categoryMatch: true,
+            confidenceScore: (res.confidencePercentage || 85) / 100,
+            reason:
+              res.reason ||
+              `Active road hazard detected ${Math.round(res.distanceMeters || 0)}m away.`,
+          })
+          setShowDuplicateDialog(true)
+          return
+        }
+      } catch {
+        // Fall back to local check if backend is unreachable
+      }
+
+      // 2. Local check fallback
       const allIssues = RoadIssueService.getAllIssues()
       const match = findPotentialDuplicates(
-        { lat: location.lat, lng: location.lng },
+        { lat: activeLocation.lat, lng: activeLocation.lng },
         selectedType,
         allIssues,
         40, // 40m threshold
       )
 
-      if (match.isDuplicate && match.existingIssue) {
+      if (match.isDuplicate && match.existingIssue && !isCancelled) {
         setDuplicateResult(match)
         setShowDuplicateDialog(true)
       }
     }
-  }, [location, selectedType, isDuplicateDismissed])
+
+    checkDuplicates()
+    return () => {
+      isCancelled = true
+    }
+  }, [activeLocation, selectedType, isDuplicateDismissed])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -231,22 +284,49 @@ export default function PotholeReportModal({
   }
 
   // User decides to support existing issue from duplicate dialog
-  const handleSupportExisting = () => {
+  const handleSupportExisting = async (
+    updateType: string = "STILL_EXISTS",
+    customNotes?: string,
+  ) => {
     if (!duplicateResult?.existingIssue) return
+    setIsSubmitting(true)
+    setUploadError(null)
+    const effectiveNotes =
+      customNotes?.trim() ||
+      notes?.trim() ||
+      `Community observation (${updateType.replace(/_/g, " ")}) recorded via citizen reporting.`
+
     try {
-      const updated = RoadIssueService.supportIssue(
-        duplicateResult.existingIssue.id,
-        {
-          userName: reporterName || "Local Resident",
-          photoUrl: selectedPhoto,
-          notes: notes || "Confirmed identical hazard at this location.",
-        },
-      )
+      let updated: RoadIssue
+      try {
+        const res = await apiClient.issues.createCommunityUpdate(
+          duplicateResult.existingIssue.id,
+          {
+            updateType,
+            description: effectiveNotes,
+            photos: [selectedPhoto],
+            latitude: activeLocation?.lat,
+            longitude: activeLocation?.lng,
+          },
+        )
+        updated = res.issue
+      } catch {
+        updated = await RoadIssueService.supportIssueLive(
+          duplicateResult.existingIssue.id,
+          {
+            userName: reporterName || "Local Resident",
+            photoUrl: selectedPhoto,
+            notes: effectiveNotes,
+          },
+        )
+      }
       setShowDuplicateDialog(false)
       setSubmittedReport(updated)
       onReportCreated?.(updated)
     } catch (err: any) {
-      setUploadError(err.message)
+      setUploadError(err.message || "Failed to confirm duplicate report.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -256,12 +336,66 @@ export default function PotholeReportModal({
     setShowDuplicateDialog(false)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      setUploadError("Geolocation is not supported by your browser.")
+      return
+    }
+    setIsLocatingGPS(true)
+    setUploadError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocatingGPS(false)
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        const check = validateMumbaiLocation(lat, lng)
+
+        const gpsLoc: SelectedLocation = {
+          lat,
+          lng,
+          address: check.isInsideMumbai
+            ? `GPS Captured: Ward ${check.wardName || "MCGM"}, Mumbai`
+            : `GPS Captured: [${lat.toFixed(4)}, ${lng.toFixed(4)}]`,
+          city: "Mumbai",
+          road: "Captured GPS Coordinate",
+        }
+        setLocalLocation(gpsLoc)
+        onUpdateLocation?.(gpsLoc)
+      },
+      (err) => {
+        setIsLocatingGPS(false)
+        setUploadError(`GPS capture failed: ${err.message}. You can manually pick on the 3D globe or use pilot presets.`)
+      },
+      { timeout: 10000, enableHighAccuracy: true },
+    )
+  }
+
+  const handleSelectPilotPreset = (preset: { name: string; lat: number; lng: number; address: string }) => {
+    const presetLoc: SelectedLocation = {
+      lat: preset.lat,
+      lng: preset.lng,
+      address: preset.address,
+      city: "Mumbai",
+      road: preset.name,
+    }
+    setLocalLocation(presetLoc)
+    onUpdateLocation?.(presetLoc)
+    setUploadError(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!location) {
+    if (!activeLocation) {
       setUploadError(
-        "Please select a location on the 3D Globe before submitting.",
+        "Please select a location or use GPS before submitting.",
       )
+      return
+    }
+
+    const boundaryCheck = validateMumbaiLocation(activeLocation.lat, activeLocation.lng)
+    if (!boundaryCheck.isInsideMumbai) {
+      setUploadError(boundaryCheck.message)
       return
     }
 
@@ -309,15 +443,15 @@ export default function PotholeReportModal({
         rawInferenceTimeMs: 15,
       }
 
-      const newIssue = RoadIssueService.createIssue({
+      const newIssue = await RoadIssueService.createIssueLive({
         title: `${DAMAGE_TYPES.find((t) => t.id === selectedType)?.label || "Road Damage"}`,
         category: selectedType,
         severity: selectedSeverity,
         status: "reported",
-        coordinates: { lat: location.lat, lng: location.lng },
-        address: location.address,
-        roadName: location.road || location.address.split(",")[0],
-        city: location.city || "Urban District",
+        coordinates: { lat: activeLocation.lat, lng: activeLocation.lng },
+        address: activeLocation.address,
+        roadName: activeLocation.road || activeLocation.address.split(",")[0],
+        city: activeLocation.city || "Mumbai",
         originalPhotoUrl: selectedPhoto,
         annotatedPhotoUrl:
           effectiveDetection.annotatedImageUrl || selectedPhoto,
@@ -326,6 +460,8 @@ export default function PotholeReportModal({
         reportedBy: reporterName || "Citizen Reporter",
         reporterName: reporterName || "Citizen Reporter",
         notes,
+        photoFile,
+        forceDuplicate: isDuplicateDismissed,
       })
 
       setSubmittedReport(newIssue)
@@ -344,6 +480,17 @@ export default function PotholeReportModal({
     onClose()
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   return (
@@ -352,6 +499,9 @@ export default function PotholeReportModal({
         <div className="report-modal-backdrop" onClick={onClose} />
 
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-modal-title"
           className="report-modal-card glass"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -428,7 +578,7 @@ export default function PotholeReportModal({
                 <p className="eyebrow">
                   <span /> AI ROAD TELEMETRY
                 </p>
-                <h2 className="modal-title">REPORT ROAD DAMAGE</h2>
+                <h2 id="report-modal-title" className="modal-title">REPORT ROAD DAMAGE</h2>
                 <p className="modal-subtitle">
                   Upload road photography to run automated computer vision
                   inspection and calculate explainable risk.
@@ -598,52 +748,193 @@ export default function PotholeReportModal({
                 </div>
               </div>
 
-              {/* 2. GEOGRAPHIC COORDINATES (3D GLOBE INTEGRATION) */}
+              {/* 2. GEOGRAPHIC COORDINATES (MUMBAI MCGM JURISDICTION VALIDATION) */}
               <div className="form-group">
                 <div className="selected-location-box glass">
                   <div className="location-box-header">
                     <div className="loc-label-group">
                       <MapPin size={16} className="text-vermilion" />
-                      <span>SELECTED ROAD COORDINATES</span>
+                      <span>MUNICIPAL LOCATION & COORDINATES (GREATER MUMBAI ONLY)</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={onOpenGlobe}
-                      className="repick-globe-btn"
-                      title="Adjust on 3D Globe"
-                    >
-                      <Globe size={13} />
-                      <span>Pick on 3D Globe</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUseGPS}
+                        className="repick-globe-btn"
+                        title="Capture device GPS location"
+                        disabled={isLocatingGPS}
+                      >
+                        {isLocatingGPS ? (
+                          <Loader2 size={13} className="animate-spin text-vermilion" />
+                        ) : (
+                          <Navigation size={13} className="text-vermilion" />
+                        )}
+                        <span>{isLocatingGPS ? "Locating..." : "Use GPS"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onOpenGlobe}
+                        className="repick-globe-btn"
+                        title="Pick location on 3D Globe"
+                      >
+                        <Globe size={13} />
+                        <span>3D Globe</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {location ? (
+                  {activeLocation ? (
                     <div className="location-verified-info">
-                      <strong>{location.address}</strong>
+                      <strong>{activeLocation.address}</strong>
                       <div className="coord-chips">
-                        <span>LAT: {location.lat.toFixed(5)}° N</span>
-                        <span>LNG: {location.lng.toFixed(5)}° W</span>
-                        <span className="verified-chip">
-                          <Check size={11} /> 3D TERRAIN VERIFIED
-                        </span>
+                        <span>LAT: {activeLocation.lat.toFixed(5)}° N</span>
+                        <span>LNG: {activeLocation.lng.toFixed(5)}° E</span>
+                        {boundaryStatus?.isInsideMumbai ? (
+                          <span className="verified-chip">
+                            <Check size={11} /> MCGM WARD {boundaryStatus.wardName || "VERIFIED"}
+                          </span>
+                        ) : (
+                          <span className="chip-outside-mumbai" style={{ backgroundColor: "#FEE2E2", color: "#B91C1C", border: "1px solid #FCA5A5", padding: "2px 8px", borderRadius: "9999px", fontSize: "11px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <AlertTriangle size={11} /> OUTSIDE GREATER MUMBAI
+                          </span>
+                        )}
                       </div>
+
+                      {/* Outside Mumbai warning banner */}
+                      {boundaryStatus && !boundaryStatus.isInsideMumbai && (
+                        <div
+                          className="outside-mumbai-alert"
+                          style={{
+                            marginTop: "8px",
+                            padding: "8px 12px",
+                            borderRadius: "6px",
+                            backgroundColor: "#FEF2F2",
+                            border: "1px solid #FECACA",
+                            color: "#991B1B",
+                            fontSize: "12px",
+                            lineHeight: "1.4",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                            <AlertTriangle size={14} className="text-rose-600" />
+                            <span>JURISDICTION ERROR</span>
+                          </div>
+                          <p style={{ marginTop: "4px", color: "#B91C1C" }}>
+                            {boundaryStatus.message}
+                          </p>
+                          <div style={{ marginTop: "6px", fontSize: "11px", color: "#7F1D1D" }}>
+                            Select one of the verified Mumbai pilot locations below:
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="no-location-prompt">
                       <p>
-                        No coordinates selected yet. Open the 3D globe to pick
-                        precise street location.
+                        No coordinates selected. Use device GPS, pick from the 3D globe, or select a verified Mumbai pilot location.
                       </p>
-                      <button
-                        type="button"
-                        onClick={onOpenGlobe}
-                        className="button button--primary"
-                      >
-                        <span>Launch 3D Globe Picker</span>
-                        <ArrowDownRight size={15} />
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={handleUseGPS}
+                          disabled={isLocatingGPS}
+                          className="button button--secondary"
+                          style={{ fontSize: "12px", padding: "6px 12px" }}
+                        >
+                          <Navigation size={13} />
+                          <span>{isLocatingGPS ? "Acquiring GPS..." : "Acquire GPS Coordinates"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={onOpenGlobe}
+                          className="button button--secondary"
+                          style={{ fontSize: "12px", padding: "6px 12px" }}
+                        >
+                          <Globe size={13} />
+                          <span>Open 3D Globe</span>
+                        </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* Pilot Quick-Select Presets for testing & evaluation */}
+                  <div
+                    className="pilot-presets-row"
+                    style={{
+                      marginTop: "10px",
+                      paddingTop: "8px",
+                      borderTop: "1px dashed rgba(0,0,0,0.1)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ fontSize: "11px", color: "#666", fontWeight: 600 }}>Mumbai Pilot Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSelectPilotPreset({
+                          name: "Marine Drive",
+                          lat: 18.9438,
+                          lng: 72.8232,
+                          address: "Marine Drive Promenade, Ward A, Mumbai",
+                        })
+                      }
+                      style={{
+                        fontSize: "11px",
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #CBD5E1",
+                        background: "#F8FAFC",
+                        cursor: "pointer",
+                      }}
+                    >
+                      📍 Marine Drive (Ward A)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSelectPilotPreset({
+                          name: "Shivaji Park",
+                          lat: 19.0269,
+                          lng: 72.8378,
+                          address: "Shivaji Park, Dadar West, Ward G/N, Mumbai",
+                        })
+                      }
+                      style={{
+                        fontSize: "11px",
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #CBD5E1",
+                        background: "#F8FAFC",
+                        cursor: "pointer",
+                      }}
+                    >
+                      📍 Dadar West (Ward G/N)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSelectPilotPreset({
+                          name: "Bandstand Promenade",
+                          lat: 19.0544,
+                          lng: 72.8267,
+                          address: "Bandstand Promenade, Bandra West, Ward H/W, Mumbai",
+                        })
+                      }
+                      style={{
+                        fontSize: "11px",
+                        padding: "3px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #CBD5E1",
+                        background: "#F8FAFC",
+                        cursor: "pointer",
+                      }}
+                    >
+                      📍 Bandra West (Ward H/W)
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -755,13 +1046,26 @@ export default function PotholeReportModal({
                 <button
                   type="submit"
                   className="button button--primary submit-report-btn"
-                  disabled={isSubmitting || !location}
+                  disabled={isSubmitting || !activeLocation || !boundaryStatus?.isInsideMumbai}
+                  title={
+                    !activeLocation
+                      ? "Select a location to submit"
+                      : !boundaryStatus?.isInsideMumbai
+                        ? "Location is outside Greater Mumbai"
+                        : "Submit report for municipal verification"
+                  }
                 >
                   {isSubmitting ? (
                     <span>Calculating Risk & Transmitting...</span>
                   ) : (
                     <>
-                      <span>Submit Verified Report</span>
+                      <span>
+                        {!activeLocation
+                          ? "Select Location to Submit"
+                          : !boundaryStatus?.isInsideMumbai
+                            ? "Outside Mumbai (Submission Disabled)"
+                            : "Submit Verified Report"}
+                      </span>
                       <ArrowDownRight size={16} />
                     </>
                   )}

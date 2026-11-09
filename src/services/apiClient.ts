@@ -1,0 +1,744 @@
+/**
+ * RoadGuard AI — Centralized Frontend API Client
+ * Connects React UI to the Express + SQLite backend via /api/v1
+ */
+
+import {
+  AIDetectionResult,
+  Coordinates,
+  DamageCategory,
+  IssueStatus,
+  RepairVerificationRecord,
+  RiskAssessment,
+  RoadClass,
+  RoadIssue,
+  SeverityLevel,
+  StatusHistoryItem,
+  SupportingEvidence,
+  UserRole,
+} from "../types/roadguard"
+
+const BASE_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+  "/api/v1"
+
+export interface ApiUser {
+  id: string
+  email: string
+  fullName: string
+  role: "CITIZEN" | "INSPECTOR" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN" | "FIELD_ADMIN"
+  departmentId?: string | null
+  phoneNumber?: string | null
+  isActive?: boolean
+}
+
+export interface DashboardMetricsData {
+  totalReported: number
+  activeHazards: number
+  criticalEmergencies: number
+  repairsInProgress: number
+  verifiedRepaired: number
+  assigned: number
+  underReview: number
+  rejected: number
+  averageRiskScore: number
+  communityConfirmations: number
+  wardBreakdown: Array<{
+    wardId: string
+    wardCode: string
+    name: string
+    count: number
+    criticalCount: number
+  }>
+  departmentBreakdown: Array<{
+    departmentId: string
+    name: string
+    count: number
+  }>
+  categoryBreakdown: Record<string, number>
+  severityBreakdown: Record<string, number>
+}
+
+export interface MunicipalMetadata {
+  departments: Array<{ id: string; name: string; description?: string; contactEmail?: string }>
+  wards: Array<{ id: string; name: string; wardCode: string; city: string; departmentId?: string }>
+  inspectors?: Array<{ id: string; fullName: string; email: string; role: string; departmentId?: string; phoneNumber?: string }>
+}
+
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+  message?: string
+  pagination?: {
+    page: number
+    limit: number
+    totalRecords: number
+    totalPages: number
+  }
+  error?: {
+    code: string
+    message: string
+    details?: any
+  }
+}
+
+export class ApiError extends Error {
+  code: string
+  statusCode: number
+  details?: any
+
+  constructor(message: string, code: string = "INTERNAL_ERROR", statusCode: number = 500, details?: any) {
+    super(message)
+    this.name = "ApiError"
+    this.code = code
+    this.statusCode = statusCode
+    this.details = details
+  }
+}
+
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<ApiResponse<T>> {
+  const url = `${BASE_URL}${endpoint}`
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(options.headers as Record<string, string>),
+  }
+
+  // If body is not FormData, ensure Content-Type is application/json
+  if (options.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json"
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: "include", // Include HTTP-only session cookies
+  })
+
+  let json: any
+  try {
+    json = await response.json()
+  } catch {
+    throw new ApiError(
+      `Server returned invalid JSON response (status ${response.status})`,
+      "INVALID_RESPONSE",
+      response.status,
+    )
+  }
+
+  if (!response.ok || !json.success) {
+    const error = json.error || {}
+    throw new ApiError(
+      error.message || `Request failed with status ${response.status}`,
+      error.code || "REQUEST_FAILED",
+      response.status,
+      error.details,
+    )
+  }
+
+  return json
+}
+
+/**
+ * Maps backend uppercase strings to frontend lowercase enums
+ */
+export function mapBackendCategory(cat?: string): DamageCategory {
+  const c = cat?.toLowerCase()
+  if (c === "edge" || c === "edge_subsidence" || c === "edge-subsidence") {
+    return "edge"
+  }
+  if (c === "cavity" || c === "crack" || c === "depression" || c === "rutting") {
+    return c
+  }
+  return "cavity"
+}
+
+export function mapBackendSeverity(sev?: string): SeverityLevel {
+  const s = sev?.toLowerCase()
+  if (s === "critical" || s === "high" || s === "moderate" || s === "low") {
+    return s
+  }
+  return "moderate"
+}
+
+export function mapBackendStatus(st?: string): IssueStatus {
+  switch (st?.toUpperCase()) {
+    case "REPORTED":
+      return "reported"
+    case "UNDER_REVIEW":
+    case "VERIFIED":
+      return "under_review"
+    case "ASSIGNED":
+      return "assigned"
+    case "IN_PROGRESS":
+      return "in_progress"
+    case "REPAIR_COMPLETED":
+    case "CLOSED":
+      return "verified_repaired"
+    case "REOPENED":
+      return "reopened"
+    case "REJECTED":
+      return "rejected"
+    default:
+      return "reported"
+  }
+}
+
+export function mapBackendRole(role?: string): UserRole {
+  switch (role?.toUpperCase()) {
+    case "SUPER_ADMIN":
+    case "DEPARTMENT_ADMIN":
+      return "authority"
+    case "INSPECTOR":
+      return "inspector"
+    case "CITIZEN":
+    default:
+      return "citizen"
+  }
+}
+
+/**
+ * Transforms a raw backend RoadIssue object into a rich frontend RoadIssue model
+ */
+export function mapBackendIssueToRoadIssue(raw: any): RoadIssue {
+  const category = mapBackendCategory(raw.damageCategory)
+  const severity = mapBackendSeverity(raw.damageSeverity)
+  const status = mapBackendStatus(raw.status)
+  const depthMm = typeof raw.depth === "number" ? raw.depth : category === "cavity" ? 60 : 25
+
+  // Primary original & annotated photo resolution
+  const resolveImgUrl = (img: any): string | undefined => img?.imageUrl || img?.url
+
+  const originalImg =
+    resolveImgUrl(raw.images?.find((img: any) => img.imageType === "ORIGINAL_REPORT" || img.type === "ORIGINAL" || img.imageType === "EVIDENCE")) ||
+    resolveImgUrl(raw.images?.[0]) ||
+    "/images/detection_asphalt.jpg"
+
+  const annotatedImg =
+    resolveImgUrl(raw.images?.find((img: any) => img.imageType === "AI_ANNOTATED" || img.type === "ANNOTATED")) ||
+    originalImg
+
+  const repairAfterImg =
+    resolveImgUrl(raw.images?.find((img: any) => img.imageType === "REPAIR_AFTER" || img.type === "AFTER"))
+
+  // Construct explainable risk assessment
+  const riskScore = typeof raw.riskScore === "number" ? raw.riskScore : 50
+  const riskLevel: SeverityLevel =
+    riskScore >= 80 ? "critical" : riskScore >= 65 ? "high" : riskScore >= 40 ? "moderate" : "low"
+
+  let parsedFactors: any = null
+  if (typeof raw.riskFactors === "string") {
+    try {
+      parsedFactors = JSON.parse(raw.riskFactors)
+    } catch {}
+  } else if (raw.riskFactors && typeof raw.riskFactors === "object") {
+    parsedFactors = raw.riskFactors
+  }
+
+  const riskFactors = {
+    damageSeverity: parsedFactors?.damageSeverity ?? (riskScore >= 70 ? 85 : 45),
+    roadUsage: parsedFactors?.roadUsage ?? (riskScore >= 70 ? 75 : 50),
+    sensitiveProximity: parsedFactors?.sensitiveProximity ?? (riskScore >= 80 ? 80 : 40),
+    supportingReports: parsedFactors?.supportingReports ?? (raw.confirmationsCount ? 40 : 20),
+    unresolvedDuration: parsedFactors?.unresolvedDuration ?? 20,
+  }
+
+  const riskAssessment: RiskAssessment = {
+    score: riskScore,
+    level: riskLevel,
+    factors: riskFactors,
+    weights: {
+      damageSeverity: 0.35,
+      roadUsage: 0.25,
+      sensitiveProximity: 0.15,
+      supportingReports: 0.15,
+      unresolvedDuration: 0.1,
+    },
+    weightedContributions: {
+      damageSeverity: Math.round(riskFactors.damageSeverity * 0.35 * 10) / 10,
+      roadUsage: Math.round(riskFactors.roadUsage * 0.25 * 10) / 10,
+      sensitiveProximity: Math.round(riskFactors.sensitiveProximity * 0.15 * 10) / 10,
+      supportingReports: Math.round(riskFactors.supportingReports * 0.15 * 10) / 10,
+      unresolvedDuration: Math.round(riskFactors.unresolvedDuration * 0.1 * 10) / 10,
+    },
+    explanation:
+      raw.description ||
+      `${riskLevel.toUpperCase()} priority (Score: ${riskScore}/100) identified on ${raw.address || "municipal road"}.`,
+    recommendedAction:
+      riskScore >= 80
+        ? "Immediate emergency dispatch: deploy rapid asphalt hot-mix crew within 24-48 hours."
+        : riskScore >= 60
+          ? "Standard repair queue: schedule repair crew within 5-7 business days."
+          : "Routine municipal maintenance monitoring.",
+    calculatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
+    roadUsageDetails: {
+      roadClass: "arterial" as RoadClass,
+      estimatedVehiclesPerHour: 350,
+      isEstimated: true,
+    },
+    proximityDetails: {
+      nearestSensitiveType: "crossing",
+      distanceMeters: 85,
+      isEstimated: true,
+    },
+  }
+
+  // AI Detection object
+  const detection: AIDetectionResult = {
+    engine: "edge_cv",
+    category,
+    confidence: 0.95,
+    boxes: [
+      {
+        id: `box-${raw.id || "1"}`,
+        x: 25,
+        y: 30,
+        width: 50,
+        height: 40,
+        category,
+        confidence: 0.95,
+        label: `${category.toUpperCase()} · 95%`,
+      },
+    ],
+    surfaceLossRatio: category === "cavity" ? 0.18 : 0.08,
+    depthEstimateMm: depthMm,
+    severity,
+    originalImageUrl: originalImg,
+    annotatedImageUrl: annotatedImg,
+    rawInferenceTimeMs: 16,
+  }
+
+  // Supporting confirmations
+  const supportingReports: SupportingEvidence[] = (raw.confirmations || []).map((c: any, index: number) => ({
+    id: c.id || `SUP-${index + 1}`,
+    userId: c.userId || `usr-${index + 1}`,
+    userName: c.user?.fullName || "Verified Citizen",
+    userRole: mapBackendRole(c.user?.role),
+    timestamp: c.createdAt || new Date().toISOString(),
+    notes: c.notes || "Confirmed identical road hazard at this location.",
+    isConfirmed: true,
+  }))
+
+  // Status history
+  const statusHistory: StatusHistoryItem[] = (raw.statusHistory || []).map((h: any, index: number) => ({
+    id: h.id || `HIST-${index + 1}`,
+    fromStatus: h.fromStatus ? mapBackendStatus(h.fromStatus) : null,
+    toStatus: mapBackendStatus(h.toStatus),
+    timestamp: h.createdAt || new Date().toISOString(),
+    actorRole: mapBackendRole(h.changedBy?.role || h.actor?.role),
+    actorName: h.changedBy?.fullName || h.actor?.fullName || "System Dispatcher",
+    notes: h.remarks || "Status transition recorded.",
+  }))
+
+  // Work order / repair record
+  const latestWorkOrder = raw.workOrders?.[0]
+  const repair: RepairVerificationRecord = {
+    assignedCrew: latestWorkOrder?.assignedCrew || (status === "assigned" || status === "in_progress" ? "London Highways Asphalt Crew 4" : undefined),
+    assignedAt: latestWorkOrder?.scheduledDate || raw.updatedAt,
+    workOrderNumber: latestWorkOrder?.orderNumber || (raw.reportNumber ? `WO-${raw.reportNumber.replace("RG-", "")}` : undefined),
+    repairCompletedAt: status === "verified_repaired" ? raw.updatedAt : undefined,
+    afterPhotoUrl: repairAfterImg,
+    verificationDecision: status === "verified_repaired" ? "approved" : "pending",
+    verifiedAt: status === "verified_repaired" ? raw.updatedAt : undefined,
+  }
+
+  return {
+    id: raw.id,
+    trackingCode: raw.reportNumber || raw.id?.slice(0, 8) || "RG-10000",
+    title: raw.title || `${category.toUpperCase()} Hazard`,
+    category,
+    severity,
+    status,
+    coordinates: {
+      lat: Number(raw.latitude) || 51.5074,
+      lng: Number(raw.longitude) || -0.1278,
+    },
+    address: raw.address || "London, UK",
+    roadName: raw.address?.split(",")?.[0] || "Municipal Road",
+    city: raw.ward?.city || "London",
+    originalPhotoUrl: originalImg,
+    annotatedPhotoUrl: annotatedImg,
+    detection,
+    risk: riskAssessment,
+    supportingReports,
+    supportingCount: raw.confirmationsCount || raw._count?.confirmations || (supportingReports.length > 0 ? supportingReports.length : 1),
+    statusHistory,
+    repair,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    updatedAt: raw.updatedAt || new Date().toISOString(),
+    reportedBy: raw.reportedBy?.fullName || "Citizen Reporter",
+    notes: raw.description,
+    wardId: raw.wardId,
+    departmentId: raw.departmentId,
+    wardName: raw.ward?.name,
+    departmentName: raw.department?.name,
+    governmentReferenceId: raw.governmentReferenceId,
+    governmentPortalUrl: raw.governmentPortalUrl,
+    officialDepartmentName: raw.officialDepartmentName,
+    officialContactInfo: raw.officialContactInfo,
+    externalStatus: raw.externalStatus,
+    assignedInspectorId: raw.assignedInspectorId || raw.assignedInspector?.id,
+    assignedInspectorName: raw.assignedInspector?.fullName,
+    reportedById: raw.reportedById || raw.reportedBy?.id,
+  }
+}
+
+/**
+ * Complete RoadGuard Frontend API Client
+ */
+export const apiClient = {
+  // Authentication & Session
+  auth: {
+    async register(data: { fullName: string; email: string; password: string; phoneNumber?: string }) {
+      const res = await request<{ user: ApiUser }>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+      return res.data.user
+    },
+
+    async login(credentials: { email: string; password: string }) {
+      const res = await request<{ user: ApiUser; token?: string }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      })
+      return res.data.user
+    },
+
+    async logout() {
+      await request("/auth/logout", {
+        method: "POST",
+      })
+    },
+
+    async getMe() {
+      const res = await request<{ user: ApiUser }>("/auth/me", {
+        method: "GET",
+      })
+      return res.data.user
+    },
+  },
+
+  // Road Issues
+  issues: {
+    async list(params: {
+      status?: string
+      severity?: string
+      category?: string
+      wardId?: string
+      departmentId?: string
+      search?: string
+      page?: number
+      limit?: number
+    } = {}) {
+      const query = new URLSearchParams()
+      if (params.status && params.status !== "all") query.set("status", params.status.toUpperCase())
+      if (params.severity && params.severity !== "all") query.set("severity", params.severity.toUpperCase())
+      if (params.category && params.category !== "all") query.set("category", params.category.toUpperCase())
+      if (params.wardId && params.wardId !== "all") query.set("wardId", params.wardId)
+      if (params.departmentId && params.departmentId !== "all") query.set("departmentId", params.departmentId)
+      if (params.search) query.set("search", params.search)
+      if (params.page) query.set("page", String(params.page))
+      if (params.limit) query.set("limit", String(params.limit))
+
+      const queryString = query.toString() ? `?${query.toString()}` : ""
+      const res = await request<{ issues: any[] }>(`/issues${queryString}`, {
+        method: "GET",
+      })
+      return {
+        issues: (res.data.issues || []).map(mapBackendIssueToRoadIssue),
+        pagination: res.pagination,
+      }
+    },
+
+    async getById(id: string) {
+      const res = await request<{ issue: any }>(`/issues/${encodeURIComponent(id)}`, {
+        method: "GET",
+      })
+      return mapBackendIssueToRoadIssue(res.data.issue)
+    },
+
+    async getMyReports() {
+      const res = await request<{ issues: any[] }>("/issues/my-reports", {
+        method: "GET",
+      })
+      return (res.data.issues || []).map(mapBackendIssueToRoadIssue)
+    },
+
+    async create(data: {
+      title: string
+      description?: string
+      damageCategory: string
+      damageSeverity: string
+      depth?: number
+      latitude: number
+      longitude: number
+      address: string
+      roadClass?: string
+      forceDuplicate?: boolean
+    }) {
+      const res = await request<{ issue: any }>("/issues", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+      return mapBackendIssueToRoadIssue(res.data.issue)
+    },
+
+    async support(id: string, notes?: string) {
+      const res = await request<{ issue: any }>(`/issues/${encodeURIComponent(id)}/support`, {
+        method: "POST",
+        body: JSON.stringify({ notes }),
+      })
+      return mapBackendIssueToRoadIssue(res.data.issue)
+    },
+
+    async updateStatus(id: string, data: { targetStatus: string; remarks?: string; evidencePhotoUrl?: string }) {
+      const res = await request<{ issue: any }>(`/issues/${encodeURIComponent(id)}/status`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      })
+      return mapBackendIssueToRoadIssue(res.data.issue)
+    },
+
+    async checkDuplicate(params: {
+      latitude: number
+      longitude: number
+      damageCategory?: string
+      thresholdMeters?: number
+    }) {
+      const res = await request<{
+        isDuplicate: boolean
+        matchedIssue?: any
+        distanceMeters?: number
+        confidencePercentage?: number
+        reason?: string
+      }>("/issues/check-duplicate", {
+        method: "POST",
+        body: JSON.stringify(params),
+      })
+      return res.data
+    },
+
+    async calculateRisk(params: {
+      damageCategory?: string
+      depth?: number
+      roadClass?: string
+      trafficVolume?: string
+      proximityType?: string
+      proximityMeters?: number
+      supportingReportsCount?: number
+      daysUnresolved?: number
+    }) {
+      const res = await request<{
+        score: number
+        level: string
+        factors: any
+        breakdown: any
+        rationale: string
+        action: string
+      }>("/issues/calculate-risk", {
+        method: "POST",
+        body: JSON.stringify(params),
+      })
+      return res.data
+    },
+
+    async getTimeline(idOrReportNumber: string) {
+      const res = await request<{
+        issue: any
+        timeline: any[]
+        totalEvents: number
+      }>(`/issues/${encodeURIComponent(idOrReportNumber)}/timeline`, {
+        method: "GET",
+      })
+      return {
+        issue: mapBackendIssueToRoadIssue(res.data.issue),
+        timeline: res.data.timeline,
+        totalEvents: res.data.totalEvents,
+      }
+    },
+
+    async updateOfficialInfo(
+      id: string,
+      data: {
+        governmentReferenceId?: string | null
+        governmentPortalUrl?: string | null
+        officialDepartmentName?: string | null
+        officialContactInfo?: string | null
+        externalStatus?: string | null
+      },
+    ) {
+      const res = await request<{ issue: any }>(
+        `/issues/${encodeURIComponent(id)}/official-info`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        },
+      )
+      return mapBackendIssueToRoadIssue(res.data.issue)
+    },
+
+    async executeAction(
+      id: string,
+      data: {
+        actionType: string
+        targetStatus?: string | null
+        assignedInspectorId?: string | null
+        departmentId?: string | null
+        workDescription?: string | null
+        priority?: "EMERGENCY" | "HIGH" | "MEDIUM" | "LOW"
+        scheduledDate?: string | null
+        reason?: string | null
+        remarks?: string | null
+        evidencePhotos?: string[]
+      },
+    ) {
+      const res = await request<{ issue: any; approvalRecord: any }>(
+        `/issues/${encodeURIComponent(id)}/actions`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      )
+      return {
+        issue: mapBackendIssueToRoadIssue(res.data.issue),
+        approvalRecord: res.data.approvalRecord,
+      }
+    },
+
+    async createCommunityUpdate(
+      issueId: string,
+      data: {
+        updateType:
+          | "STILL_EXISTS"
+          | "WORSENED"
+          | "REPAIR_IN_PROGRESS"
+          | "APPEARS_REPAIRED"
+          | "HAZARD_CLEARED"
+          | string
+        description: string
+        photos?: string[]
+        latitude?: number
+        longitude?: number
+      },
+    ) {
+      const res = await request<{ update: any; issue: any }>(
+        `/issues/${encodeURIComponent(issueId)}/community-updates`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      )
+      return {
+        update: res.data.update,
+        issue: mapBackendIssueToRoadIssue(res.data.issue),
+      }
+    },
+
+    async getCommunityUpdates(issueId: string) {
+      const res = await request<{ updates: any[] }>(
+        `/issues/${encodeURIComponent(issueId)}/community-updates`,
+        {
+          method: "GET",
+        },
+      )
+      return res.data.updates || []
+    },
+
+    async reviewCommunityUpdate(
+      issueId: string,
+      updateId: string,
+      data: {
+        decision: "APPROVED" | "REJECTED" | "FLAGGED"
+        adminRemarks: string
+      },
+    ) {
+      const res = await request<{ update: any; issue: any }>(
+        `/issues/${encodeURIComponent(issueId)}/community-updates/${encodeURIComponent(updateId)}/review`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        },
+      )
+      return {
+        update: res.data.update,
+        issue: mapBackendIssueToRoadIssue(res.data.issue),
+      }
+    },
+  },
+
+  // File Uploads
+  uploads: {
+    async uploadImage(file: File) {
+      const formData = new FormData()
+      formData.append("photo", file)
+
+      const res = await request<{
+        url: string
+        publicId?: string
+        fileName: string
+        size: number
+        format: string
+      }>("/uploads/image", {
+        method: "POST",
+        body: formData,
+      })
+      return res.data
+    },
+
+    async attachIssueImage(issueId: string, file: File, imageType: string = "ORIGINAL_REPORT") {
+      const formData = new FormData()
+      formData.append("photo", file)
+      formData.append("imageType", imageType)
+
+      const res = await request<{ image: any }>(`/issues/${encodeURIComponent(issueId)}/images`, {
+        method: "POST",
+        body: formData,
+      })
+      return res.data.image
+    },
+  },
+
+  // Analytics & Dashboard Metrics
+  analytics: {
+    async getDashboard(filters: {
+      departmentId?: string
+      wardId?: string
+      startDate?: string
+      endDate?: string
+    } = {}): Promise<DashboardMetricsData> {
+      const query = new URLSearchParams()
+      if (filters.departmentId && filters.departmentId !== "all") query.set("departmentId", filters.departmentId)
+      if (filters.wardId && filters.wardId !== "all") query.set("wardId", filters.wardId)
+      if (filters.startDate) query.set("startDate", filters.startDate)
+      if (filters.endDate) query.set("endDate", filters.endDate)
+
+      const qs = query.toString() ? `?${query.toString()}` : ""
+      const res = await request<DashboardMetricsData>(`/analytics/dashboard${qs}`, {
+        method: "GET",
+      })
+      return res.data
+    },
+
+    async getMetadata(): Promise<MunicipalMetadata> {
+      const res = await request<MunicipalMetadata>("/analytics/metadata", {
+        method: "GET",
+      })
+      return res.data
+    },
+  },
+
+  // Health
+  health: {
+    async check() {
+      const res = await request<{ status: string; uptimeSeconds: number }>("/../health", {
+        method: "GET",
+      })
+      return res.data
+    },
+  },
+}
+

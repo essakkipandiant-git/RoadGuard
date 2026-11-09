@@ -3826,6 +3826,12 @@ footer {
   padding: 8px 18px;
   border-bottom: 1px solid rgba(36, 37, 34, 0.08);
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.drawer-nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .drawer-tab-btn {
@@ -4466,7 +4472,7 @@ footer {
 }
 
 /* =========================================================================
-   CITY TRIAGE OPERATIONS DASHBOARD
+   CITY TRIAGE OPERATIONS DASHBOARD (POLISHED MUNICIPAL EXECUTIVE UI)
    ========================================================================= */
 .triage-modal-overlay {
   position: fixed;
@@ -4475,91 +4481,171 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .triage-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(24, 25, 22, 0.65);
-  backdrop-filter: blur(6px);
+  background: rgba(18, 19, 16, 0.72);
+  backdrop-filter: blur(8px);
 }
 
 .triage-modal-container {
   position: relative;
   z-index: 2;
-  width: min(1200px, 100%);
-  max-height: 92vh;
+  width: min(1280px, 96vw);
+  max-height: 94vh;
   display: flex;
   flex-direction: column;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  background: rgba(245, 241, 232, 0.95);
-  backdrop-filter: blur(28px) saturate(180%);
-  box-shadow: 0 30px 80px rgba(36, 37, 34, 0.35);
-  color: var(--ink);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: #fbf9f5;
+  box-shadow: 0 32px 90px rgba(18, 19, 16, 0.35);
+  color: #181916;
   overflow: hidden;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* --- Top Header --- */
 .triage-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 28px;
+  padding: 18px 28px;
+  background: #ffffff;
   border-bottom: 1px solid rgba(36, 37, 34, 0.08);
+  flex-shrink: 0;
+}
+
+.triage-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.triage-title-group .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #e65336;
+  text-transform: uppercase;
+}
+
+.triage-title-group .eyebrow span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e65336;
+  box-shadow: 0 0 8px #e65336;
+  animation: pulse 2s infinite;
 }
 
 .triage-heading {
-  font: 800 22px "DM Mono", monospace;
+  font-family: "Inter", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  margin: 4px 0 0;
+  color: #181916;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .triage-top-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .triage-role-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(36, 37, 34, 0.15);
-  background: rgba(255, 255, 255, 0.7);
-  font: 600 11px "DM Mono", monospace;
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  background: #fbf9f5;
+  color: #181916;
+  font-size: 12px;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.triage-role-pill:hover {
+  background: #ffffff;
+  border-color: rgba(36, 37, 34, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.triage-role-pill label {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: #71736b;
+  letter-spacing: 0.05em;
+}
+
+.triage-role-pill strong {
+  font-weight: 600;
+  color: #181916;
+}
+
+.triage-role-pill .switch-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #e65336;
+  background: rgba(230, 83, 54, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 2px;
 }
 
 .role-dropdown-clean {
   border: none;
   background: transparent;
-  font: 600 11px "DM Mono", monospace;
+  font: 600 11px "Inter", sans-serif;
   color: var(--ink);
   cursor: pointer;
 }
 
 .triage-icon-btn,
 .triage-close-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 999px;
-  border: 1px solid rgba(36, 37, 34, 0.15);
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--ink);
+  border-radius: 50%;
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  background: #ffffff;
+  color: #181916;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
+.triage-icon-btn:hover,
+.triage-close-btn:hover {
+  background: #f0eee9;
+  transform: scale(1.04);
+}
+
+/* --- Metrics Grid --- */
 .triage-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding: 16px 28px;
+  background: #ffffff;
   border-bottom: 1px solid rgba(36, 37, 34, 0.08);
+  flex-shrink: 0;
 }
 
 @media (max-width: 900px) {
@@ -4569,22 +4655,29 @@ footer {
 }
 
 .triage-metric-card {
-  padding: 14px 16px;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
   border: 1px solid rgba(36, 37, 34, 0.08);
-  background: rgba(255, 255, 255, 0.65);
+  background: #faf8f5;
+  transition: transform 0.15s ease;
 }
 
 .triage-metric-card.highlight-vermilion {
   border-color: rgba(230, 83, 54, 0.35);
-  background: rgba(230, 83, 54, 0.06);
+  background: rgba(230, 83, 54, 0.04);
 }
 
 .triage-metric-card small {
   display: block;
-  font: 9px "DM Mono", monospace;
-  letter-spacing: 0.06em;
-  color: #8c8d87;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #71736b;
+  text-transform: uppercase;
   margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -4599,90 +4692,224 @@ footer {
 }
 
 .metric-num-row strong {
-  font: 800 22px/1 "DM Mono", monospace;
+  font-family: "Inter", sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #181916;
 }
 
 .metric-tag {
-  font: 600 10px/1.2 "DM Mono", monospace;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
   color: #687567;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(36, 37, 34, 0.05);
   white-space: nowrap;
   flex-shrink: 0;
-  text-align: right;
 }
 
 .metric-tag.urgent {
-  color: var(--red);
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
   font-weight: 700;
 }
 
-.metric-tag.verified {
-  color: #047857;
+.metric-tag.verified,
+.metric-tag.metric-tag-verified {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  color: #047857 !important;
+  background: #d1fae5 !important;
+  border: 1px solid #a7f3d0 !important;
   font-weight: 700;
+  padding: 2px 7px !important;
 }
 
-.triage-filters-bar {
+/* --- Modern Controls Panel --- */
+.triage-controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 28px;
+  background: #f5f2eb;
+  border-bottom: 1px solid rgba(36, 37, 34, 0.08);
+  flex-shrink: 0;
+}
+
+.triage-search-actions-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 28px;
-  border-bottom: 1px solid rgba(36, 37, 34, 0.08);
-  background: rgba(255, 255, 255, 0.4);
-}
-
-@media (max-width: 800px) {
-  .triage-filters-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  gap: 12px;
 }
 
 .triage-search-input-wrap {
   position: relative;
   flex: 1;
+  min-width: 0;
 }
 
 .triage-search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: #8c8d87;
+  pointer-events: none;
 }
 
 .triage-search-input {
   width: 100%;
-  padding: 9px 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(36, 37, 34, 0.15);
+  height: 40px;
+  padding: 0 36px 0 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 37, 34, 0.14);
   background: #ffffff;
-  font: 13px "Inter", sans-serif;
-  color: var(--ink);
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  color: #181916;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
 
-.triage-filters-group {
+.triage-search-input:focus {
+  border-color: #e65336;
+  box-shadow: 0 0 0 3px rgba(230, 83, 54, 0.12);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e6e4df;
+  border: none;
+  color: #71736b;
+  cursor: pointer;
+}
+
+.triage-action-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.triage-reset-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 37, 34, 0.14);
+  background: #ffffff;
+  color: #71736b;
+  font-family: "Inter", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.triage-reset-filters-btn:hover {
+  background: #f0eee9;
+  color: #181916;
+}
+
+.triage-report-hazard-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: #e65336;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(230, 83, 54, 0.25);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.triage-report-hazard-btn:hover {
+  background: #cf4327;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 83, 54, 0.35);
+}
+
+.triage-filter-selectors-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.triage-select-filter {
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(36, 37, 34, 0.15);
+.triage-filter-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #ffffff;
-  font: 500 11px "DM Mono", monospace;
-  color: var(--ink);
-  cursor: pointer;
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  border-radius: 8px;
+  padding: 2px 8px 2px 10px;
+  height: 34px;
+  box-sizing: border-box;
 }
 
-.triage-add-btn {
-  padding: 8px 16px;
+.triage-filter-select-wrap label {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: #8c8d87;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.triage-select-filter {
+  border: none;
+  background: transparent;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
-  border-radius: 999px;
+  font-weight: 500;
+  color: #181916;
+  outline: none;
+  cursor: pointer;
+  padding-right: 4px;
 }
 
+.triage-match-count-pill {
+  margin-left: auto;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  color: #71736b;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(36, 37, 34, 0.05);
+  white-space: nowrap;
+}
+
+/* --- Issue Cards Grid --- */
 .triage-table-container {
   flex: 1;
   overflow-y: auto;
@@ -4691,11 +4918,11 @@ footer {
 
 .triage-cards-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .triage-cards-grid {
     grid-template-columns: 1fr;
   }
@@ -4703,29 +4930,31 @@ footer {
 
 .triage-issue-card {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 110px minmax(0, 1fr);
   gap: 14px;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid rgba(36, 37, 34, 0.1);
-  background: rgba(255, 255, 255, 0.7);
+  background: #ffffff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
 }
 
 .triage-issue-card:hover {
-  border-color: var(--red);
-  background: #ffffff;
+  border-color: #e65336;
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(36, 37, 34, 0.1);
+  box-shadow: 0 10px 24px rgba(230, 83, 54, 0.1);
 }
 
 .triage-card-img-col {
   position: relative;
-  aspect-ratio: 1;
+  width: 110px;
+  height: 110px;
   border-radius: 10px;
   overflow: hidden;
   background: #181916;
+  flex-shrink: 0;
 }
 
 .triage-card-thumb {
@@ -4739,8 +4968,12 @@ footer {
   top: 6px;
   left: 6px;
   padding: 3px 6px;
-  border-radius: 6px;
-  font: 700 9px "DM Mono", monospace;
+  border-radius: 5px;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .risk-badge-corner.critical {
@@ -4774,30 +5007,86 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
+}
+
+.tracking-code-pill.small {
+  font-family: "DM Mono", monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f0eee9;
+  color: #242522;
+}
+
+.status-pill {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.status-pill.reported {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.under-review {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.status-pill.assigned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-pill.in-progress {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-pill.awaiting-verification {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.status-pill.verified-repaired {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-pill.reopened {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .card-category-tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px;
+  padding: 2px 5px;
   border-radius: 4px;
-  background: rgba(36, 37, 34, 0.06);
-  font: 600 9px/1.2 "DM Mono", monospace;
-  color: #687567;
-  letter-spacing: 0.05em;
+  background: rgba(36, 37, 34, 0.05);
+  font-family: "DM Mono", monospace;
+  font-size: 9px;
+  font-weight: 600;
+  color: #71736b;
   text-transform: uppercase;
-  white-space: nowrap;
-  flex-shrink: 0;
+  letter-spacing: 0.04em;
 }
 
 .triage-card-title {
-  font-size: 15px;
+  font-family: "Inter", sans-serif;
+  font-size: 14.5px;
   font-weight: 700;
   margin: 0 0 2px;
-  color: var(--ink);
-  line-height: 1.25;
+  color: #181916;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4807,19 +5096,21 @@ footer {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
-  color: #687567;
-  margin: 0 0 6px;
+  color: #71736b;
+  margin: 0 0 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .triage-card-explanation-snippet {
-  font-size: 11px;
-  color: var(--ink);
+  font-family: "Inter", sans-serif;
+  font-size: 11.5px;
+  color: #4a4e46;
   line-height: 1.4;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -4832,7 +5123,7 @@ footer {
   justify-content: space-between;
   gap: 8px;
   border-top: 1px solid rgba(36, 37, 34, 0.08);
-  padding-top: 10px;
+  padding-top: 8px;
   margin-top: auto;
 }
 
@@ -4840,17 +5131,26 @@ footer {
   display: flex;
   align-items: center;
   gap: 5px;
-  font: 11px/1.2 "DM Mono", monospace;
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
   color: #8c8d87;
   min-width: 0;
-  flex-shrink: 1;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .footer-left-metrics strong {
-  color: var(--ink);
+  color: #181916;
+}
+
+.ward-truncate {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #71736b;
 }
 
 .footer-right-actions {
@@ -4870,48 +5170,44 @@ footer {
   padding: 0 9px;
   border-radius: 6px;
   border: 1px solid rgba(36, 37, 34, 0.16);
-  background: rgba(255, 255, 255, 0.9);
-  font: 600 11px/1 "DM Mono", monospace;
-  color: var(--ink);
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #242522;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
   box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
 .triage-sub-btn:hover {
-  background: #ffffff;
-  border-color: var(--ink);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(36, 37, 34, 0.08);
+  background: #f0eee9;
+  border-color: #242522;
 }
 
 .triage-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   height: 28px;
-  padding: 0 11px;
+  padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--ink);
-  background: var(--ink);
-  color: #f5f1e8;
-  font: 600 11px/1 "DM Mono", monospace;
+  border: 1px solid #181916;
+  background: #181916;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
   box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
 .triage-action-btn:hover {
   background: #000000;
-  border-color: #000000;
-  color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(36, 37, 34, 0.25);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
 .triage-empty-state {
@@ -4927,8 +5223,9 @@ footer {
 }
 
 .triage-empty-state h3 {
-  font: 800 16px "DM Mono", monospace;
+  font: 700 16px "Inter", sans-serif;
   margin: 0;
+  color: #181916;
 }
 
 .triage-empty-state p {
@@ -4983,5 +5280,298 @@ footer {
   height: 8px;
   border-radius: 999px;
   background: #10b981;
+}
+
+/* =========================================================================
+   AUTHENTICATION & PILOT PROFILE STYLES (PHASE 9)
+   ========================================================================= */
+
+.nav-user-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  font: 600 12px "Inter", sans-serif;
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+
+.nav-user-button:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(36, 37, 34, 0.25);
+  transform: translateY(-1px);
+}
+
+.nav-avatar-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font: 700 10px "Inter", sans-serif;
+}
+
+.auth-modal-card {
+  max-width: 620px;
+}
+
+.auth-nav-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 18px 0 22px;
+  padding: 4px;
+  background: rgba(36, 37, 34, 0.06);
+  border-radius: 12px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: 500 12px "Inter", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.auth-tab-btn.active {
+  background: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.seeded-account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.persona-card {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(36, 37, 34, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  color: var(--ink);
+}
+
+.persona-card:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--red);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.persona-card.active-persona {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.persona-icon-col {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(36, 37, 34, 0.05);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.persona-info-col {
+  flex: 1;
+}
+
+.persona-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.persona-top strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.persona-info-col p {
+  font-size: 11px;
+  color: rgba(36, 37, 34, 0.7);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font: 700 9px "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-super_admin {
+  background: rgba(230, 83, 54, 0.14);
+  color: #c4381c;
+  border: 1px solid rgba(230, 83, 54, 0.25);
+}
+
+.role-department_admin {
+  background: rgba(230, 157, 54, 0.15);
+  color: #b06f15;
+  border: 1px solid rgba(230, 157, 54, 0.3);
+}
+
+.role-inspector {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.role-citizen {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.active-user-card {
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  background: #fff;
+  margin-bottom: 18px;
+}
+
+.active-user-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.active-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff7a5c);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font: 800 18px "Inter", sans-serif;
+  box-shadow: 0 4px 12px rgba(230, 83, 54, 0.3);
+}
+
+.active-user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.active-user-name-row h3 {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.active-user-email {
+  font: 400 12px "DM Mono", monospace;
+  color: rgba(36, 37, 34, 0.6);
+  margin: 2px 0 0;
+}
+
+.active-user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(36, 37, 34, 0.08);
+}
+
+.active-user-grid small {
+  display: block;
+  font: 700 9px "DM Mono", monospace;
+  color: rgba(36, 37, 34, 0.5);
+  margin-bottom: 3px;
+}
+
+.active-user-grid strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.drawer-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #065f46;
+  font: 500 12px "Inter", sans-serif;
+  margin-bottom: 14px;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon svg {
+  position: absolute;
+  left: 12px;
+  color: rgba(36, 37, 34, 0.4);
+  pointer-events: none;
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 37, 34, 0.18);
+  background: #fff;
+  font: 400 13px "Inter", sans-serif;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-with-icon input:focus {
+  border-color: var(--red);
+}
+
+.auth-footer-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.logout-btn:hover {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: #dc2626;
 }
 

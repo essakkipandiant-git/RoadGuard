@@ -18,6 +18,25 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: emitSourcemaps ? "inline" : false,
       minify: !emitSourcemaps,
+      chunkSizeWarningLimit: 5000,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes("node_modules/cesium")) {
+              return "cesium-vendor"
+            }
+            if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+              return "react-vendor"
+            }
+            if (id.includes("node_modules/lucide-react")) {
+              return "lucide-vendor"
+            }
+            if (id.includes("node_modules/motion")) {
+              return "motion-vendor"
+            }
+          },
+        },
+      },
     },
     css: {
       postcss: {},
@@ -40,8 +59,27 @@ export default defineConfig(({ mode }) => {
       host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
       strictPort: true,
+      proxy: {
+        "/api": {
+          target: "http://127.0.0.1:5000",
+          changeOrigin: true,
+          secure: false,
+        },
+        "/uploads": {
+          target: "http://127.0.0.1:5000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
       watch: {
-        ignored: ["**/.figma/**"],
+        ignored: [
+          "**/.figma/**",
+          "**/server/**",
+          "**/scratch/**",
+          "**/*.db*",
+          "**/*.sqlite*",
+          "**/*.log",
+        ],
       },
     },
     preview: {

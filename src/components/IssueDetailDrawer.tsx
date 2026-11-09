@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -18,11 +18,13 @@ import {
   ThumbsUp,
   Upload,
   User,
+  Maximize2,
   X,
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { IssueStatus, RoadIssue, UserRole } from "../types/roadguard"
 import { RoadIssueService } from "../services/roadIssueService"
+import { ApiUser } from "../services/apiClient"
 
 interface IssueDetailDrawerProps {
   isOpen: boolean
@@ -32,6 +34,9 @@ interface IssueDetailDrawerProps {
   onRoleChange: (role: UserRole) => void
   onIssueUpdated: (updatedIssue: RoadIssue) => void
   onFlyToGlobe?: (issue: RoadIssue) => void
+  onOpenWorkspace?: (issue: RoadIssue) => void
+  currentUser?: ApiUser | null
+  onOpenAuth?: () => void
 }
 
 export default function IssueDetailDrawer({
@@ -42,6 +47,9 @@ export default function IssueDetailDrawer({
   onRoleChange,
   onIssueUpdated,
   onFlyToGlobe,
+  onOpenWorkspace,
+  currentUser,
+  onOpenAuth,
 }: IssueDetailDrawerProps) {
   const [activeTab, setActiveTab] =
     useState<"overview" | "risk" | "repair" | "timeline" | "community">(
@@ -60,16 +68,28 @@ export default function IssueDetailDrawer({
   const [supportNotes, setSupportNotes] = useState("")
   const [supportName, setSupportName] = useState("")
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen || !issue) return null
 
-  const handleStatusChange = (newStatus: IssueStatus) => {
+  const handleStatusChange = async (newStatus: IssueStatus) => {
     setIsTransitioning(true)
     setTransitionError(null)
     try {
-      const updated = RoadIssueService.updateStatus(issue.id, newStatus, {
+      const updated = await RoadIssueService.updateStatusLive(issue.id, newStatus, {
         actorRole: currentUserRole,
-        actorName:
-          currentUserRole === "authority"
+        actorName: currentUser
+          ? currentUser.fullName
+          : currentUserRole === "authority"
             ? "District Dispatch Chief"
             : currentUserRole === "crew"
               ? "Municipal Repair Crew 3"
@@ -95,13 +115,15 @@ export default function IssueDetailDrawer({
     }
   }
 
-  const handleReopenSubmit = (e: React.FormEvent) => {
+  const handleReopenSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!reopenReason.trim()) return
+    setIsTransitioning(true)
+    setTransitionError(null)
     try {
-      const updated = RoadIssueService.updateStatus(issue.id, "reopened", {
+      const updated = await RoadIssueService.updateStatusLive(issue.id, "reopened", {
         actorRole: currentUserRole,
-        actorName: "Citizen Quality Monitor",
+        actorName: currentUser?.fullName || "Citizen Quality Monitor",
         notes: `Issue reopened: ${reopenReason}`,
         reopenReason,
       })
@@ -109,15 +131,19 @@ export default function IssueDetailDrawer({
       setShowReopenModal(false)
       setReopenReason("")
     } catch (err: any) {
-      setTransitionError(err.message)
+      setTransitionError(err.message || "Failed to reopen issue.")
+    } finally {
+      setIsTransitioning(false)
     }
   }
 
-  const handleSupportSubmit = (e: React.FormEvent) => {
+  const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsTransitioning(true)
+    setTransitionError(null)
     try {
-      const updated = RoadIssueService.supportIssue(issue.id, {
-        userName: supportName || "Local Commuter",
+      const updated = await RoadIssueService.supportIssueLive(issue.id, {
+        userName: supportName || currentUser?.fullName || "Local Commuter",
         userRole: currentUserRole,
         notes: supportNotes || "Confirmed hazard still present on roadway.",
       })
@@ -126,7 +152,9 @@ export default function IssueDetailDrawer({
       setSupportNotes("")
       setSupportName("")
     } catch (err: any) {
-      setTransitionError(err.message)
+      setTransitionError(err.message || "Failed to support issue.")
+    } finally {
+      setIsTransitioning(false)
     }
   }
 
@@ -137,6 +165,9 @@ export default function IssueDetailDrawer({
       <div className="drawer-backdrop" onClick={onClose} />
 
       <motion.aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Road defect detail panel"
         className="drawer-panel glass"
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
@@ -149,16 +180,30 @@ export default function IssueDetailDrawer({
             <span className="role-selector-label">
               <User size={13} /> ACTIVE ROLE:
             </span>
-            <select
-              value={currentUserRole}
-              onChange={(e) => onRoleChange(e.target.value as UserRole)}
-              className="drawer-role-select"
-            >
-              <option value="citizen">Citizen</option>
-              <option value="authority">District Authority</option>
-              <option value="crew">Maintenance Crew</option>
-              <option value="inspector">Verification Officer</option>
-            </select>
+            {onOpenAuth ? (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="drawer-role-select text-left flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+                title="Click to view pilot profile or change role"
+              >
+                <span className="font-bold text-[11px] uppercase">
+                  {currentUser ? currentUser.role.replace("_", " ") : currentUserRole}
+                </span>
+                <span className="text-[10px] text-muted underline">Switch</span>
+              </button>
+            ) : (
+              <select
+                value={currentUserRole}
+                onChange={(e) => onRoleChange(e.target.value as UserRole)}
+                className="drawer-role-select"
+              >
+                <option value="citizen">Citizen</option>
+                <option value="authority">District Authority</option>
+                <option value="crew">Maintenance Crew</option>
+                <option value="inspector">Verification Officer</option>
+              </select>
+            )}
           </div>
 
           <button
@@ -200,6 +245,20 @@ export default function IssueDetailDrawer({
                 <Globe size={13} /> <span>Fly in 3D Globe</span>
               </button>
             )}
+            {onOpenWorkspace && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  onOpenWorkspace(issue)
+                }}
+                className="fly-globe-link-btn"
+                style={{ backgroundColor: "#E65336", color: "#ffffff", borderColor: "#E65336" }}
+                title="Open full-page dedicated management workspace (/manage/issues/:issueId)"
+              >
+                <Maximize2 size={13} /> <span>Dedicated Workspace</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -209,8 +268,8 @@ export default function IssueDetailDrawer({
             ["overview", "Overview"],
             ["risk", "Risk Engine (0-100)"],
             ["repair", "Repair Verification"],
-            ["timeline", `Timeline (${issue.statusHistory.length})`],
-            ["community", `Community (${issue.supportingCount})`],
+            ["timeline", `Timeline (${issue.statusHistory?.length ?? 0})`],
+            ["community", `Community (${issue.supportingCount ?? 0})`],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -311,7 +370,17 @@ export default function IssueDetailDrawer({
                           <span>Assign to Maintenance Crew</span>
                         </button>
                       )}
-                      {["reported", "under_review"].includes(issue.status) && (
+                      {issue.status === "verified_repaired" && (
+                        <button
+                          onClick={() => setShowReopenModal(true)}
+                          disabled={isTransitioning}
+                          className="button-secondary-danger full-width"
+                        >
+                          <RotateCcw size={16} />
+                          <span>Reopen Defect (Recurrence Detected)</span>
+                        </button>
+                      )}
+                      {["reported", "under_review", "assigned", "in_progress"].includes(issue.status) && (
                         <button
                           onClick={() => handleStatusChange("rejected")}
                           disabled={isTransitioning}
@@ -422,6 +491,22 @@ export default function IssueDetailDrawer({
                     </>
                   )}
                 </div>
+
+                {onOpenWorkspace && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      onOpenWorkspace(issue)
+                    }}
+                    className="button button--secondary full-width mt-3"
+                    style={{ borderColor: "rgba(230, 83, 54, 0.4)", color: "#e65336", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                    title="Open full-page dedicated management workspace (/manage/issues/:issueId)"
+                  >
+                    <Maximize2 size={15} />
+                    <span>Open Dedicated Workspace ({issue.trackingCode})</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -634,7 +719,7 @@ export default function IssueDetailDrawer({
           {activeTab === "timeline" && (
             <div className="tab-pane">
               <div className="audit-timeline-flow">
-                {issue.statusHistory.map((item, idx) => (
+                {(issue.statusHistory || []).map((item, idx) => (
                   <div key={item.id || idx} className="timeline-audit-item">
                     <div className="audit-node">
                       <Check size={12} />

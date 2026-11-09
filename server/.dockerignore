@@ -1,0 +1,13 @@
+node_modules
+dist
+logs
+*.log
+.env
+.env.local
+.git
+.gitignore
+tests
+*.test.ts
+coverage
+.DS_Store
+

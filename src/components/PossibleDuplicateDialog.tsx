@@ -1,13 +1,18 @@
-import React from "react"
+import React, { useState } from "react"
 import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
   ExternalLink,
+  HardHat,
+  HelpCircle,
   Layers,
   MapPin,
   ShieldAlert,
+  Sparkles,
   ThumbsUp,
+  TrendingUp,
+  Wrench,
   X,
 } from "lucide-react"
 import { motion } from "motion/react"
@@ -17,8 +22,9 @@ interface PossibleDuplicateDialogProps {
   isOpen: boolean
   onClose: () => void
   duplicateResult: DuplicateMatchResult
-  onSupportExisting: () => void
+  onSupportExisting: (updateType?: string, observationNotes?: string) => Promise<void> | void
   onContinueAsNew: () => void
+  initialNotes?: string
 }
 
 export default function PossibleDuplicateDialog({
@@ -27,7 +33,12 @@ export default function PossibleDuplicateDialog({
   duplicateResult,
   onSupportExisting,
   onContinueAsNew,
+  initialNotes = "",
 }: PossibleDuplicateDialogProps) {
+  const [selectedUpdateType, setSelectedUpdateType] = useState<string>("STILL_EXISTS")
+  const [customNotes, setCustomNotes] = useState(initialNotes)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   if (!isOpen || !duplicateResult.existingIssue) return null
 
   const existing = duplicateResult.existingIssue
@@ -35,6 +46,15 @@ export default function PossibleDuplicateDialog({
     duplicateResult.distanceMeters < 5
       ? "Direct Match (<5m)"
       : `${Math.round(duplicateResult.distanceMeters)}m away`
+
+  const handleConfirmSupport = async () => {
+    setIsSubmitting(true)
+    try {
+      await onSupportExisting(selectedUpdateType, customNotes)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="report-modal-overlay">
@@ -46,7 +66,7 @@ export default function PossibleDuplicateDialog({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", stiffness: 120, damping: 20 }}
-        style={{ maxWidth: "620px" }}
+        style={{ maxWidth: "660px" }}
       >
         <button
           onClick={onClose}
@@ -58,14 +78,13 @@ export default function PossibleDuplicateDialog({
 
         <div className="duplicate-dialog-header">
           <div className="duplicate-warning-badge">
-            <ShieldAlert size={20} className="text-vermilion" />
-            <span>EXISTING ACTIVE HAZARD DETECTED</span>
+            <ShieldAlert size={18} className="text-vermilion" />
+            <span>ACTIVE HAZARD RECORD WITHIN 40 METERS</span>
           </div>
-          <h2 className="modal-title">POSSIBLE DUPLICATE ISSUE</h2>
+          <h2 className="modal-title font-mono">NEARBY ROAD HAZARD DETECTED</h2>
           <p className="modal-subtitle">
-            A previously reported road defect has been found at this exact
-            street section. Consolidating reports accelerates municipal crew
-            dispatch.
+            A previously reported road defect exists within {distanceFormatted}.
+            Consolidating observations elevates municipal urgency and prevents duplicate crew dispatch.
           </p>
         </div>
 
@@ -116,34 +135,123 @@ export default function PossibleDuplicateDialog({
           </div>
         </div>
 
-        {/* Action Choice Notice */}
-        <div className="duplicate-notice-box">
-          <p>
-            <strong>What would you like to do?</strong>
-            <br />
-            Supporting this defect attaches your evidence and GPS coordinates to
-            the existing work order, elevating its community urgency score
-            without creating redundant crew visits.
-          </p>
+        {/* Choose Citizen Observation Type */}
+        <div className="space-y-3 pt-2 text-left font-mono">
+          <label className="block text-xs font-bold text-[#242522] uppercase tracking-wide">
+            Select Observation Type to Attach:
+          </label>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedUpdateType("STILL_EXISTS")}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                selectedUpdateType === "STILL_EXISTS"
+                  ? "border-[#E65336] bg-[#F5F1E8] shadow-sm font-bold"
+                  : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-[#E65336] mb-1">
+                <ThumbsUp size={13} />
+                <span>Still Exists</span>
+              </div>
+              <p className="text-[10px] text-[#687567] font-normal">
+                Corroborates active unresolved cavity
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedUpdateType("WORSENED")}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                selectedUpdateType === "WORSENED"
+                  ? "border-[#E65336] bg-[#F5F1E8] shadow-sm font-bold"
+                  : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-amber-600 mb-1">
+                <TrendingUp size={13} />
+                <span>Pothole Got Worse</span>
+              </div>
+              <p className="text-[10px] text-[#687567] font-normal">
+                Depth or edge breakdown expanded
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedUpdateType("REPAIR_IN_PROGRESS")}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                selectedUpdateType === "REPAIR_IN_PROGRESS"
+                  ? "border-[#E65336] bg-[#F5F1E8] shadow-sm font-bold"
+                  : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
+                <Wrench size={13} />
+                <span>Repair In Progress</span>
+              </div>
+              <p className="text-[10px] text-[#687567] font-normal">
+                Municipal road crew spotted on site
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedUpdateType("APPEARS_REPAIRED")}
+              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                selectedUpdateType === "APPEARS_REPAIRED"
+                  ? "border-[#E65336] bg-[#F5F1E8] shadow-sm font-bold"
+                  : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                <CheckCircle2 size={13} />
+                <span>Appears Repaired</span>
+              </div>
+              <p className="text-[10px] text-[#687567] font-normal">
+                Submit evidence for staff verification
+              </p>
+            </button>
+          </div>
+
+          {selectedUpdateType === "APPEARS_REPAIRED" && (
+            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 leading-relaxed">
+              <strong>Separation of Duties Notice:</strong> Your photograph and repair observation will be placed in
+              the municipal audit queue for engineer verification before closing the report.
+            </div>
+          )}
+
+          <div>
+            <input
+              type="text"
+              value={customNotes}
+              onChange={(e) => setCustomNotes(e.target.value)}
+              placeholder="Optional observation remark for the audit timeline..."
+              className="w-full px-3 py-2 rounded-xl border border-[#D8D2C5] bg-[#F5F1E8] text-xs focus:bg-white focus:outline-none focus:border-[#E65336]"
+            />
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="duplicate-actions-grid">
+        {/* Action Buttons */}
+        <div className="duplicate-actions-grid pt-3">
           <button
             type="button"
-            onClick={onSupportExisting}
+            onClick={handleConfirmSupport}
+            disabled={isSubmitting}
             className="button button--primary duplicate-support-btn"
           >
-            <ThumbsUp size={16} />
-            <span>Support & Add Evidence to #{existing.trackingCode}</span>
+            <ThumbsUp size={15} />
+            <span>{isSubmitting ? "Attaching Evidence..." : `Attach Evidence to #${existing.trackingCode}`}</span>
           </button>
 
           <button
             type="button"
             onClick={onContinueAsNew}
+            disabled={isSubmitting}
             className="duplicate-secondary-btn"
           >
-            <span>Continue Creating Independent Report</span>
+            <span>Different Hazard (Submit New Report)</span>
             <ArrowRight size={14} />
           </button>
         </div>

@@ -1,10 +1,11 @@
 {
-  "description": "Explore AI-powered road damage detection, risk mapping, and repair tracking that helps communities report potholes and prioritize safer streets.",
+  "title": "RoadGuard AI - Pothole & Road Maintenance Platform",
+  "description": "AI-powered road damage detection, risk mapping, and repair tracking that helps communities report potholes and prioritize safer streets.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
-    "addBypassLinks": false,
+    "addBypassLinks": true,
     "ignoreReducedMotion": false
   }
 }

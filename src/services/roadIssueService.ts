@@ -9,6 +9,8 @@ import {
 import { calculateRiskAssessment } from "./riskEngine"
 import { supportExistingIssue as supportIssueLogic } from "./duplicateService"
 import { transitionIssueStatus } from "./repairWorkflowService"
+import { apiClient } from "./apiClient"
+import { MigrationService } from "./migrationService"
 
 const STORAGE_KEY = "roadguard_issues_v2"
 
@@ -635,10 +637,160 @@ export class RoadIssueService {
     return [...this.issues]
   }
 
+  /**
+   * Fetches the latest live issues from the SQLite backend via API
+   */
+  static async fetchLiveIssues(): Promise<RoadIssue[]> {
+    try {
+      const res = await apiClient.issues.list({ limit: 100 })
+      if (res.issues && res.issues.length > 0) {
+        // Preserve any pending offline reports that haven't synced to backend yet
+        const pendingQueue = MigrationService.getPendingQueue()
+        const pendingNotOnServer = this.getAllIssues().filter((local) =>
+          pendingQueue.some((p) => p.id === local.id),
+        )
+
+        this.issues = [...pendingNotOnServer, ...res.issues]
+        this.save()
+        return [...this.issues]
+      }
+    } catch (e) {
+      console.warn("RoadGuard: Could not fetch live issues from backend, using local state:", e)
+    }
+    return this.getAllIssues()
+  }
+
   static getIssueById(id: string): RoadIssue | undefined {
     return this.getAllIssues().find(
       (issue) => issue.id === id || issue.trackingCode === id,
     )
+  }
+
+  /**
+   * Asynchronously creates a road issue directly on the backend database
+   */
+  static async createIssueLive(
+    newIssueData: Omit<RoadIssue, "id" | "trackingCode" | "createdAt" | "updatedAt" | "supportingReports" | "supportingCount" | "statusHistory" | "repair"> & {
+      reporterName?: string
+      photoFile?: File | null
+      forceDuplicate?: boolean
+    },
+  ): Promise<RoadIssue> {
+    try {
+      // 1. If photo file is provided, upload to backend first
+      let uploadedPhotoUrl = newIssueData.originalPhotoUrl
+      if (newIssueData.photoFile) {
+        try {
+          const uploadRes = await apiClient.uploads.uploadImage(newIssueData.photoFile)
+          if (uploadRes.url) {
+            uploadedPhotoUrl = uploadRes.url
+          }
+        } catch (uploadErr) {
+          console.warn("RoadGuard: Photo upload error, continuing with preview image:", uploadErr)
+        }
+      }
+
+      // 2. Submit issue to backend
+      const created = await apiClient.issues.create({
+        title: newIssueData.title,
+        description: newIssueData.notes,
+        damageCategory: newIssueData.category.toUpperCase(),
+        damageSeverity: newIssueData.severity.toUpperCase(),
+        depth: newIssueData.detection?.depthEstimateMm || 30,
+        latitude: newIssueData.coordinates.lat,
+        longitude: newIssueData.coordinates.lng,
+        address: newIssueData.address,
+        roadClass: newIssueData.risk?.roadUsageDetails?.roadClass,
+        forceDuplicate: newIssueData.forceDuplicate,
+      })
+
+      // Maintain uploaded image in created issue
+      if (uploadedPhotoUrl) {
+        created.originalPhotoUrl = uploadedPhotoUrl
+        created.annotatedPhotoUrl = uploadedPhotoUrl
+      }
+
+      this.issues = [created, ...this.getAllIssues().filter((i) => i.id !== created.id)]
+      this.save()
+      return created
+    } catch (err: any) {
+      console.warn("RoadGuard: Failed to create issue on backend, falling back to local storage:", err)
+      const localIssue = this.createIssue(newIssueData)
+      // Automatically queue offline report for migration when connection or session is restored
+      MigrationService.queueOfflineReport(localIssue, err?.message)
+      return localIssue
+    }
+  }
+
+  /**
+   * Asynchronously supports/confirms an issue on the backend
+   */
+  static async supportIssueLive(
+    issueId: string,
+    evidence: {
+      userId?: string
+      userName?: string
+      userRole?: UserRole
+      photoUrl?: string
+      notes?: string
+    },
+  ): Promise<RoadIssue> {
+    try {
+      const updated = await apiClient.issues.support(issueId, evidence.notes)
+      this.issues = this.issues.map((i) => (i.id === issueId ? updated : i))
+      this.save()
+      return updated
+    } catch (err) {
+      console.warn("RoadGuard: Backend support request failed, using local logic:", err)
+      return this.supportIssue(issueId, evidence)
+    }
+  }
+
+  /**
+   * Asynchronously updates status on the backend
+   */
+  static async updateStatusLive(
+    issueId: string,
+    targetStatus: IssueStatus,
+    params: {
+      actorRole: UserRole
+      actorName: string
+      notes: string
+      afterPhotoUrl?: string
+      assignedCrew?: string
+      verificationDecision?: "approved" | "rejected" | "pending"
+      reopenReason?: string
+    },
+  ): Promise<RoadIssue> {
+    try {
+      // Map frontend status to backend enum
+      const backendStatusMap: Record<IssueStatus, string> = {
+        reported: "REPORTED",
+        under_review: "UNDER_REVIEW",
+        assigned: "ASSIGNED",
+        in_progress: "IN_PROGRESS",
+        awaiting_verification: "VERIFIED",
+        repair_completed: "REPAIR_COMPLETED",
+        verified_repaired: "VERIFIED_REPAIRED",
+        closed: "CLOSED",
+        reopened: "REOPENED",
+        rejected: "REJECTED",
+      }
+
+      const backendTarget = backendStatusMap[targetStatus] || "REPORTED"
+      const updated = await apiClient.issues.updateStatus(issueId, {
+        targetStatus: backendTarget,
+        remarks: params.notes,
+        evidencePhotoUrl: params.afterPhotoUrl,
+      })
+
+      this.issues = this.issues.map((i) => (i.id === issueId ? updated : i))
+      this.save()
+      return updated
+    } catch (err) {
+      console.warn("RoadGuard: Backend status update failed, using local logic:", err)
+      return this.updateStatus(issueId, targetStatus, params)
+    }
   }
 
   static createIssue(

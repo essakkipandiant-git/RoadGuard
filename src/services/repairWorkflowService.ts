@@ -20,7 +20,9 @@ export const ALLOWED_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
     "rejected",
     "in_progress",
   ],
-  verified_repaired: ["reopened"],
+  verified_repaired: ["closed", "reopened"],
+  repair_completed: ["awaiting_verification", "verified_repaired", "reopened"],
+  closed: ["reopened"],
   reopened: ["under_review", "assigned", "in_progress"],
   rejected: ["under_review"], // Can appeal or re-evaluate
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, lazy, Suspense } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -14,6 +14,7 @@ import {
   Navigation,
   ShieldCheck,
   SlidersHorizontal,
+  User,
   X,
 } from "lucide-react"
 import {
@@ -25,14 +26,18 @@ import {
   useSpring,
   useTransform,
 } from "motion/react"
-import GlobeLocationPicker, {
-  SelectedLocation,
-} from "./components/GlobeLocationPicker"
+import type { SelectedLocation } from "./components/GlobeLocationPicker"
+const GlobeLocationPicker = lazy(() => import("./components/GlobeLocationPicker"))
 import PotholeReportModal from "./components/PotholeReportModal"
 import IssueDetailDrawer from "./components/IssueDetailDrawer"
+import IssueManagementWorkspace from "./components/IssueManagementWorkspace"
 import CityTriageDashboard from "./components/CityTriageDashboard"
+import AuthModal from "./components/AuthModal"
+import SyncReportsBanner from "./components/SyncReportsBanner"
 import { RoadIssue, UserRole } from "./types/roadguard"
 import { RoadIssueService } from "./services/roadIssueService"
+import { apiClient, ApiUser, mapBackendRole } from "./services/apiClient"
+import { MUNICIPAL_PERSONAS } from "./constants/personas"
 
 // Continuous cinematic urban road visual assets (Golden-hour city asphalt journey)
 const heroRoadImage = "/images/hero_road.jpg"
@@ -128,12 +133,16 @@ function Header({
   active,
   onOpenGlobe,
   onOpenTriage,
+  onOpenAuth,
   issuesCount,
+  currentUser,
 }: {
   active: string
   onOpenGlobe: () => void
   onOpenTriage: () => void
+  onOpenAuth: () => void
   issuesCount: number
+  currentUser: ApiUser | null
 }) {
   const [open, setOpen] = useState(false)
   const { scrollY } = useScroll()
@@ -165,12 +174,40 @@ function Header({
       <div className="nav-actions-group">
         <button
           type="button"
+          onClick={onOpenAuth}
+          className="nav-user-button glass"
+          title={
+            currentUser
+              ? `Signed in as ${currentUser.fullName} (${currentUser.role})`
+              : "Sign in or switch municipal persona"
+          }
+        >
+          {currentUser ? (
+            <>
+              <span className="nav-avatar-circle">
+                {currentUser.fullName.charAt(0).toUpperCase()}
+              </span>
+              <span>{currentUser.fullName.split(" ")[0]}</span>
+              <span className={`role-badge role-${currentUser.role.toLowerCase()}`}>
+                {currentUser.role.replace("_", " ")}
+              </span>
+            </>
+          ) : (
+            <>
+              <User size={14} />
+              <span>Sign In</span>
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
           onClick={onOpenTriage}
           className="nav-triage-button glass"
-          title="Open City Risk Triage Dashboard"
+          title="Open City Risk Triage & Management Dashboard"
         >
           <Activity size={14} className="text-vermilion" />
-          <span>Triage</span>
+          <span>Manage</span>
           <span className="nav-count-badge">{issuesCount}</span>
         </button>
         <ButtonLink
@@ -209,6 +246,29 @@ function Header({
                 {label}
               </a>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onOpenAuth()
+              }}
+              className="nav-user-button glass mb-2"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              {currentUser ? (
+                <>
+                  <span className="nav-avatar-circle">
+                    {currentUser.fullName.charAt(0).toUpperCase()}
+                  </span>
+                  <span>{currentUser.fullName} ({currentUser.role.replace("_", " ")})</span>
+                </>
+              ) : (
+                <>
+                  <User size={14} />
+                  <span>Pilot Sign In / Personas</span>
+                </>
+              )}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -1290,19 +1350,132 @@ export default function App() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isTriageOpen, setIsTriageOpen] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [selectedLocation, setSelectedLocation] =
     useState<SelectedLocation | null>(null)
 
-  // Live Road Issues and Active Role
+  // Live Road Issues, Authenticated Session and Active Role
   const [issues, setIssues] = useState<RoadIssue[]>(() =>
     RoadIssueService.initialize(),
   )
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole>("authority")
+  const [currentUser, setCurrentUser] = useState<ApiUser | null>(null)
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>("citizen")
   const [selectedIssueForDrawer, setSelectedIssueForDrawer] =
     useState<RoadIssue | null>(null)
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false)
+  const [selectedIssueForWorkspace, setSelectedIssueForWorkspace] =
+    useState<RoadIssue | null>(null)
 
-  const refreshIssues = () => {
-    setIssues(RoadIssueService.getAllIssues())
+  const refreshIssues = async () => {
+    try {
+      const live = await RoadIssueService.fetchLiveIssues()
+      setIssues(live)
+    } catch {
+      setIssues(RoadIssueService.getAllIssues())
+    }
+  }
+
+  // 1-Click Fast Persona Switcher
+  const handleSwitchPersona = async (personaRoleOrEmail: string) => {
+    const target = MUNICIPAL_PERSONAS.find(
+      (p) =>
+        p.role === personaRoleOrEmail ||
+        p.email === personaRoleOrEmail ||
+        p.id === personaRoleOrEmail ||
+        p.name.toLowerCase().includes(personaRoleOrEmail.toLowerCase()),
+    )
+    if (!target) return
+    try {
+      const user = await apiClient.auth.login({
+        email: target.email,
+        password: target.password,
+      })
+      setCurrentUser(user)
+      setCurrentUserRole(mapBackendRole(user.role))
+      localStorage.setItem("roadguard_active_persona", target.role)
+      refreshIssues()
+    } catch {
+      const mockUser: ApiUser = {
+        id: target.id,
+        email: target.email,
+        fullName: target.name,
+        role: target.role,
+        departmentId:
+          target.role === "DEPARTMENT_ADMIN"
+            ? "40947e83-f3ca-47b9-bdef-0cfd8175555b"
+            : undefined,
+      }
+      setCurrentUser(mockUser)
+      setCurrentUserRole(mapBackendRole(target.role))
+      localStorage.setItem("roadguard_active_persona", target.role)
+      refreshIssues()
+    }
+  }
+
+  // Load active session and fetch live database records on mount
+  useEffect(() => {
+    async function initSessionAndIssues() {
+      const savedPersona = localStorage.getItem("roadguard_active_persona")
+      if (savedPersona) {
+        const found = MUNICIPAL_PERSONAS.find((p) => p.role === savedPersona)
+        if (found) {
+          try {
+            const user = await apiClient.auth.login({
+              email: found.email,
+              password: found.password,
+            })
+            setCurrentUser(user)
+            setCurrentUserRole(mapBackendRole(user.role))
+          } catch {
+            const mockUser: ApiUser = {
+              id: found.id,
+              email: found.email,
+              fullName: found.name,
+              role: found.role,
+              departmentId:
+                found.role === "DEPARTMENT_ADMIN"
+                  ? "40947e83-f3ca-47b9-bdef-0cfd8175555b"
+                  : undefined,
+            }
+            setCurrentUser(mockUser)
+            setCurrentUserRole(mapBackendRole(found.role))
+          }
+        }
+      } else {
+        try {
+          const user = await apiClient.auth.getMe()
+          if (user) {
+            setCurrentUser(user)
+            setCurrentUserRole(mapBackendRole(user.role))
+          }
+        } catch {
+          // Default unauthenticated visitor is a citizen observer
+        }
+      }
+
+      try {
+        const live = await RoadIssueService.fetchLiveIssues()
+        if (live && live.length > 0) {
+          setIssues(live)
+        }
+      } catch (err) {
+        console.warn("RoadGuard: Using local issues fallback:", err)
+      }
+    }
+
+    initSessionAndIssues()
+  }, [])
+
+  const handleUserChange = (user: ApiUser | null) => {
+    setCurrentUser(user)
+    if (user) {
+      setCurrentUserRole(mapBackendRole(user.role))
+      localStorage.setItem("roadguard_active_persona", user.role)
+    } else {
+      setCurrentUserRole("citizen")
+      localStorage.removeItem("roadguard_active_persona")
+    }
+    refreshIssues()
   }
 
   // Open 3D Globe
@@ -1348,6 +1521,60 @@ export default function App() {
   const handleIssueUpdated = (updated: RoadIssue) => {
     refreshIssues()
     setSelectedIssueForDrawer(updated)
+    setSelectedIssueForWorkspace(updated)
+  }
+
+  // URL Routing: /manage/issues/:issueId
+  useEffect(() => {
+    const checkPathForWorkspace = () => {
+      const match = window.location.pathname.match(/\/manage\/issues\/([^/?#]+)/)
+      if (match) {
+        const issueCodeOrId = decodeURIComponent(match[1]).trim()
+        const found = issues.find(
+          (i) =>
+            i.trackingCode.toLowerCase() === issueCodeOrId.toLowerCase() ||
+            i.id.toLowerCase() === issueCodeOrId.toLowerCase(),
+        )
+        if (found) {
+          setSelectedIssueForWorkspace(found)
+          setIsWorkspaceOpen(true)
+          setIsTriageOpen(false)
+          setIsDrawerOpen(false)
+        } else {
+          apiClient.issues
+            .getById(issueCodeOrId)
+            .then((mapped) => {
+              if (mapped) {
+                setSelectedIssueForWorkspace(mapped)
+                setIsWorkspaceOpen(true)
+                setIsTriageOpen(false)
+                setIsDrawerOpen(false)
+              }
+            })
+            .catch(() => {})
+        }
+      } else {
+        setIsWorkspaceOpen(false)
+      }
+    }
+    checkPathForWorkspace()
+    window.addEventListener("popstate", checkPathForWorkspace)
+    return () => window.removeEventListener("popstate", checkPathForWorkspace)
+  }, [issues])
+
+  const handleCloseWorkspace = () => {
+    setIsWorkspaceOpen(false)
+    if (window.location.pathname.startsWith("/manage/issues/")) {
+      window.history.pushState(null, "", "/")
+    }
+  }
+
+  const handleBackToTriage = () => {
+    setIsWorkspaceOpen(false)
+    if (window.location.pathname.startsWith("/manage/issues/")) {
+      window.history.pushState(null, "", "/")
+    }
+    setIsTriageOpen(true)
   }
 
   useEffect(() => {
@@ -1379,13 +1606,22 @@ export default function App() {
 
   return (
     <div className="roadguard-app">
+      {/* WCAG 2.2 AA Keyboard Bypass Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-amber-500 focus:text-slate-950 focus:rounded-lg focus:font-semibold focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-amber-300"
+      >
+        Skip to main content
+      </a>
       <Header
         active={active}
         onOpenGlobe={handleOpenGlobe}
         onOpenTriage={() => setIsTriageOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
         issuesCount={issues.length}
+        currentUser={currentUser}
       />
-      <main>
+      <main id="main-content" tabIndex={-1} className="outline-none">
         <Hero onOpenGlobe={handleOpenGlobe} />
         <Detection />
         <RiskMap
@@ -1400,21 +1636,45 @@ export default function App() {
       <Footer onOpenGlobe={handleOpenGlobe} />
 
       {/* Full-Screen Interactive 3D Earth Globe Location Picker */}
-      <GlobeLocationPicker
-        isOpen={isGlobeOpen}
-        onClose={() => setIsGlobeOpen(false)}
-        onConfirmLocation={handleConfirmLocation}
-        initialLocation={
-          selectedLocation
-            ? { lat: selectedLocation.lat, lng: selectedLocation.lng }
-            : undefined
-        }
-        issues={issues}
-        onSelectIssue={(issue) => {
-          setSelectedIssueForDrawer(issue)
-          setIsDrawerOpen(true)
-        }}
-      />
+      {isGlobeOpen && (
+        <Suspense
+          fallback={
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Loading 3D Globe"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md text-white"
+            >
+              <div className="relative flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+                <Globe className="w-8 h-8 text-amber-400 absolute" />
+              </div>
+              <p className="mt-4 text-sm font-semibold tracking-wide text-slate-200">
+                Initializing 3D Geospatial Earth Globe...
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Streaming satellite imagery &amp; Cesium terrain tiles
+              </p>
+            </div>
+          }
+        >
+          <GlobeLocationPicker
+            isOpen={isGlobeOpen}
+            onClose={() => setIsGlobeOpen(false)}
+            onConfirmLocation={handleConfirmLocation}
+            initialLocation={
+              selectedLocation
+                ? { lat: selectedLocation.lat, lng: selectedLocation.lng }
+                : undefined
+            }
+            issues={issues}
+            onSelectIssue={(issue) => {
+              setSelectedIssueForDrawer(issue)
+              setIsDrawerOpen(true)
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Pothole Report Telemetry Modal with AI Road Inspector & Risk Engine */}
       <PotholeReportModal
@@ -1422,6 +1682,7 @@ export default function App() {
         onClose={() => setIsReportModalOpen(false)}
         location={selectedLocation}
         onOpenGlobe={handleOpenGlobe}
+        onUpdateLocation={setSelectedLocation}
         onReportCreated={(newIssue) => {
           refreshIssues()
           setSelectedIssueForDrawer(newIssue)
@@ -1435,9 +1696,18 @@ export default function App() {
         issues={issues}
         currentUserRole={currentUserRole}
         onRoleChange={setCurrentUserRole}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSwitchPersona={handleSwitchPersona}
         onSelectIssue={(issue) => {
-          setSelectedIssueForDrawer(issue)
-          setIsDrawerOpen(true)
+          setIsTriageOpen(false)
+          setIsDrawerOpen(false)
+          setSelectedIssueForWorkspace(issue)
+          setIsWorkspaceOpen(true)
+          const targetUrl = `/manage/issues/${issue.trackingCode || issue.id}`
+          if (window.location.pathname !== targetUrl) {
+            window.history.pushState(null, "", targetUrl)
+          }
         }}
         onOpenGlobeForIssue={(issue) => {
           setIsTriageOpen(false)
@@ -1457,10 +1727,57 @@ export default function App() {
         issue={selectedIssueForDrawer}
         currentUserRole={currentUserRole}
         onRoleChange={setCurrentUserRole}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
         onIssueUpdated={handleIssueUpdated}
+        onOpenWorkspace={(issue) => {
+          setIsDrawerOpen(false)
+          setIsTriageOpen(false)
+          setSelectedIssueForWorkspace(issue)
+          setIsWorkspaceOpen(true)
+          const targetUrl = `/manage/issues/${issue.trackingCode || issue.id}`
+          if (window.location.pathname !== targetUrl) {
+            window.history.pushState(null, "", targetUrl)
+          }
+        }}
         onFlyToGlobe={(issue) => {
           setIsDrawerOpen(false)
           handleSelectIssueForGlobe(issue)
+        }}
+      />
+
+      {/* Complete Dedicated Pothole Management Page / Workspace */}
+      <IssueManagementWorkspace
+        isOpen={isWorkspaceOpen}
+        onClose={handleCloseWorkspace}
+        onBackToTriage={handleBackToTriage}
+        issue={selectedIssueForWorkspace}
+        currentUserRole={currentUserRole}
+        onRoleChange={setCurrentUserRole}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSwitchPersona={handleSwitchPersona}
+        onIssueUpdated={handleIssueUpdated}
+        onFlyToGlobe={(issue) => {
+          setIsWorkspaceOpen(false)
+          handleSelectIssueForGlobe(issue)
+        }}
+      />
+
+      {/* Municipal Authentication & Pilot Profile Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onUserChange={handleUserChange}
+      />
+
+      {/* Offline / Legacy Report Migration Banner */}
+      <SyncReportsBanner
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSyncComplete={() => {
+          refreshIssues()
         }}
       />
     </div>

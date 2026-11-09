@@ -667,10 +667,26 @@ export default function GlobeLocationPicker({
     setTimeout(() => setCopiedCoords(false), 2000)
   }
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   return (
-    <div className="globe-modal-overlay">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="3D Earth road hazard map and location picker"
+      className="globe-modal-overlay"
+    >
       {/* 3D Earth Cesium Canvas */}
       <div ref={cesiumContainerRef} className="cesium-viewport" />
 

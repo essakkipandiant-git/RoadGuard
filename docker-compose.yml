@@ -1,0 +1,38 @@
+services:
+  roadguard-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: roadguard-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=file:/data/prisma/roadguard.db
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-cryptographically-secure-random-string}
+      - JWT_EXPIRES_IN=7d
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8443}
+      - UPLOAD_DIR=/data/uploads
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX=200
+    volumes:
+      - roadguard-db-data:/data/prisma
+      - roadguard-upload-data:/data/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  roadguard-db-data:
+    driver: local
+  roadguard-upload-data:
+    driver: local
+

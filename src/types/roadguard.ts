@@ -4,7 +4,17 @@ export type SeverityLevel = "critical" | "high" | "moderate" | "low"
 
 export type RoadClass = "arterial" | "collector" | "local" | "pedestrian_cycle"
 
-export type IssueStatus = "reported" | "under_review" | "assigned" | "in_progress" | "awaiting_verification" | "verified_repaired" | "reopened" | "rejected"
+export type IssueStatus =
+  | "reported"
+  | "under_review"
+  | "assigned"
+  | "in_progress"
+  | "awaiting_verification"
+  | "repair_completed"
+  | "verified_repaired"
+  | "closed"
+  | "reopened"
+  | "rejected"
 
 export type UserRole = "citizen" | "authority" | "crew" | "inspector"
 
@@ -23,10 +33,16 @@ export interface AIDetectionResult {
   engine: "edge_cv" | "external_api" | "demo_fallback"
   category: DamageCategory
   confidence: number // 0 to 1
+  confidenceScore?: number // optional alias for tests
   boxes: DetectionBox[]
   surfaceLossRatio: number // 0 to 1
+  surfaceLossPercentage?: number // 0 to 100 percentage
+  boundingBox?: any
+  crackPattern?: string
+  visualFeatures?: any
   depthEstimateMm: number
   severity: SeverityLevel
+  severityLevel?: SeverityLevel
   originalImageUrl: string
   annotatedImageUrl: string
   rawInferenceTimeMs: number
@@ -56,9 +72,10 @@ export interface RiskAssessment {
   factors: RiskFactors
   weights: RiskWeights
   weightedContributions: Record<keyof RiskFactors, number>
-  explanation: string
-  recommendedAction: string
-  calculatedAt: string
+  explanation?: string
+  rationale?: string
+  recommendedAction?: string
+  calculatedAt?: string
   proximityDetails?: {
     nearestSensitiveType?: "hospital" | "school" | "transit" | "crossing" | "none"
     distanceMeters?: number
@@ -118,6 +135,7 @@ export interface RoadIssue {
   title: string
   category: DamageCategory
   severity: SeverityLevel
+  severityLevel?: SeverityLevel
   status: IssueStatus
   coordinates: Coordinates
   address: string
@@ -132,9 +150,37 @@ export interface RoadIssue {
   statusHistory: StatusHistoryItem[]
   repair: RepairVerificationRecord
   createdAt: string
+  reportedAt?: string
+  history?: any[]
   updatedAt: string
   reportedBy: string
   notes?: string
+  wardId?: string
+  departmentId?: string
+  wardName?: string
+  departmentName?: string
+  governmentReferenceId?: string
+  governmentPortalUrl?: string
+  officialDepartmentName?: string
+  officialContactInfo?: string
+  externalStatus?: string
+  assignedInspectorId?: string
+  assignedInspectorName?: string
+  reportedById?: string
+}
+
+export interface TimelineEvent {
+  id: string
+  eventType: string
+  timestamp: string
+  status?: string | null
+  actorName: string
+  actorRole: string
+  actionTitle: string
+  remarks?: string | null
+  reason?: string | null
+  photos?: string[]
+  metadata?: Record<string, any>
 }
 
 export interface DuplicateMatchResult {

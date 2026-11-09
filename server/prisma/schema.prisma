@@ -1,0 +1,521 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// ENUMS
+// -------------------------------------------------------------
+
+enum Role {
+  CITIZEN
+  FIELD_ADMIN
+  DEPARTMENT_ADMIN
+  SUPER_ADMIN
+  INSPECTOR // Legacy alias mapped to FIELD_ADMIN for backward compatibility
+}
+
+enum IssueStatus {
+  REPORTED
+  UNDER_REVIEW
+  VERIFIED
+  ASSIGNED
+  IN_PROGRESS
+  REPAIR_COMPLETED
+  CLOSED
+  REJECTED
+}
+
+enum DamageCategory {
+  CAVITY
+  CRACK
+  EDGE
+  DEPRESSION
+  RUTTING
+}
+
+enum DamageSeverity {
+  CRITICAL
+  HIGH
+  MODERATE
+  LOW
+}
+
+enum ImageType {
+  ORIGINAL_REPORT
+  AI_ANNOTATED
+  INSPECTION_EVIDENCE
+  REPAIR_AFTER
+}
+
+enum WorkOrderStatus {
+  PENDING
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderPriority {
+  EMERGENCY
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CommunityUpdateType {
+  STILL_EXISTS
+  WORSENED
+  MORE_DAMAGE
+  APPEARS_REPAIRED
+  INCORRECT_LOCATION
+  HAZARD_INCREASED
+  SAFETY_CONCERN
+  OTHER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  FLAGGED
+}
+
+enum CommunityPostCategory {
+  APPRECIATION
+  COMPLAINT
+  DELAYED_ACTION
+  REPAIR_FEEDBACK
+  SAFETY_CONCERN
+  GENERAL_DISCUSSION
+}
+
+enum ApprovalActionType {
+  VERIFY_REPORT
+  REJECT_REPORT
+  ASSIGN_INSPECTOR
+  ASSIGN_DEPARTMENT
+  DISPATCH_WORK_ORDER
+  SUBMIT_REPAIR_EVIDENCE
+  APPROVE_REPAIR
+  REJECT_REPAIR
+  CLOSE_ISSUE
+  REOPEN_ISSUE
+  RETURN_FOR_CORRECTION
+}
+
+// -------------------------------------------------------------
+// CORE MODELS
+// -------------------------------------------------------------
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  fullName       String
+  role           Role            @default(CITIZEN)
+  departmentId   String?
+  phoneNumber    String?
+  isActive       Boolean         @default(true)
+  emailVerified  Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relationships
+  department     Department?     @relation("DepartmentStaff", fields: [departmentId], references: [id], onDelete: SetNull)
+  reportedIssues RoadIssue[]     @relation("ReportedByUser")
+  assignedIssues RoadIssue[]     @relation("AssignedInspector")
+  workOrders     WorkOrder[]     @relation("AssignedCrew")
+  statusChanges  StatusHistory[] @relation("StatusChangedBy")
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  // V2 Relationships
+  communityUpdates         IssueCommunityUpdate[] @relation("CommunityUpdateAuthor")
+  verifiedCommunityUpdates IssueCommunityUpdate[] @relation("CommunityUpdateVerifier")
+  communityPosts           CommunityPost[]        @relation("CommunityPostAuthor")
+  communityComments        CommunityComment[]     @relation("CommentAuthor")
+  communityReactions       CommunityReaction[]
+  reportedPosts            CommunityPostReport[]  @relation("PostReportedBy")
+  reviewedPostReports      CommunityPostReport[]  @relation("PostReportReviewedBy")
+  approvalRecords          ApprovalRecord[]       @relation("ApprovalReviewer")
+  notificationPreference   NotificationPreference?
+
+  @@index([role])
+  @@index([email])
+  @@index([departmentId])
+}
+
+model Department {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  description  String?
+  contactEmail String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+
+  // Relationships
+  wards        Ward[]
+  issues       RoadIssue[]
+  workOrders   WorkOrder[]
+  staff        User[]      @relation("DepartmentStaff")
+
+  @@index([name])
+}
+
+model Ward {
+  id           String      @id @default(uuid())
+  name         String
+  wardCode     String      @unique
+  city         String
+  departmentId String?
+  isActive     Boolean     @default(true)
+
+  // Relationships
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  issues       RoadIssue[]
+
+  @@index([wardCode])
+  @@index([city])
+}
+
+model RoadIssue {
+  id                  String          @id @default(uuid())
+  reportNumber        String          @unique // e.g. "RG-10492"
+  title               String
+  description         String?
+  damageCategory      DamageCategory  @default(CAVITY)
+  damageSeverity      DamageSeverity  @default(HIGH)
+  depth               Float?          // Depth in millimeters
+  latitude            Float
+  longitude           Float
+  address             String
+  wardId              String?
+  departmentId        String?
+  reportedById        String?
+  assignedInspectorId String?         // Assigned field inspector / field admin
+  status              IssueStatus     @default(REPORTED)
+  riskScore           Int             @default(50) // 0 - 100 explainable score
+  confirmationsCount  Int             @default(0) // Community confirmation count for duplicates
+  isDemo              Boolean         @default(false) // Differentiates demo seed data from genuine citizen reports
+
+  // V2 Official Department References
+  governmentReferenceId  String?      // External government portal complaint ID (e.g. BMC/MCGM reference)
+  governmentPortalUrl    String?      // Verified external government portal URL
+  officialDepartmentName String?      // Verified responsible municipal agency
+  officialContactInfo    String?      // Verified contact info / helpline
+  externalStatus         String?      // External complaint submission status
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relationships
+  ward              Ward?                  @relation(fields: [wardId], references: [id], onDelete: SetNull)
+  department        Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  reportedBy        User?                  @relation("ReportedByUser", fields: [reportedById], references: [id], onDelete: SetNull)
+  assignedInspector User?                  @relation("AssignedInspector", fields: [assignedInspectorId], references: [id], onDelete: SetNull)
+  images            IssueImage[]
+  workOrders        WorkOrder[]
+  statusHistory     StatusHistory[]
+
+  // V2 Relationships
+  communityUpdates  IssueCommunityUpdate[]
+  approvalRecords   ApprovalRecord[]
+  communityPosts    CommunityPost[]        @relation("CommunityPostIssue")
+
+  @@index([status])
+  @@index([damageCategory])
+  @@index([damageSeverity])
+  @@index([latitude, longitude])
+  @@index([createdAt])
+  @@index([assignedInspectorId])
+  @@index([isDemo])
+}
+
+model IssueImage {
+  id         String     @id @default(uuid())
+  issueId    String
+  imageUrl   String     // Cloudinary HTTPS URL or secure asset path
+  publicId   String?    // Cloudinary public ID for lifecycle deletion
+  imageType  ImageType  @default(ORIGINAL_REPORT)
+  uploadedAt DateTime   @default(now())
+
+  // Relationships
+  issue      RoadIssue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+}
+
+model WorkOrder {
+  id              String            @id @default(uuid())
+  issueId         String
+  assignedToId    String?           // Staff or Crew User ID
+  departmentId    String
+  workDescription String
+  priority        WorkOrderPriority @default(MEDIUM)
+  scheduledDate   DateTime?
+  completedDate   DateTime?
+  status          WorkOrderStatus   @default(PENDING)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relationships
+  issue           RoadIssue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  assignedTo      User?             @relation("AssignedCrew", fields: [assignedToId], references: [id], onDelete: SetNull)
+  department      Department        @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@index([issueId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model StatusHistory {
+  id             String       @id @default(uuid())
+  issueId        String
+  previousStatus IssueStatus?
+  newStatus      IssueStatus
+  changedById    String?
+  remarks        String?
+  createdAt      DateTime     @default(now())
+
+  // Relationships
+  issue          RoadIssue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  changedBy      User?        @relation("StatusChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([issueId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("SYSTEM") // STATUS_UPDATE, COMMUNITY_REPLY, ASSIGNMENT, CITIZEN_CONFIRMATION
+  issueId   String?
+  linkUrl   String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  emailAlerts        Boolean  @default(true)
+  statusUpdates      Boolean  @default(true)
+  communityReplies   Boolean  @default(true)
+  nearbyHazardAlerts Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relationships
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String   // e.g. "USER_LOGIN", "STATUS_TRANSITION", "WORK_ORDER_DISPATCH", "APPROVAL_REVIEW"
+  entityType String   // e.g. "RoadIssue", "User", "WorkOrder", "ApprovalRecord", "CommunityPost"
+  entityId   String?
+  details    String?  // JSON stringified payload of changes
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  // Relationships
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// V2 EXPANSIONS: COMMUNITY, WORKSPACES & GOVERNANCE
+// -------------------------------------------------------------
+
+model IssueCommunityUpdate {
+  id                 String              @id @default(uuid())
+  issueId            String
+  userId             String?
+  authorName         String?
+  updateType         CommunityUpdateType @default(STILL_EXISTS)
+  description        String
+  photos             String?             // JSON array of photo URLs
+  latitude           Float?
+  longitude          Float?
+  observationDate    DateTime            @default(now())
+  verificationStatus VerificationStatus  @default(PENDING)
+  adminRemarks       String?
+  verifiedById       String?
+  verifiedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  // Relationships
+  issue              RoadIssue           @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user               User?               @relation("CommunityUpdateAuthor", fields: [userId], references: [id], onDelete: SetNull)
+  verifiedBy         User?               @relation("CommunityUpdateVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([issueId])
+  @@index([updateType])
+  @@index([verificationStatus])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CommunityPost {
+  id               String                @id @default(uuid())
+  authorId         String?
+  authorName       String
+  authorRole       Role                  @default(CITIZEN)
+  isOfficial       Boolean               @default(false)
+  officialBadge    String?               // Verified municipal badge, e.g. "BMC Ward D Official"
+  category         CommunityPostCategory @default(GENERAL_DISCUSSION)
+  title            String
+  content          String
+  photos           String?               // JSON array of photo URLs
+  relatedIssueId   String?
+  wardId           String?
+  locality         String?
+  upvotesCount     Int                   @default(0)
+  commentsCount    Int                   @default(0)
+  isPinned         Boolean               @default(false)
+  isLocked         Boolean               @default(false)
+  isModerated      Boolean               @default(false)
+  moderationReason String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  // Relationships
+  author           User?                 @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  relatedIssue     RoadIssue?            @relation("CommunityPostIssue", fields: [relatedIssueId], references: [id], onDelete: SetNull)
+  comments         CommunityComment[]
+  reactions        CommunityReaction[]
+  reports          CommunityPostReport[]
+
+  @@index([category])
+  @@index([relatedIssueId])
+  @@index([authorId])
+  @@index([wardId])
+  @@index([createdAt])
+  @@index([upvotesCount])
+}
+
+model CommunityComment {
+  id            String             @id @default(uuid())
+  postId        String
+  authorId      String?
+  authorName    String
+  authorRole    Role               @default(CITIZEN)
+  isOfficial    Boolean            @default(false)
+  officialBadge String?
+  content       String
+  parentId      String?            // Nested discussion parent
+  isModerated   Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  // Relationships
+  post          CommunityPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User?              @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  parent        CommunityComment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies       CommunityComment[] @relation("CommentThread")
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model CommunityReaction {
+  id           String        @id @default(uuid())
+  postId       String
+  userId       String
+  reactionType String        @default("UPVOTE") // UPVOTE, SUPPORT, HELPFUL
+  createdAt    DateTime      @default(now())
+
+  // Relationships
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, reactionType])
+  @@index([postId])
+  @@index([userId])
+}
+
+model CommunityPostReport {
+  id           String        @id @default(uuid())
+  postId       String
+  reportedById String?
+  reason       String        // INAPPROPRIATE_CONTENT, SPAM, MISINFORMATION, HARASSMENT
+  details      String?
+  status       String        @default("PENDING") // PENDING, REVIEWED, DISMISSED, ACTIONED
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+
+  // Relationships
+  post         CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reportedBy   User?         @relation("PostReportedBy", fields: [reportedById], references: [id], onDelete: SetNull)
+  reviewedBy   User?         @relation("PostReportReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ApprovalRecord {
+  id             String             @id @default(uuid())
+  issueId        String
+  actionType     ApprovalActionType
+  previousStatus IssueStatus?
+  newStatus      IssueStatus?
+  reviewerId     String?
+  reviewerName   String?
+  reviewerRole   Role?
+  reason         String?
+  remarks        String?
+  evidencePhotos String?            // JSON array of photo URLs
+  createdAt      DateTime           @default(now())
+
+  // Relationships
+  issue          RoadIssue          @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  reviewer       User?              @relation("ApprovalReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([issueId])
+  @@index([reviewerId])
+  @@index([actionType])
+  @@index([createdAt])
+}
+
+model GeographicBoundary {
+  id           String   @id @default(uuid())
+  name         String   // e.g. "Greater Mumbai Municipal Corporation (MCGM)"
+  boundaryType String   // MUNICIPAL_LIMITS, WARD_BOUNDARY, ZONE
+  code         String   @unique // MCGM-MUMBAI, WARD-D, etc.
+  city         String   @default("Mumbai")
+  state        String   @default("Maharashtra")
+  country      String   @default("India")
+  minLat       Float    // Bounding box min latitude
+  maxLat       Float    // Bounding box max latitude
+  minLng       Float    // Bounding box min longitude
+  maxLng       Float    // Bounding box max longitude
+  geoJson      String   // Full GeoJSON Polygon or MultiPolygon string for ray-casting PIP validation
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([code])
+  @@index([boundaryType])
+  @@index([city])
+}

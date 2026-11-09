@@ -19,3 +19,36 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Scratch & Temporary Testing Scripts
+scratch/
+test-results/
+
+# Implementation Plans, Progress Tracking & Generated Audit Markdown Documents
+API_DOCUMENTATION.md
+BACKEND_ARCHITECTURE.md
+DATABASE_SCHEMA.md
+FINAL_ACCEPTANCE_REPORT.md
+IMPLEMENTATION_PLAN.md
+IMPLEMENTATION_PROGRESS.md
+PRODUCTION_DEPLOYMENT_GUIDE.md
+ROADGUARD_*.md
+
+# Server runtime, local uploads, environments & SQLite databases
+server/node_modules/
+server/dist/
+server/uploads/
+server/.env
+server/.env.*
+server/prisma/*.db
+server/prisma/*.db-wal
+server/prisma/*.db-shm
+server/prisma/*.db-journal
+server/prisma/backups/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
