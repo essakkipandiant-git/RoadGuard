@@ -895,6 +895,18 @@ export class RoadIssueService {
     return result.issue
   }
 
+  static saveIssue(issue: RoadIssue): RoadIssue {
+    const all = this.getAllIssues()
+    const exists = all.some((i) => i.id === issue.id)
+    if (exists) {
+      this.issues = all.map((i) => (i.id === issue.id ? issue : i))
+    } else {
+      this.issues = [issue, ...all]
+    }
+    this.save()
+    return issue
+  }
+
   static resetToSeed(): RoadIssue[] {
     this.issues = [...SEED_ISSUES]
     this.save()

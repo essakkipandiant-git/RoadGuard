@@ -45,12 +45,15 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   DamageCategory,
   IssueStatus,
+  RepairVerificationRecord,
   RoadIssue,
   SeverityLevel,
+  StatusHistoryItem,
   TimelineEvent,
   UserRole,
 } from "../types/roadguard"
 import { apiClient, ApiUser, mapBackendRole, MunicipalMetadata } from "../services/apiClient"
+import { RoadIssueService } from "../services/roadIssueService"
 import { MUNICIPAL_PERSONAS } from "../constants/personas"
 
 interface IssueManagementWorkspaceProps {
@@ -482,6 +485,92 @@ export default function IssueManagementWorkspace({
     setTimeout(() => setCopiedReportId(false), 2000)
   }
 
+  // Local fallback state updater for static cloud environments (e.g. Vercel)
+  const applyLocalAction = (currentIssue: RoadIssue, payload: any): RoadIssue => {
+    const now = new Date().toISOString()
+    const actorName = currentUser?.fullName || "System Administrator"
+    const actorRole = (currentUser?.role || "SUPER_ADMIN").toLowerCase() as any
+    let targetStatus: IssueStatus = currentIssue.status
+    let assignedInspectorId = currentIssue.assignedInspectorId
+    let assignedInspectorName = currentIssue.assignedInspectorName
+    let departmentId = currentIssue.departmentId
+    let departmentName = currentIssue.departmentName
+    let repair: RepairVerificationRecord = { ...(currentIssue.repair || {}) }
+
+    if (payload.actionType === "ASSIGN_INSPECTOR") {
+      const insp = availableInspectors.find((i) => i.id === payload.assignedInspectorId)
+      assignedInspectorId = payload.assignedInspectorId || "insp-sarah-101"
+      assignedInspectorName = insp?.fullName || "Senior Inspector Sarah Chen"
+      targetStatus = "under_review"
+    } else if (payload.actionType === "ASSIGN_DEPARTMENT") {
+      const dept = availableDepartments.find((d) => d.id === payload.departmentId)
+      departmentId = payload.departmentId || "40947e83-f3ca-47b9-bdef-0cfd8175555b"
+      departmentName = dept?.name || "Highways & Road Infrastructure Department"
+    } else if (payload.actionType === "DISPATCH_WORK_ORDER") {
+      targetStatus = "assigned"
+      repair = {
+        ...repair,
+        workOrderNumber: `WO-${Math.floor(10000 + Math.random() * 90000)}`,
+        assignedCrew: assignedCrewName || "Hot-Mix Quick Response Asphalt Crew 1",
+        assignedAt: now,
+      }
+    } else if (payload.actionType === "START_REPAIR") {
+      targetStatus = "in_progress"
+    } else if (payload.actionType === "SUBMIT_REPAIR_EVIDENCE") {
+      targetStatus = "verified_repaired"
+      repair = {
+        ...repair,
+        afterPhotoUrl: payload.evidencePhotos?.[0] || evidencePhotoUrl || currentIssue.originalPhotoUrl,
+        repairCompletedAt: now,
+        assignedCrew: assignedCrewName || "Hot-Mix Quick Response Asphalt Crew 1",
+        verificationDecision: "approved",
+      }
+    } else if (payload.actionType === "APPROVE_REPAIR" || payload.actionType === "CLOSE_ISSUE") {
+      targetStatus = "closed"
+    } else if (payload.actionType === "REOPEN_ISSUE") {
+      targetStatus = "reopened"
+    } else if (payload.actionType === "REJECT_ISSUE") {
+      targetStatus = "rejected"
+    } else if (payload.actionType === "UPDATE_STATUS") {
+      const statusMap: Record<string, IssueStatus> = {
+        REPORTED: "reported",
+        UNDER_REVIEW: "under_review",
+        WORK_ORDER_DISPATCHED: "assigned",
+        REPAIR_IN_PROGRESS: "in_progress",
+        REPAIR_COMPLETED: "verified_repaired",
+        CLOSED: "closed",
+        REOPENED: "reopened",
+        REJECTED: "rejected",
+      }
+      targetStatus = statusMap[payload.targetStatus] || currentIssue.status
+    }
+
+    const newHistoryItem: StatusHistoryItem = {
+      id: `sh-${Date.now()}`,
+      fromStatus: currentIssue.status,
+      toStatus: targetStatus,
+      timestamp: now,
+      actorRole,
+      actorName,
+      notes: payload.remarks || payload.reason || `Municipal lifecycle event: ${payload.actionType}`,
+    }
+
+    const updated: RoadIssue = {
+      ...currentIssue,
+      status: targetStatus,
+      assignedInspectorId,
+      assignedInspectorName,
+      departmentId,
+      departmentName,
+      repair,
+      updatedAt: now,
+      statusHistory: [...(currentIssue.statusHistory || []), newHistoryItem],
+    }
+
+    RoadIssueService.saveIssue(updated)
+    return updated
+  }
+
   // Execute Municipal Lifecycle Action
   const handleExecuteAction = async (actionType: string) => {
     setIsActionExecuting(true)
@@ -519,8 +608,16 @@ export default function IssueManagementWorkspace({
         payload.remarks = actionRemarks || `Administrative status change to ${targetStatusOverride.toUpperCase()}`
       }
 
-      const res = await apiClient.issues.executeAction(issue.id, payload)
-      onIssueUpdated(res.issue)
+      let updatedIssue = issue
+      try {
+        const res = await apiClient.issues.executeAction(issue.id, payload)
+        updatedIssue = res.issue
+      } catch (apiErr) {
+        console.warn("RoadGuard: Backend action unreachable, running local update simulation:", apiErr)
+        updatedIssue = applyLocalAction(issue, payload)
+      }
+
+      onIssueUpdated(updatedIssue)
       await fetchTimeline()
       setActionModalType(null)
       setActionReason("")
@@ -539,37 +636,52 @@ export default function IssueManagementWorkspace({
   // Save Official Department Information
   const handleSaveOfficialInfo = async () => {
     setIsSavingOfficial(true)
+    let updatedIssue = issue
     try {
-      const updated = await apiClient.issues.updateOfficialInfo(issue.id, {
+      updatedIssue = await apiClient.issues.updateOfficialInfo(issue.id, {
         governmentReferenceId: govtRefId.trim() || null,
         governmentPortalUrl: govtPortalUrl.trim() || null,
         officialDepartmentName: officialDeptName.trim() || null,
         officialContactInfo: officialContact.trim() || null,
         externalStatus: externalStatus.trim() || null,
       })
-      onIssueUpdated(updated)
-      await fetchTimeline()
-      setIsOfficialModalOpen(false)
-    } catch (err: any) {
-      alert(err.message || "Failed to update official information.")
+    } catch {
+      updatedIssue = {
+        ...issue,
+        governmentReferenceId: govtRefId.trim() || undefined,
+        governmentPortalUrl: govtPortalUrl.trim() || undefined,
+        officialDepartmentName: officialDeptName.trim() || undefined,
+        officialContactInfo: officialContact.trim() || undefined,
+        externalStatus: externalStatus.trim() || undefined,
+      }
+      RoadIssueService.saveIssue(updatedIssue)
     } finally {
       setIsSavingOfficial(false)
     }
+    onIssueUpdated(updatedIssue)
+    await fetchTimeline()
+    setIsOfficialModalOpen(false)
   }
 
   // Community support / corroboration
   const handleSupportIssue = async () => {
     setIsSupporting(true)
+    let updatedIssue = issue
     try {
-      const updated = await apiClient.issues.support(issue.id, "Community confirmation via Pothole Workspace")
-      onIssueUpdated(updated)
-      setSupportMessage("Confirmation recorded. Priority score refreshed.")
-      setTimeout(() => setSupportMessage(null), 3000)
-    } catch (err: any) {
-      alert(err.message || "Failed to submit confirmation.")
+      updatedIssue = await apiClient.issues.support(issue.id, "Community confirmation via Pothole Workspace")
+    } catch {
+      updatedIssue = RoadIssueService.supportIssue(issue.id, {
+        userName: currentUser?.fullName || "Citizen Reporter",
+        userRole: "citizen",
+        notes: "Community confirmation via Pothole Workspace",
+      })
     } finally {
       setIsSupporting(false)
     }
+    onIssueUpdated(updatedIssue)
+    setSupportMessage("Confirmation recorded. Priority score refreshed.")
+    setTimeout(() => setSupportMessage(null), 3000)
+    await fetchTimeline()
   }
 
   // Submit citizen community observation or repair claim

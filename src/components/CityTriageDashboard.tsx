@@ -345,7 +345,27 @@ export default function CityTriageDashboard({
         payload.actionType = "SUBMIT_REPAIR_EVIDENCE"
         payload.evidencePhotos = [evidencePhotoUrl]
       }
-      await apiClient.issues.executeAction(issue.id, payload)
+      try {
+        await apiClient.issues.executeAction(issue.id, payload)
+      } catch {
+        const frontendStatusMap: Record<string, IssueStatus> = {
+          REPORTED: "reported",
+          UNDER_REVIEW: "under_review",
+          WORK_ORDER_DISPATCHED: "assigned",
+          REPAIR_IN_PROGRESS: "in_progress",
+          REPAIR_COMPLETED: "verified_repaired",
+          CLOSED: "closed",
+          REOPENED: "reopened",
+          REJECTED: "rejected",
+        }
+        const mappedStatus = frontendStatusMap[targetStatus] || "reported"
+        RoadIssueService.updateStatus(issue.id, mappedStatus, {
+          notes: remarks,
+          actorName: currentUser?.fullName || "System Administrator",
+          actorRole: (currentUser?.role || "SUPER_ADMIN").toLowerCase() as any,
+          afterPhotoUrl: evidencePhotoUrl,
+        })
+      }
       setActionSuccessMsg(`Status updated to ${targetStatus.replace("_", " ")} on #${issue.trackingCode}`)
       setTimeout(() => setActionSuccessMsg(null), 3500)
       await handleManualRefresh()
@@ -361,7 +381,15 @@ export default function CityTriageDashboard({
     e.stopPropagation()
     setActionLoadingId(issue.id)
     try {
-      await apiClient.issues.support(issue.id, "Citizen confirmed road defect location on community feed.")
+      try {
+        await apiClient.issues.support(issue.id, "Citizen confirmed road defect location on community feed.")
+      } catch {
+        RoadIssueService.supportIssue(issue.id, {
+          userName: currentUser?.fullName || "Citizen Reporter",
+          userRole: "citizen",
+          notes: "Citizen confirmed road defect location on community feed.",
+        })
+      }
       setActionSuccessMsg(`Confirmed defect #${issue.trackingCode} (+1)`)
       setTimeout(() => setActionSuccessMsg(null), 3500)
       await handleManualRefresh()
