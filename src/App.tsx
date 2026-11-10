@@ -299,6 +299,63 @@ function Header({
 }
 
 /* =========================================================================
+   SCROLL SECTION TRANSITION: Smooth fade-in, subtle scale & fade-out
+   ========================================================================= */
+function ScrollSectionTransition({
+  children,
+  className = "",
+  id,
+}: {
+  children: React.ReactNode
+  className?: string
+  id?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion()
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  })
+
+  const smooth = useSpring(scrollYProgress, {
+    stiffness: 85,
+    damping: 26,
+    restDelta: 0.001,
+  })
+
+  // Smooth fade-in on entrance (0.0 -> 0.16), full crisp view in middle (0.16 -> 0.84), smooth fade-out on exit (0.84 -> 1.0)
+  const opacity = useTransform(
+    smooth,
+    [0, 0.16, 0.84, 1],
+    reduce ? [1, 1, 1, 1] : [0.12, 1, 1, 0.12]
+  )
+
+  const y = useTransform(
+    smooth,
+    [0, 0.16, 0.84, 1],
+    reduce ? [0, 0, 0, 0] : [32, 0, 0, -32]
+  )
+
+  const scale = useTransform(
+    smooth,
+    [0, 0.16, 0.84, 1],
+    reduce ? [1, 1, 1, 1] : [0.985, 1, 1, 0.985]
+  )
+
+  return (
+    <motion.div
+      id={id}
+      ref={ref}
+      style={{ opacity, y, scale }}
+      className={`scroll-section-fade ${className}`}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+/* =========================================================================
    00 / HERO: Continuous road approach — wide city view to pothole zoom
    ========================================================================= */
 function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
@@ -317,6 +374,9 @@ function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
     restDelta: 0.001,
   })
 
+  // Hero container smooth fade out as user scrolls toward detection
+  const heroOpacity = useTransform(smooth, [0.4, 0.95], [1, reduce ? 1 : 0.2])
+
   // Approaching the visible pothole in the lower foreground
   const roadScale = useTransform(smooth, [0, 1], [1, reduce ? 1 : 1.32])
   const roadY = useTransform(smooth, [0, 1], ["0%", reduce ? "0%" : "12%"])
@@ -334,7 +394,12 @@ function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
   const reticleScale = useTransform(smooth, [0.25, 0.8], [0.75, 1.05])
 
   return (
-    <section id="home" className="hero" ref={containerRef}>
+    <motion.section
+      id="home"
+      className="hero"
+      ref={containerRef}
+      style={{ opacity: heroOpacity }}
+    >
       {/* Dynamic Road Background */}
       <motion.div
         className="hero-image"
@@ -446,16 +511,19 @@ function Hero({ onOpenGlobe }: { onOpenGlobe: () => void }) {
       <a className="scroll-cue" href="#detection">
         SCROLL TO SCAN <ArrowDownRight size={18} />
       </a>
-    </section>
+    </motion.section>
   )
 }
 
 /* =========================================================================
-   01 / DETECTION: Zoom into asphalt, reveal vermilion frames & analysis
+   01 / DETECTION: High-Precision Multi-Spectral Municipal Edge CV Terminal
    ========================================================================= */
 function Detection() {
   const containerRef = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
+
+  const [activeMode, setActiveMode] = useState<"rgb" | "thermal" | "wireframe">("rgb")
+  const [activeDefect, setActiveDefect] = useState<"cavity" | "crack">("cavity")
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -468,9 +536,8 @@ function Detection() {
   })
 
   // Deep macro zoom into asphalt texture
-  const scale = useTransform(smooth, [0, 0.5, 1], [1.18, 1.04, 1.0])
-  const y = useTransform(smooth, [0, 1], [-40, reduce ? 0 : 50])
-  const overlayY = useTransform(smooth, [0, 1], [30, -25])
+  const scale = useTransform(smooth, [0, 0.5, 1], [1.14, 1.03, 1.0])
+  const y = useTransform(smooth, [0, 1], [-30, reduce ? 0 : 35])
 
   return (
     <section
@@ -478,6 +545,10 @@ function Detection() {
       className="detection section-dark"
       ref={containerRef}
     >
+      {/* Dynamic ambient background glow and tech matrix */}
+      <div className="detection-ambient-glow" />
+      <div className="detection-matrix-grid" />
+
       <div className="section-grid section-heading">
         <div>
           <p className="eyebrow light">
@@ -491,114 +562,251 @@ function Detection() {
             THE <em>RISK.</em>
           </DottedTitle>
         </div>
-        <p className="section-copy">
-          Computer vision reads the road in real time—measuring surface loss,
-          crack spread and danger to every rider.
-        </p>
+        <div className="detection-heading-right">
+          <p className="section-copy">
+            Computer vision reads the road in real time—measuring surface loss,
+            crack spread and danger to every rider.
+          </p>
+          <div className="detection-mode-toggles">
+            <span className="mode-label">SPECTRUM:</span>
+            {(
+              [
+                ["rgb", "Camera RGB"],
+                ["thermal", "Cavity Heatmap"],
+                ["wireframe", "3D Depth Mesh"],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setActiveMode(mode)}
+                className={`mode-pill ${activeMode === mode ? "active" : ""}`}
+                aria-pressed={activeMode === mode}
+              >
+                <span className={`mode-dot ${mode}`} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="scan-stage">
-        {/* Close-up asphalt pavement background */}
-        <motion.div
-          className="scan-stage-image"
-          style={{
-            backgroundImage: `url(${detectionAsphaltImage})`,
-            scale,
-            y,
-          }}
-        />
-        <div className="scan-grid" />
-        <div className="scan-vignette" />
-        <div className="scan-laser-line" />
+      {/* Futuristic High-Precision AI Inspection Terminal */}
+      <div className="detection-terminal glass">
+        {/* Terminal Top Control Bar */}
+        <div className="terminal-top-ribbon">
+          <div className="ribbon-brand">
+            <span className="rec-dot" />
+            <span className="ribbon-title">ROADVISION™ v4.2 EDGE CV ENGINE</span>
+            <span className="ribbon-pill">4K SENSOR · 60 FPS</span>
+          </div>
+          <div className="ribbon-stats">
+            <span className="ribbon-stat-item">
+              <span className="text-muted">SENSOR ID:</span> RV-402-MUM
+            </span>
+            <span className="ribbon-stat-item">
+              <span className="text-muted">CALIBRATION:</span> IRC:SP:98-2020
+            </span>
+            <span className="ribbon-stat-item">
+              <span className="text-muted">STATUS:</span> <strong className="text-emerald">ACTIVE STREAM</strong>
+            </span>
+          </div>
+        </div>
 
-        {/* Animated Vermilion Detection Frame A: Pothole Cavity */}
-        <motion.div
-          className="detect-box box-a"
-          initial={{ opacity: 0, scale: 0.92 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ amount: 0.35 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          style={{ y: overlayY }}
-        >
-          <div className="detect-scanner-sweep" />
-          <div className="detect-header">
-            <span className="detect-badge">POTHOLE · 98.4%</span>
-            <span className="detect-code">ID: CAV-049</span>
-          </div>
-          <div className="detect-measurements">
-            <div>
-              <span>DEPTH</span>
-              <strong>62mm</strong>
-            </div>
-            <div>
-              <span>VOLUME</span>
-              <strong>14.2L</strong>
-            </div>
-            <div>
-              <span>SEVERITY</span>
-              <strong className="text-vermilion">CRITICAL</strong>
-            </div>
-          </div>
-        </motion.div>
+        {/* Terminal Main Body */}
+        <div className="terminal-grid">
+          {/* Central Camera Stage */}
+          <div className="terminal-camera-stage">
+            {/* Asphalt pavement background with mode shader */}
+            <motion.div
+              className={`scan-stage-image ${activeMode}`}
+              style={{
+                backgroundImage: `url(${detectionAsphaltImage})`,
+                scale,
+                y,
+              }}
+            />
 
-        {/* Animated Detection Frame B: Crack propagation */}
-        <motion.div
-          className="detect-box box-b"
-          initial={{ opacity: 0, scale: 0.92 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ amount: 0.35 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div className="detect-header">
-            <span className="detect-badge">LONGITUDINAL CRACK · 91%</span>
-            <span className="detect-code">ID: CRK-182</span>
-          </div>
-          <div className="detect-measurements">
-            <div>
-              <span>SPREAD</span>
-              <strong>1.4m</strong>
-            </div>
-            <div>
-              <span>WIDTH</span>
-              <strong>18mm</strong>
-            </div>
-            <div>
-              <span>RISK</span>
-              <strong className="text-amber">MODERATE</strong>
-            </div>
-          </div>
-        </motion.div>
+            {/* Thermal Heatmap Gradient Overlay when thermal is selected */}
+            {activeMode === "thermal" && (
+              <div className="thermal-overlay animate-fadeIn" />
+            )}
 
-        {/* Compact AI analysis floating panel */}
-        <motion.div
-          className="detection-telemetry-panel glass"
-          initial={{ opacity: 0, x: 25 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ amount: 0.4 }}
-          transition={{ duration: 0.7 }}
-        >
-          <div className="telemetry-title">
-            <Activity size={14} className="text-vermilion" />
-            <span>AI ROAD DIAGNOSTICS</span>
-          </div>
-          <div className="telemetry-stat">
-            <label>SURFACE LOSS RATIO</label>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: "74%" }} />
-            </div>
-            <span>18.4% of scanned lane meter</span>
-          </div>
-          <div className="telemetry-meta">
-            <span>BITUMEN: VG-30 (IRC)</span>
-            <span>MUNICIPAL: MCGM MUMBAI</span>
-          </div>
-          <div className="telemetry-meta" style={{ marginTop: 6, paddingTop: 6 }}>
-            <span>EDGE INFERENCE: 11.4ms</span>
-            <span>MODEL: RoadNet-v4.2 CV</span>
-          </div>
-        </motion.div>
+            {/* 3D Depth Wireframe Overlay when wireframe is selected */}
+            {activeMode === "wireframe" && (
+              <div className="wireframe-overlay animate-fadeIn" />
+            )}
 
-        {/* Bottom Scan Readout Bar */}
+            {/* Perspective Optical Grid Lines */}
+            <div className="terminal-perspective-grid" />
+            <div className="scan-vignette" />
+
+            {/* Continuous Animated LiDAR Laser Line */}
+            <div className="scan-laser-line" />
+
+            {/* Optical Flow Computer Vision Keypoint Nodes */}
+            <div className="optical-flow-nodes">
+              <span className="cv-node node-1" title="Flow Vector A"><span className="cv-vector" /></span>
+              <span className="cv-node node-2" title="Flow Vector B"><span className="cv-vector" /></span>
+              <span className="cv-node node-3" title="Flow Vector C"><span className="cv-vector" /></span>
+              <span className="cv-node node-4" title="Flow Vector D"><span className="cv-vector" /></span>
+            </div>
+
+            {/* Reticle A: Pothole Cavity */}
+            <div
+              className={`detect-box box-a ${activeDefect === "cavity" ? "is-selected" : ""}`}
+              onClick={() => setActiveDefect("cavity")}
+            >
+              <div className="detect-scanner-sweep" />
+              <div className="detect-reticle-corners">
+                <span className="corner c-tl" />
+                <span className="corner c-tr" />
+                <span className="corner c-bl" />
+                <span className="corner c-br" />
+              </div>
+              <div className="detect-header">
+                <span className="detect-badge">POTHOLE · 98.4%</span>
+                <span className="detect-code">ID: CAV-049</span>
+              </div>
+              <div className="detect-measurements">
+                <div>
+                  <span>DEPTH</span>
+                  <strong>62mm</strong>
+                </div>
+                <div>
+                  <span>VOLUME</span>
+                  <strong>14.2L</strong>
+                </div>
+                <div>
+                  <span>SEVERITY</span>
+                  <strong className="text-vermilion">CRITICAL</strong>
+                </div>
+              </div>
+
+              {/* Mini Cavity 3D Profile Curve */}
+              <div className="cavity-profile-mini">
+                <span className="profile-label">3D CAVITY PROFILE:</span>
+                <svg viewBox="0 0 100 24" className="profile-svg">
+                  <path
+                    d="M 0 4 Q 25 4 35 12 Q 50 24 65 12 Q 75 4 100 4"
+                    fill="none"
+                    stroke="#E65336"
+                    strokeWidth="1.8"
+                  />
+                  <circle cx="50" cy="23" r="2.5" fill="#E65336" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Reticle B: Crack Propagation */}
+            <div
+              className={`detect-box box-b ${activeDefect === "crack" ? "is-selected" : ""}`}
+              onClick={() => setActiveDefect("crack")}
+            >
+              <div className="detect-reticle-corners">
+                <span className="corner c-tl" />
+                <span className="corner c-tr" />
+                <span className="corner c-bl" />
+                <span className="corner c-br" />
+              </div>
+              <div className="detect-header">
+                <span className="detect-badge badge-amber">LONGITUDINAL CRACK · 91%</span>
+                <span className="detect-code">ID: CRK-182</span>
+              </div>
+              <div className="detect-measurements">
+                <div>
+                  <span>SPREAD</span>
+                  <strong>1.4m</strong>
+                </div>
+                <div>
+                  <span>WIDTH</span>
+                  <strong>18mm</strong>
+                </div>
+                <div>
+                  <span>RISK</span>
+                  <strong className="text-amber">MODERATE</strong>
+                </div>
+              </div>
+              {/* Crack propagation vector */}
+              <div className="crack-vector-line">
+                <span className="vector-label">STRESS PROPAGATION: 1.4m →</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Integrated Right-Hand Diagnostic Cockpit Panel */}
+          <div className="terminal-telemetry-panel">
+            <div className="telemetry-panel-header">
+              <Activity size={15} className="text-vermilion" />
+              <span>AI ROAD DIAGNOSTICS</span>
+              <span className="telemetry-live-badge">REAL-TIME</span>
+            </div>
+
+            <div className="telemetry-stat-card">
+              <div className="stat-card-row">
+                <label>SURFACE LOSS RATIO</label>
+                <strong className="text-vermilion">18.4%</strong>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: "74%" }} />
+              </div>
+              <small>18.4% of scanned lane meter (High Cavitation Alert)</small>
+            </div>
+
+            <div className="telemetry-grid-metrics">
+              <div className="metric-box">
+                <label>BITUMEN SPECIFICATION</label>
+                <strong>VG-30 (IRC)</strong>
+                <small>IRC:SP:98-2020 Standard</small>
+              </div>
+              <div className="metric-box">
+                <label>MUNICIPAL JURISDICTION</label>
+                <strong>MCGM MUMBAI</strong>
+                <small>Ward K/E (Western Corridor)</small>
+              </div>
+            </div>
+
+            <div className="telemetry-compute-card">
+              <div className="compute-header">
+                <label>EDGE HARDWARE INFERENCE</label>
+                <span className="compute-status">● NPU SYNC</span>
+              </div>
+              <div className="compute-metrics">
+                <div>
+                  <span>LATENCY</span>
+                  <strong>11.4ms</strong>
+                </div>
+                <div>
+                  <span>MODEL</span>
+                  <strong>RoadNet-v4.2 CV</strong>
+                </div>
+                <div>
+                  <span>CONFIDENCE</span>
+                  <strong className="text-emerald">98.4%</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="telemetry-target-summary">
+              <span className="target-summary-label">ACTIVE FOCUS DEFECT:</span>
+              <div className="target-summary-info">
+                {activeDefect === "cavity" ? (
+                  <>
+                    <strong className="text-vermilion">CAV-049 · Critical Cavity (62mm)</strong>
+                    <p>Immediate hot-mix asphalt dispatch recommended by municipal AI.</p>
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-amber">CRK-182 · Longitudinal Fracture</strong>
+                    <p>Sub-base water ingress monitored; preventive seal coating required.</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Tactical Readout Bar */}
         <div className="scan-readout glass">
           <div className="readout-group">
             <span className="readout-indicator" />
@@ -613,9 +821,6 @@ function Detection() {
   )
 }
 
-/* =========================================================================
-   02 / RISK MAP: Transition road perspective to elevated 3D city map
-   ========================================================================= */
 /* =========================================================================
    02 / RISK MAP: Real Interactive 2D Map with Live Pothole Reports & Scans
    ========================================================================= */
@@ -1664,15 +1869,25 @@ export default function App() {
       />
       <main id="main-content" tabIndex={-1} className="outline-none">
         <Hero onOpenGlobe={handleStartReporting} />
-        <Detection />
-        <RiskMap
-          onSelectIssueForGlobe={handleSelectIssueForGlobe}
-          onOpenDetails={handleOpenIssueDetails}
-          onOpenTriage={() => setIsTriageOpen(true)}
-        />
-        <RepairJourney />
-        <Impact />
-        <Community onOpenGlobe={handleStartReporting} />
+        <ScrollSectionTransition id="section-detection-wrap">
+          <Detection />
+        </ScrollSectionTransition>
+        <ScrollSectionTransition id="section-risk-map-wrap">
+          <RiskMap
+            onSelectIssueForGlobe={handleSelectIssueForGlobe}
+            onOpenDetails={handleOpenIssueDetails}
+            onOpenTriage={() => setIsTriageOpen(true)}
+          />
+        </ScrollSectionTransition>
+        <ScrollSectionTransition id="section-repair-wrap">
+          <RepairJourney />
+        </ScrollSectionTransition>
+        <ScrollSectionTransition id="section-impact-wrap">
+          <Impact />
+        </ScrollSectionTransition>
+        <ScrollSectionTransition id="section-community-wrap">
+          <Community onOpenGlobe={handleStartReporting} />
+        </ScrollSectionTransition>
       </main>
       <Footer onOpenGlobe={handleStartReporting} />
 
