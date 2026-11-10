@@ -1,4 +1,12 @@
-export type DamageCategory = "cavity" | "crack" | "edge" | "depression" | "rutting"
+export type DamageCategory =
+  | "cavity"
+  | "crack"
+  | "edge"
+  | "depression"
+  | "rutting"
+  | "waterlogging"
+  | "collapse"
+  | "other"
 
 export type SeverityLevel = "critical" | "high" | "moderate" | "low"
 

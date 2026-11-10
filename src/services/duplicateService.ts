@@ -65,8 +65,15 @@ export function areCategoriesCompatible(
   }
   // Cracks and edge failures frequently co-occur
   if (
-    (cat1 === "crack" && cat2 === "edge") ||
-    (cat1 === "edge" && cat2 === "crack")
+    (cat1 === "crack" && (cat2 === "edge" || cat2 === "collapse")) ||
+    ((cat1 === "edge" || cat1 === "collapse") && cat2 === "crack")
+  ) {
+    return true
+  }
+  // Edge subsidence and road collapse are equivalent
+  if (
+    (cat1 === "edge" && cat2 === "collapse") ||
+    (cat1 === "collapse" && cat2 === "edge")
   ) {
     return true
   }

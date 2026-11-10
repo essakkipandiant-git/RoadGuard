@@ -59,11 +59,20 @@ export function calculateDamageSeverityFactor(params: {
     case "edge":
       baseScore = 55
       break
+    case "collapse":
+      baseScore = 85
+      break
+    case "waterlogging":
+      baseScore = 60
+      break
     case "depression":
       baseScore = 65
       break
     case "rutting":
       baseScore = 50
+      break
+    case "other":
+      baseScore = 45
       break
   }
 

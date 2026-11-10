@@ -147,11 +147,32 @@ async function request<T>(
  */
 export function mapBackendCategory(cat?: string): DamageCategory {
   const c = cat?.toLowerCase()
+  if (c === "cavity" || c === "pothole") {
+    return "cavity"
+  }
+  if (c === "crack" || c === "cracking") {
+    return "crack"
+  }
   if (c === "edge" || c === "edge_subsidence" || c === "edge-subsidence") {
     return "edge"
   }
-  if (c === "cavity" || c === "crack" || c === "depression" || c === "rutting") {
-    return c
+  if (c === "collapse") {
+    return "collapse"
+  }
+  if (c === "waterlogging" || c === "ponding") {
+    return "waterlogging"
+  }
+  if (c === "depression") {
+    return "depression"
+  }
+  if (c === "rutting") {
+    return "rutting"
+  }
+  if (c === "deterioration") {
+    return "edge"
+  }
+  if (c === "other") {
+    return "other"
   }
   return "cavity"
 }

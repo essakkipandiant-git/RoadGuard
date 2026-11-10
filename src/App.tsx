@@ -1124,7 +1124,7 @@ function Impact() {
     ["24,821", "Reports received", "+18% this month"],
     ["18,406", "Repairs completed", "Verified in 48h"],
     ["2.4 days", "Avg. response time", "-42% vs baseline"],
-    ["14", "Participating cities", "Expanding Q3 2026"],
+    ["24", "MCGM Municipal Wards", "Active Greater Mumbai Pilot"],
   ]
 
   return (
@@ -1478,6 +1478,12 @@ export default function App() {
     refreshIssues()
   }
 
+  // Unified Entry Point: Start Reporting from any CTA
+  const handleStartReporting = () => {
+    setIsGlobeOpen(false)
+    setIsReportModalOpen(true)
+  }
+
   // Open 3D Globe
   const handleOpenGlobe = () => {
     setIsReportModalOpen(false)
@@ -1615,14 +1621,14 @@ export default function App() {
       </a>
       <Header
         active={active}
-        onOpenGlobe={handleOpenGlobe}
+        onOpenGlobe={handleStartReporting}
         onOpenTriage={() => setIsTriageOpen(true)}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         issuesCount={issues.length}
         currentUser={currentUser}
       />
       <main id="main-content" tabIndex={-1} className="outline-none">
-        <Hero onOpenGlobe={handleOpenGlobe} />
+        <Hero onOpenGlobe={handleStartReporting} />
         <Detection />
         <RiskMap
           onSelectIssueForGlobe={handleSelectIssueForGlobe}
@@ -1631,9 +1637,9 @@ export default function App() {
         />
         <RepairJourney />
         <Impact />
-        <Community onOpenGlobe={handleOpenGlobe} />
+        <Community onOpenGlobe={handleStartReporting} />
       </main>
-      <Footer onOpenGlobe={handleOpenGlobe} />
+      <Footer onOpenGlobe={handleStartReporting} />
 
       {/* Full-Screen Interactive 3D Earth Globe Location Picker */}
       {isGlobeOpen && (

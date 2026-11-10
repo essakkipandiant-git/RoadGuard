@@ -25,6 +25,22 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { RoadIssue, SeverityLevel } from "../types/roadguard"
+import Interactive2DMap from "./Interactive2DMap"
+import { validateMumbaiLocation } from "../services/mumbaiBoundaryClient"
+
+// Detect WebGL hardware acceleration availability
+export function isWebGLAvailable(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const canvas = document.createElement("canvas")
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+    )
+  } catch {
+    return false
+  }
+}
 
 // Optional Cesium Ion Token from environment
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || ""
@@ -97,6 +113,17 @@ export default function GlobeLocationPicker({
   const markerEntityRef = useRef<Cesium.Entity | null>(null)
   const pulseEntityRef = useRef<Cesium.Entity | null>(null)
   const issueEntitiesRef = useRef<Cesium.Entity[]>([])
+
+  // Engine selection (3D Cesium Globe vs 2D Street Map)
+  const [mapEngine, setMapEngine] = useState<"3d" | "2d">(
+    isWebGLAvailable() ? "3d" : "2d"
+  )
+  const [is3DLoading, setIs3DLoading] = useState(true)
+  const [cesiumError, setCesiumError] = useState<string | null>(
+    !isWebGLAvailable()
+      ? "WebGL hardware acceleration is unavailable in this environment. Showing 2D Interactive Map."
+      : null
+  )
 
   // UI state
   const [searchQuery, setSearchQuery] = useState("")
@@ -483,133 +510,156 @@ export default function GlobeLocationPicker({
 
   // Initialize Cesium Viewer
   useEffect(() => {
-    if (!isOpen || !cesiumContainerRef.current) return
+    if (!isOpen || mapEngine !== "3d" || !cesiumContainerRef.current) return
+
+    if (!isWebGLAvailable()) {
+      setIs3DLoading(false)
+      setCesiumError("WebGL hardware acceleration is unavailable in this environment. Showing 2D Interactive Map.")
+      setMapEngine("2d")
+      return
+    }
+
+    setIs3DLoading(true)
+    setCesiumError(null)
 
     ;(window as any).CESIUM_BASE_URL = "/cesium/"
 
-    // Satellite base layer
-    const satelliteProvider = new Cesium.UrlTemplateImageryProvider({
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      maximumLevel: 19,
-      credit: "© Esri, Maxar, Earthstar Geographics",
-    })
+    let viewer: Cesium.Viewer | null = null
+    let handler: Cesium.ScreenSpaceEventHandler | null = null
+    let removeCameraListener: (() => void) | null = null
 
-    satelliteProvider.errorEvent.addEventListener((e) => {
-      console.warn("Satellite imagery notice:", e)
-    })
-
-    const viewer = new Cesium.Viewer(cesiumContainerRef.current, {
-      animation: false,
-      timeline: false,
-      geocoder: false,
-      homeButton: false,
-      sceneModePicker: false,
-      navigationHelpButton: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      infoBox: false,
-      selectionIndicator: false,
-      skyBox: false,
-      baseLayer: new Cesium.ImageryLayer(satelliteProvider),
-      skyAtmosphere: new Cesium.SkyAtmosphere(),
-    })
-
-    // Suppress fatal error modal popup and keep rendering smoothly
-    viewer.cesiumWidget.showErrorPanel = (title: string, message: string, error: any) => {
-      console.warn("Cesium render notice:", title, message, error)
-    }
-
-    viewerRef.current = viewer
-
-    // Road lines overlay
-    const roadOverlayProvider = new Cesium.UrlTemplateImageryProvider({
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
-      maximumLevel: 19,
-    })
-
-    roadOverlayProvider.errorEvent.addEventListener((e) => {
-      console.warn("Road overlay imagery notice:", e)
-    })
-
-    viewer.imageryLayers.addImageryProvider(roadOverlayProvider)
-
-    viewer.scene.globe.enableLighting = false
-    viewer.scene.globe.depthTestAgainstTerrain = false
-    viewer.scene.globe.show = true
-    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#181916")
-    viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
-
-    if (CESIUM_ION_TOKEN) {
-      Cesium.createWorldTerrainAsync()
-        .then((tp) => {
-          if (viewerRef.current && !viewerRef.current.isDestroyed()) {
-            viewerRef.current.terrainProvider = tp
-          }
-        })
-        .catch(() => {})
-    }
-
-    // Screen Space Left Click: Ray Picking or Issue Pin Click
-    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
-
-    handler.setInputAction((movement: any) => {
-      // Check if user clicked on an existing road issue marker
-      const pickedObject = viewer.scene.pick(movement.position)
-      if (
-        Cesium.defined(pickedObject) &&
-        pickedObject.id &&
-        (pickedObject.id as any)._issueData
-      ) {
-        if (onSelectIssue) {
-          onSelectIssue((pickedObject.id as any)._issueData)
-          return
-        }
-      }
-
-      // Otherwise pick coordinates on the terrain
-      const ray = viewer.camera.getPickRay(movement.position)
-      if (!ray) return
-
-      const cartesian = viewer.scene.globe.pick(ray, viewer.scene)
-      if (Cesium.defined(cartesian)) {
-        const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
-        const lat = Cesium.Math.toDegrees(cartographic.latitude)
-        const lng = Cesium.Math.toDegrees(cartographic.longitude)
-        reverseGeocode(lat, lng)
-      }
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
-
-    // Initial camera placement
-    if (initialLocation) {
-      flyToCoords(initialLocation.lat, initialLocation.lng, 500)
-    } else {
-      // Start centered on London
-      viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(-0.1245, 51.5082, 3500),
-        orientation: {
-          heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-45),
-          roll: 0.0,
-        },
+    try {
+      // Satellite base layer
+      const satelliteProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maximumLevel: 19,
+        credit: "© Esri, Maxar, Earthstar Geographics",
       })
-    }
 
-    // Camera height zoom listener
-    const removeCameraListener = viewer.camera.changed.addEventListener(() => {
-      if (!viewerRef.current || viewerRef.current.isDestroyed()) return
-      const height = viewerRef.current.camera.positionCartographic.height
-      if (height > 2000000) setZoomLevel("space")
-      else if (height > 50000) setZoomLevel("regional")
-      else setZoomLevel("street")
-    })
+      satelliteProvider.errorEvent.addEventListener((e) => {
+        console.warn("Satellite imagery notice:", e)
+      })
+
+      viewer = new Cesium.Viewer(cesiumContainerRef.current, {
+        animation: false,
+        timeline: false,
+        geocoder: false,
+        homeButton: false,
+        sceneModePicker: false,
+        navigationHelpButton: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        infoBox: false,
+        selectionIndicator: false,
+        skyBox: false,
+        baseLayer: new Cesium.ImageryLayer(satelliteProvider),
+        skyAtmosphere: new Cesium.SkyAtmosphere(),
+      })
+
+      // Suppress fatal error modal popup and keep rendering smoothly
+      viewer.cesiumWidget.showErrorPanel = (title: string, message: string, error: any) => {
+        console.warn("Cesium render notice:", title, message, error)
+      }
+
+      viewerRef.current = viewer
+
+      // Road lines overlay
+      const roadOverlayProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+        maximumLevel: 19,
+      })
+
+      roadOverlayProvider.errorEvent.addEventListener((e) => {
+        console.warn("Road overlay imagery notice:", e)
+      })
+
+      viewer.imageryLayers.addImageryProvider(roadOverlayProvider)
+
+      viewer.scene.globe.enableLighting = false
+      viewer.scene.globe.depthTestAgainstTerrain = false
+      viewer.scene.globe.show = true
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#181916")
+      viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
+
+      if (CESIUM_ION_TOKEN) {
+        Cesium.createWorldTerrainAsync()
+          .then((tp) => {
+            if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+              viewerRef.current.terrainProvider = tp
+            }
+          })
+          .catch(() => {})
+      }
+
+      // Screen Space Left Click: Ray Picking or Issue Pin Click
+      handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+
+      handler.setInputAction((movement: any) => {
+        const pickedObject = viewer!.scene.pick(movement.position)
+        if (
+          Cesium.defined(pickedObject) &&
+          pickedObject.id &&
+          (pickedObject.id as any)._issueData
+        ) {
+          if (onSelectIssue) {
+            onSelectIssue((pickedObject.id as any)._issueData)
+            return
+          }
+        }
+
+        const ray = viewer!.camera.getPickRay(movement.position)
+        if (!ray) return
+
+        const cartesian = viewer!.scene.globe.pick(ray, viewer!.scene)
+        if (Cesium.defined(cartesian)) {
+          const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
+          const lat = Cesium.Math.toDegrees(cartographic.latitude)
+          const lng = Cesium.Math.toDegrees(cartographic.longitude)
+          reverseGeocode(lat, lng)
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
+
+      // Initial camera placement
+      if (initialLocation) {
+        flyToCoords(initialLocation.lat, initialLocation.lng, 500)
+      } else {
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(-0.1245, 51.5082, 3500),
+          orientation: {
+            heading: Cesium.Math.toRadians(0),
+            pitch: Cesium.Math.toRadians(-45),
+            roll: 0.0,
+          },
+        })
+      }
+
+      // Camera height zoom listener
+      removeCameraListener = viewer.camera.changed.addEventListener(() => {
+        if (!viewerRef.current || viewerRef.current.isDestroyed()) return
+        const height = viewerRef.current.camera.positionCartographic.height
+        if (height > 2000000) setZoomLevel("space")
+        else if (height > 50000) setZoomLevel("regional")
+        else setZoomLevel("street")
+      })
+
+      setTimeout(() => {
+        setIs3DLoading(false)
+      }, 600)
+    } catch (err: any) {
+      console.warn("Failed to initialize Cesium 3D Globe:", err)
+      setIs3DLoading(false)
+      setCesiumError(err?.message || "Failed to initialize 3D Globe WebGL context. Falling back to 2D Map.")
+      setMapEngine("2d")
+      return
+    }
 
     return () => {
-      removeCameraListener()
-      handler.destroy()
-      viewer.destroy()
+      if (removeCameraListener) removeCameraListener()
+      if (handler) handler.destroy()
+      if (viewer && !viewer.isDestroyed()) viewer.destroy()
       viewerRef.current = null
     }
-  }, [isOpen, initialLocation, flyToCoords, reverseGeocode, onSelectIssue])
+  }, [isOpen, mapEngine, initialLocation, flyToCoords, reverseGeocode, onSelectIssue])
 
   // Sync issue entities whenever issues or filters change
   useEffect(() => {
@@ -687,8 +737,80 @@ export default function GlobeLocationPicker({
       aria-label="3D Earth road hazard map and location picker"
       className="globe-modal-overlay"
     >
-      {/* 3D Earth Cesium Canvas */}
-      <div ref={cesiumContainerRef} className="cesium-viewport" />
+      {/* Map Viewport: 3D Cesium or 2D Interactive Fallback */}
+      {mapEngine === "2d" ? (
+        <div className="cesium-viewport">
+          <Interactive2DMap
+            selectedLocation={selectedLoc}
+            onSelectLocation={(loc) => {
+              setSelectedLoc(loc)
+              setSearchQuery(loc.address.split(",")[0] || "")
+            }}
+            issues={issues}
+            onSelectIssue={onSelectIssue}
+            initialCenter={initialLocation || { lat: 19.076, lng: 72.8777 }}
+            height="100%"
+            className="w-full h-full rounded-none border-0"
+            showControls={true}
+            showLayerToggle={true}
+            showBoundaryIndicator={true}
+            presetButtons={false}
+          />
+        </div>
+      ) : (
+        <div ref={cesiumContainerRef} className="cesium-viewport" />
+      )}
+
+      {/* 3D Loading Overlay */}
+      {is3DLoading && mapEngine === "3d" && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md text-white">
+          <div className="relative flex items-center justify-center mb-4">
+            <div className="w-16 h-16 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+            <GlobeIcon className="w-8 h-8 text-amber-400 absolute" />
+          </div>
+          <p className="font-mono text-xs text-amber-400 tracking-wider font-semibold mb-1">
+            INITIALIZING 3D ORBITAL TELEMETRY...
+          </p>
+          <p className="text-slate-400 text-xs mb-4">
+            Streaming satellite imagery & civic boundaries...
+          </p>
+          <button
+            type="button"
+            onClick={() => setMapEngine("2d")}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-mono rounded-lg border border-white/10 transition-colors"
+          >
+            Switch to 2D Map Immediately →
+          </button>
+        </div>
+      )}
+
+      {/* 3D Initialization Error State */}
+      {cesiumError && mapEngine === "3d" && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mb-3" />
+          <h3 className="text-white text-lg font-bold mb-2">3D Globe Unavailable</h3>
+          <p className="text-slate-300 text-sm max-w-md mb-6">{cesiumError}</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setCesiumError(null)
+                setIs3DLoading(true)
+              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs rounded-lg transition-colors"
+            >
+              Retry 3D Globe
+            </button>
+            <button
+              type="button"
+              onClick={() => setMapEngine("2d")}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs rounded-lg border border-white/10 transition-colors"
+            >
+              Use 2D Interactive Map
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Floating Glass Bar: Search & Location Controls */}
       <div className="globe-top-bar">
@@ -701,6 +823,42 @@ export default function GlobeLocationPicker({
           <ArrowLeft size={18} />
           <span className="desktop-only">BACK TO OVERVIEW</span>
         </button>
+
+        {/* Map Engine Toggle: 3D vs 2D */}
+        <div className="flex bg-slate-900/80 backdrop-blur-md p-0.5 rounded-xl border border-white/10 shadow-lg text-[10px] font-mono">
+          <button
+            type="button"
+            onClick={() => {
+              if (isWebGLAvailable()) {
+                setMapEngine("3d")
+              } else {
+                setCesiumError("WebGL hardware acceleration is unavailable in this browser.")
+              }
+            }}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${
+              mapEngine === "3d"
+                ? "bg-amber-500 text-slate-950 font-bold shadow"
+                : "text-slate-300 hover:text-white"
+            }`}
+            title="3D Orbital Globe"
+          >
+            <GlobeIcon size={13} />
+            <span>3D Globe</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapEngine("2d")}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${
+              mapEngine === "2d"
+                ? "bg-amber-500 text-slate-950 font-bold shadow"
+                : "text-slate-300 hover:text-white"
+            }`}
+            title="2D Interactive Map"
+          >
+            <Layers size={13} />
+            <span>2D Map</span>
+          </button>
+        </div>
 
         {/* Search Bar */}
         <div className="globe-search-wrapper">
@@ -930,7 +1088,25 @@ export default function GlobeLocationPicker({
             <div className="confirm-body">
               <MapPin size={22} className="confirm-pin-icon text-vermilion" />
               <div className="confirm-address">
-                <h3>{selectedLoc.address}</h3>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3>{selectedLoc.address}</h3>
+                  {(() => {
+                    const b = validateMumbaiLocation(selectedLoc.lat, selectedLoc.lng)
+                    return (
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-semibold border ${
+                          b.isInsideMumbai
+                            ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/30"
+                            : "bg-red-950/80 text-red-400 border-red-500/30"
+                        }`}
+                      >
+                        {b.isInsideMumbai
+                          ? `✓ MCGM JURISDICTION (WARD ${b.wardName || "MUMBAI"})`
+                          : "⚠ OUTSIDE GREATER MUMBAI"}
+                      </span>
+                    )
+                  })()}
+                </div>
                 <p>
                   Exact roadway coordinates recorded. Click below to inspect AI
                   damage evidence and file report.
