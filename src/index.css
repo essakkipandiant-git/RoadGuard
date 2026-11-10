@@ -869,6 +869,43 @@
   }
 }
 
+.scan-laser-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(230, 83, 54, 0.2) 15%,
+    rgba(230, 83, 54, 0.95) 50%,
+    rgba(255, 128, 104, 1) 52%,
+    rgba(230, 83, 54, 0.95) 54%,
+    rgba(230, 83, 54, 0.2) 85%,
+    transparent 100%
+  );
+  box-shadow: 0 0 16px rgba(230, 83, 54, 0.9), 0 0 32px rgba(230, 83, 54, 0.4);
+  animation: laserScanMove 4s ease-in-out infinite alternate;
+  z-index: 3;
+  pointer-events: none;
+}
+
+@keyframes laserScanMove {
+  0% {
+    top: 15%;
+    opacity: 0.6;
+  }
+  50% {
+    top: 75%;
+    opacity: 1;
+  }
+  100% {
+    top: 25%;
+    opacity: 0.8;
+  }
+}
+
 .box-a {
   left: 28%;
   top: 48%;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react"
+import { useEffect, useRef, useState, useMemo, lazy, Suspense } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -28,6 +28,7 @@ import {
 } from "motion/react"
 import type { SelectedLocation } from "./components/GlobeLocationPicker"
 const GlobeLocationPicker = lazy(() => import("./components/GlobeLocationPicker"))
+import Interactive2DMap from "./components/Interactive2DMap"
 import PotholeReportModal from "./components/PotholeReportModal"
 import IssueDetailDrawer from "./components/IssueDetailDrawer"
 import IssueManagementWorkspace from "./components/IssueManagementWorkspace"
@@ -508,6 +509,7 @@ function Detection() {
         />
         <div className="scan-grid" />
         <div className="scan-vignette" />
+        <div className="scan-laser-line" />
 
         {/* Animated Vermilion Detection Frame A: Pothole Cavity */}
         <motion.div
@@ -587,8 +589,12 @@ function Detection() {
             <span>18.4% of scanned lane meter</span>
           </div>
           <div className="telemetry-meta">
-            <span>EDGE INFERENCE: 12.8ms</span>
-            <span>MODEL: RoadNet-v4.2</span>
+            <span>BITUMEN: VG-30 (IRC)</span>
+            <span>MUNICIPAL: MCGM MUMBAI</span>
+          </div>
+          <div className="telemetry-meta" style={{ marginTop: 6, paddingTop: 6 }}>
+            <span>EDGE INFERENCE: 11.4ms</span>
+            <span>MODEL: RoadNet-v4.2 CV</span>
           </div>
         </motion.div>
 
@@ -596,9 +602,9 @@ function Detection() {
         <div className="scan-readout glass">
           <div className="readout-group">
             <span className="readout-indicator" />
-            <span>FRAME 00294</span>
+            <span>FRAME 00482 · MCGM WESTERN EXPRESS HIGHWAY · WARD K/E</span>
           </div>
-          <span>LAT 51.5074° N, 0.1278° W</span>
+          <span>LAT 19.0760° N, 72.8777° E (MUMBAI)</span>
           <span>OPTICAL FLOW: ACTIVE</span>
           <span className="status-analyzing">AI ANALYSING</span>
         </div>
@@ -610,61 +616,9 @@ function Detection() {
 /* =========================================================================
    02 / RISK MAP: Transition road perspective to elevated 3D city map
    ========================================================================= */
-const issues = [
-  {
-    id: 1,
-    x: 24,
-    y: 35,
-    status: "high",
-    title: "Critical pothole",
-    street: "Harbour Ave",
-    score: "8.9",
-    depth: "62mm",
-    impact: "Suspension hazard / 420 cars/hr",
-    lat: "51.5082° N, 0.1245° W",
-    coordinates: { lat: 51.5082, lng: -0.1245 },
-  },
-  {
-    id: 2,
-    x: 58,
-    y: 57,
-    status: "open",
-    title: "Surface cracking",
-    street: "Mason Street",
-    score: "5.4",
-    depth: "22mm",
-    impact: "Water ingress / 180 cars/hr",
-    lat: "51.5061° N, 0.1310° W",
-    coordinates: { lat: 51.5061, lng: -0.131 },
-  },
-  {
-    id: 3,
-    x: 74,
-    y: 28,
-    status: "resolved",
-    title: "Edge failure",
-    street: "North Loop",
-    score: "0.8",
-    depth: "Repaved",
-    impact: "Restored & sealed 2 days ago",
-    lat: "51.5120° N, 0.1190° W",
-    coordinates: { lat: 51.512, lng: -0.119 },
-  },
-  {
-    id: 4,
-    x: 43,
-    y: 76,
-    status: "high",
-    title: "Deep pothole",
-    street: "Willow Road",
-    score: "9.2",
-    depth: "74mm",
-    impact: "High-speed lane hazard / 610 cars/hr",
-    lat: "51.5034° N, 0.1288° W",
-    coordinates: { lat: 51.5034, lng: -0.1288 },
-  },
-]
-
+/* =========================================================================
+   02 / RISK MAP: Real Interactive 2D Map with Live Pothole Reports & Scans
+   ========================================================================= */
 function RiskMap({
   onSelectIssueForGlobe,
   onOpenDetails,
@@ -675,24 +629,104 @@ function RiskMap({
   onOpenTriage: () => void
 }) {
   const [filter, setFilter] = useState("all")
-  const [selected, setSelected] = useState(issues[0])
-  const shown = issues.filter(
-    (item) => filter === "all" || item.status === filter,
-  )
 
-  const getCorrespondingIssueId = (numId: number) => {
-    switch (numId) {
-      case 1:
-        return "RG-10492"
-      case 2:
-        return "RG-28190"
-      case 3:
-        return "RG-39104"
-      case 4:
-      default:
-        return "RG-49201"
+  // Real issues from RoadGuard municipal database
+  const allIssues = useMemo(() => {
+    return RoadIssueService.getAllIssues()
+  }, [])
+
+  const shown = useMemo(() => {
+    if (filter === "high") {
+      return allIssues.filter(
+        (i) =>
+          i.severity === "critical" ||
+          i.severity === "high" ||
+          (i.risk && i.risk.score >= 70)
+      )
     }
-  }
+    if (filter === "resolved") {
+      return allIssues.filter(
+        (i) =>
+          i.status === "verified_repaired" ||
+          i.status === "repair_completed" ||
+          i.status === "closed"
+      )
+    }
+    return allIssues
+  }, [allIssues, filter])
+
+  const [selected, setSelected] = useState<RoadIssue>(() => {
+    return (
+      allIssues.find((i) => i.severity === "critical") ||
+      allIssues[0] || {
+        id: "RG-25388",
+        trackingCode: "CAV-049",
+        title: "Large Void Under Asphalt on City Road",
+        category: "cavity",
+        severity: "critical",
+        status: "reported",
+        coordinates: { lat: 19.0544, lng: 72.8267 },
+        address: "Bandstand Promenade, Bandra West, Mumbai",
+        originalPhotoUrl: "",
+        detection: {
+          engine: "edge_cv",
+          category: "cavity",
+          confidence: 0.98,
+          boxes: [],
+          surfaceLossRatio: 0.18,
+          depthEstimateMm: 70,
+          severity: "critical",
+          originalImageUrl: "",
+          annotatedImageUrl: "",
+        },
+        risk: {
+          score: 95,
+          level: "critical",
+          factors: {
+            damageSeverity: 95,
+            trafficVolume: 80,
+            roadClass: 85,
+            speedLimit: 60,
+            proximityToHazards: 75,
+            weatherVulnerability: 80,
+            citizenReportsCount: 1,
+          },
+          weights: {
+            damageSeverity: 0.35,
+            trafficVolume: 0.2,
+            roadClass: 0.15,
+            speedLimit: 0.1,
+            proximityToHazards: 0.1,
+            weatherVulnerability: 0.05,
+            citizenReportsCount: 0.05,
+          },
+          weightedContributions: {
+            damageSeverity: 33.25,
+            trafficVolume: 16,
+            roadClass: 12.75,
+            speedLimit: 6,
+            proximityToHazards: 7.5,
+            weatherVulnerability: 4,
+            citizenReportsCount: 0.05,
+          },
+          explanation:
+            "Dangerous subsidence creating large impact shock for passing vehicles.",
+        },
+        supportingReports: [],
+        supportingCount: 1,
+        statusHistory: [],
+        repair: { verificationPercentage: 0, passesMinimumThreshold: false },
+        createdAt: new Date().toISOString(),
+      }
+    )
+  })
+
+  // Synchronize selection if current selection is excluded by filter
+  useEffect(() => {
+    if (shown.length > 0 && !shown.some((i) => i.id === selected.id)) {
+      setSelected(shown[0])
+    }
+  }, [shown, selected.id])
 
   const containerRef = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
@@ -709,11 +743,11 @@ function RiskMap({
   })
 
   const mapRotateX = useTransform(smooth, [0, 0.5, 1], [
-    reduce ? 0 : 12,
+    reduce ? 0 : 8,
     0,
-    reduce ? 0 : -6,
+    reduce ? 0 : -4,
   ])
-  const mapScale = useTransform(smooth, [0, 0.5, 1], [0.96, 1, 0.98])
+  const mapScale = useTransform(smooth, [0, 0.5, 1], [0.98, 1, 0.99])
 
   return (
     <section id="risk-map" className="map-section" ref={containerRef}>
@@ -737,16 +771,26 @@ function RiskMap({
         <div className="map-header-row">
           <div className="map-toolbar">
             {[
-              ["all", "All issues", issues.length],
+              ["all", "All issues", allIssues.length],
               [
                 "high",
                 "High priority",
-                issues.filter((i) => i.status === "high").length,
+                allIssues.filter(
+                  (i) =>
+                    i.severity === "critical" ||
+                    i.severity === "high" ||
+                    (i.risk && i.risk.score >= 70)
+                ).length,
               ],
               [
                 "resolved",
                 "Resolved",
-                issues.filter((i) => i.status === "resolved").length,
+                allIssues.filter(
+                  (i) =>
+                    i.status === "verified_repaired" ||
+                    i.status === "repair_completed" ||
+                    i.status === "closed"
+                ).length,
               ],
             ].map(([value, label, count]) => (
               <button
@@ -763,79 +807,47 @@ function RiskMap({
 
           <div className="map-view-legend desktop-only">
             <span className="legend-item">
-              <span className="legend-dot high" /> Critical
+              <span className="legend-dot high" /> Critical Scan
             </span>
             <span className="legend-item">
-              <span className="legend-dot open" /> Monitored
+              <span
+                className="legend-dot open"
+                style={{ background: "#E69D36" }}
+              />{" "}
+              Monitored Scan
             </span>
             <span className="legend-item">
-              <span className="legend-dot resolved" /> Repaired
+              <span className="legend-dot resolved" /> Repaired & Safe
             </span>
           </div>
         </div>
 
-        {/* 3D Elevated Map Stage */}
+        {/* 3D Elevated Map Stage with Interactive 2D Map */}
         <motion.div
           className="city-map elevated-3d"
           style={{
             rotateX: mapRotateX,
             scale: mapScale,
           }}
-          aria-label="Interactive demo city road risk map"
+          aria-label="Interactive 2D city road risk map with live pothole scan layers"
         >
-          {/* Real aerial city road network background */}
-          <div
-            className="map-aerial-bg"
-            style={{ backgroundImage: `url(${aerialGridImage})` }}
+          {/* Live Real 2D Map with WebGL/Canvas 60fps concentric scan circles and radar sweep */}
+          <Interactive2DMap
+            issues={shown}
+            selectedIssueId={selected?.id}
+            onSelectIssue={(issue) => setSelected(issue)}
+            initialCenter={
+              selected?.coordinates || { lat: 19.0544, lng: 72.8267 }
+            }
+            initialZoom={13}
+            height="100%"
+            className="w-full h-full"
+            enableCircleScans={true}
+            showRadarSweep={true}
+            showControls={true}
+            showLayerToggle={true}
+            presetButtons={false}
           />
-          <div className="map-grid-lines" />
-          <div className="map-overlay-tint" />
-
-          {/* Dynamic Road Arteries */}
-          <div className="map-road road-one">
-            <span className="artery-pulse" />
-          </div>
-          <div className="map-road road-two">
-            <span className="artery-pulse" />
-          </div>
-          <div className="map-road road-three">
-            <span className="artery-pulse" />
-          </div>
-
-          {/* Highlighted high-risk connected route */}
-          <svg
-            className="map-route-svg"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M 24 35 Q 34 55 43 76"
-              className="route-path-line"
-              fill="none"
-              stroke="#e65336"
-              strokeWidth="0.8"
-              strokeDasharray="2 2"
-            />
-          </svg>
-
-          {/* Interactive incident markers with pulsing waves */}
-          {shown.map((issue) => (
-            <motion.button
-              key={issue.id}
-              className={`map-marker ${issue.status} ${
-                selected.id === issue.id ? "is-active" : ""
-              }`}
-              style={{ left: `${issue.x}%`, top: `${issue.y}%` }}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              whileHover={{ scale: 1.15 }}
-              onClick={() => setSelected(issue)}
-              aria-label={`${issue.title}, ${issue.street}`}
-            >
-              {selected.id === issue.id && <span className="marker-radar" />}
-              <MapPin size={20} />
-            </motion.button>
-          ))}
 
           {/* Floating Glassmorphic Risk Detail Card */}
           <AnimatePresence mode="wait">
@@ -849,19 +861,38 @@ function RiskMap({
             >
               <div className="risk-panel-top">
                 <span className="risk-tag">
-                  <span className={`status-pill ${selected.status}`} />
-                  RISK SIGNAL
+                  <span
+                    className={`status-pill ${
+                      selected.severity === "critical"
+                        ? "high"
+                        : selected.status === "verified_repaired" ||
+                          selected.status === "closed"
+                        ? "resolved"
+                        : "open"
+                    }`}
+                  />
+                  {selected.trackingCode || selected.id} · RISK SIGNAL
                 </span>
-                <span className="risk-coords">{selected.lat}</span>
+                <span className="risk-coords">
+                  {selected.coordinates
+                    ? `${selected.coordinates.lat.toFixed(4)}°N, ${selected.coordinates.lng.toFixed(4)}°E`
+                    : "19.0544°N, 72.8267°E"}
+                </span>
               </div>
 
               <h3>{selected.title}</h3>
               <p className="risk-street">
-                <MapPin size={15} /> {selected.street}
+                <MapPin size={15} /> {selected.address}
               </p>
 
               <div className="risk-score">
-                <strong>{selected.score}</strong>
+                <strong>
+                  {selected.risk?.score
+                    ? (selected.risk.score / 10).toFixed(1)
+                    : selected.severity === "critical"
+                    ? "9.5"
+                    : "6.5"}
+                </strong>
                 <span>
                   /10
                   <br />
@@ -872,11 +903,15 @@ function RiskMap({
               <div className="risk-details-compact">
                 <div>
                   <small>DEPTH</small>
-                  <span>{selected.depth}</span>
+                  <span>{selected.detection?.depthEstimateMm || 70}mm</span>
                 </div>
                 <div>
                   <small>TRAFFIC IMPACT</small>
-                  <span>{selected.impact}</span>
+                  <span>
+                    {selected.risk?.explanation ||
+                      selected.risk?.recommendedAction ||
+                      "Suspension hazard / MCGM transit corridor"}
+                  </span>
                 </div>
               </div>
 
@@ -890,9 +925,7 @@ function RiskMap({
                 </button>
                 <button
                   className="risk-cta-secondary glass"
-                  onClick={() =>
-                    onOpenDetails(getCorrespondingIssueId(selected.id))
-                  }
+                  onClick={() => onOpenDetails(selected.id)}
                 >
                   <span>Review Verification & Risk</span>
                   <ChevronRight size={14} />
@@ -903,11 +936,11 @@ function RiskMap({
 
           <div className="map-compass glass">
             <Navigation size={18} />
-            <span>N 51°</span>
+            <span>MUMBAI · 19°N</span>
           </div>
 
           <div className="map-scale-metric glass desktop-only">
-            <span>GRID SCALE 1:5000</span>
+            <span>MCGM TELEMETRY GRID 1:5000</span>
           </div>
         </motion.div>
       </Reveal>
@@ -926,24 +959,24 @@ function RepairJourney() {
 
   const stages = [
     {
-      title: "Reported",
-      time: "Today · 09:14",
-      desc: "Hazard detected by fleet camera",
+      title: "Citizen Geotagged Report",
+      time: "Bandra West · Ward H/W",
+      desc: "Verified citizen GPS hazard report submitted via RoadGuard",
     },
     {
-      title: "Under review",
-      time: "Today · 10:02",
-      desc: "Automated AI severity verification",
+      title: "Edge AI CV Verification",
+      time: "Automated Scan · 12ms",
+      desc: "3D cavity volume, 70mm depth & VG-30 bitumen loss calculated",
     },
     {
-      title: "Assigned",
-      time: "Tomorrow · 08:30",
-      desc: "Work order scheduled with crew",
+      title: "MCGM Work Order Dispatched",
+      time: "Crew WO-25388 Dispatched",
+      desc: "Hot-mix rapid response asphalt crew assigned by District Chief",
     },
     {
-      title: "Repaired",
-      time: "28 May · 16:45",
-      desc: "Hot-mix asphalt laid & verified",
+      title: "Repaired & Certified Safe",
+      time: "Quality Inspected",
+      desc: "Pristine IRC:SP:98-2020 asphalt restoration verified by Vision AI",
     },
   ]
 
@@ -1006,9 +1039,8 @@ function RepairJourney() {
           {stages.map((stage, index) => (
             <button
               key={stage.title}
-              className={`timeline-step ${index <= step ? "complete" : ""} ${
-                index === step ? "is-current" : ""
-              }`}
+              className={`timeline-step ${index <= step ? "complete" : ""} ${index === step ? "is-current" : ""
+                }`}
               onClick={() => handleStepClick(index)}
               aria-label={`Step ${index + 1}: ${stage.title}`}
             >
@@ -1060,10 +1092,10 @@ function RepairJourney() {
               backgroundImage: `url(${detectionAsphaltImage})`,
             }}
           >
-            <div className="before-tag">BEFORE · DAMAGED</div>
+            <div className="before-tag">BEFORE · POTHOLE CAVITY (70mm)</div>
           </motion.div>
 
-          <div className="after-tag">AFTER · RESURFACED</div>
+          <div className="after-tag">AFTER · MCGM HOT-MIX RESTORED</div>
 
           {/* Interactive Split Divider Handle */}
           <motion.div
@@ -1090,8 +1122,8 @@ function RepairJourney() {
           >
             <ShieldCheck size={26} className="verified-icon" />
             <div>
-              <strong>REPAIR VERIFIED</strong>
-              <small>RoadGuard vision check · 100% Surface Match</small>
+              <strong>MCGM QUALITY CERTIFIED</strong>
+              <small>RoadGuard vision check · 100% Surface Match (IRC:SP:98)</small>
             </div>
           </motion.div>
         </div>
@@ -1200,11 +1232,12 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         <DottedTitle>
           BETTER ROADS
           <br />
-          START WITH <em>US.</em>
+          FOR <em>INDIA.</em>
         </DottedTitle>
         <p>
-          See something that needs attention? One clear report can improve
-          thousands of journeys.
+          See a road hazard in your ward? One verified geotagged report alerts
+          MCGM engineers, dispatches rapid repair crews, and protects thousands
+          of daily commuters across India.
         </p>
         <div className="button-row">
           <ButtonLink
@@ -1216,7 +1249,7 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
             Report a pothole
           </ButtonLink>
           <ButtonLink href="#risk-map" variant="dark">
-            Open city map
+            Open live risk map
           </ButtonLink>
         </div>
       </div>
@@ -1229,7 +1262,7 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
             alt="Urban asphalt road in golden hour city light"
             loading="lazy"
           />
-          <span className="gallery-tag">01 · SCAN</span>
+          <span className="gallery-tag">01 · SCAN (AI Cavity Detection)</span>
         </div>
         <div className="gallery-item">
           <img
@@ -1237,7 +1270,7 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
             alt="Smooth resurfaced city road at sunset"
             loading="lazy"
           />
-          <span className="gallery-tag">02 · RESTORE</span>
+          <span className="gallery-tag">02 · RESTORE (MCGM Hot-Mix Quality)</span>
         </div>
         <div className="gallery-item">
           <img
@@ -1245,7 +1278,7 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
             alt="Wide city road network flowing safely"
             loading="lazy"
           />
-          <span className="gallery-tag">03 · CONNECT</span>
+          <span className="gallery-tag">03 · CONNECT (Smart City Corridors)</span>
         </div>
       </div>
 
@@ -1255,8 +1288,10 @@ function Community({ onOpenGlobe }: { onOpenGlobe: () => void }) {
           <MapPin size={28} />
         </div>
         <div className="report-text">
-          <strong>SPOT IT. PIN IT. SEND IT.</strong>
-          <small>Photo + location. Less than 60 seconds.</small>
+          <strong>SPOT IT. PIN IT. RESOLVE IT.</strong>
+          <small>
+            Greater Mumbai (MCGM) & Smart Cities Mission · Less than 60 seconds.
+          </small>
         </div>
         <button
           onClick={onOpenGlobe}
@@ -1306,7 +1341,7 @@ function Footer({ onOpenGlobe }: { onOpenGlobe: () => void }) {
         <div className="footer-contact-col">
           <span className="footer-col-title">COMMUNITY</span>
           <p>
-            Collaborating with local councils, cyclists, and drivers worldwide.
+            Collaborating with MCGM, Smart Cities Mission, engineers, and citizens across India.
           </p>
           <button
             onClick={onOpenGlobe}
@@ -1503,7 +1538,7 @@ export default function App() {
       setSelectedLocation({
         lat: issue.coordinates.lat,
         lng: issue.coordinates.lng,
-        address: `${issue.street || issue.address}, London`,
+        address: `${issue.street || issue.address}, Mumbai`,
       })
     }
     setIsGlobeOpen(true)
@@ -1557,7 +1592,7 @@ export default function App() {
                 setIsDrawerOpen(false)
               }
             })
-            .catch(() => {})
+            .catch(() => { })
         }
       } else {
         setIsWorkspaceOpen(false)
