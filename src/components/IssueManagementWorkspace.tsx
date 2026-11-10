@@ -868,128 +868,137 @@ export default function IssueManagementWorkspace({
   return (
     <div className="incident-workspace-viewport fixed inset-0 z-[200] overflow-y-auto bg-[#F4F1EA] text-[#242522] selection:bg-[#E65336] selection:text-white">
       {/* Top Municipal Workspace Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#F4F1EA]/90 backdrop-blur-md border-b border-[#D8D2C5] px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-        {/* Left: Breadcrumbs & Report ID */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBackToTriage || onClose}
-            className="back-to-triage-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono font-medium transition-colors cursor-pointer"
-            title="Return to triage dashboard (Esc)"
-          >
-            <ArrowLeft size={14} />
-            <span className="hidden sm:inline">Back to Triage</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs uppercase tracking-wider text-[#687567] hidden md:inline font-mono">
-              Workspace /
-            </span>
-            <div
-              onClick={handleCopyReportId}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-[#D8D2C5] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#E65336] transition-colors"
-              title="Click to copy Report ID"
-            >
-              <span className="text-[#E65336]">#{issue.trackingCode}</span>
-              <Copy size={11} className="text-[#687567]" />
-              {copiedReportId && <span className="text-[10px] text-emerald-600 font-semibold">COPIED!</span>}
-            </div>
-          </div>
-
-          <span
-            className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold uppercase tracking-wide border ${currentStatusConfig.bg} ${currentStatusConfig.text} ${currentStatusConfig.border}`}
-          >
-            {issue.status.replace(/_/g, " ")}
-          </span>
-
-          <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${severityColors[issue.severity]}`}
-          >
-            {issue.severity} SEVERITY
-          </span>
-        </div>
-
-        {/* Center/Right: Quick Municipal Persona Switcher */}
-        {onSwitchPersona && (
-          <div className="flex items-center bg-white p-1 rounded-xl border border-[#D8D2C5] shadow-xs gap-1">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#687567] px-2 hidden 2xl:inline">
-              Persona:
-            </span>
-            {MUNICIPAL_PERSONAS.map((p) => {
-              const isActive = activePersona === p.role
-              const roleIcons: Record<string, string> = {
-                SUPER_ADMIN: "🛡️",
-                DEPARTMENT_ADMIN: "🏗️",
-                INSPECTOR: "👷",
-                CITIZEN: "👤",
-              }
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onSwitchPersona(p.role)}
-                  className={`persona-switch-btn flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? "bg-[#242522] text-[#F5F1E8] shadow-xs font-bold ring-1 ring-black/10"
-                      : "text-[#687567] hover:text-[#242522] hover:bg-[#F5F1E8]"
-                  }`}
-                  title={`${p.label}: ${p.description}`}
-                >
-                  <span>{roleIcons[p.role]}</span>
-                  <span className="hidden sm:inline">{p.label}</span>
-                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Right: Actions, Role indicator, Close */}
-        <div className="flex items-center gap-2.5">
-          {onFlyToGlobe && (
+      <header className="sticky top-0 z-40 bg-[#F4F1EA]/95 backdrop-blur-md border-b border-[#D8D2C5] shadow-xs">
+        {/* Tier 1: Primary Identity & Window Controls */}
+        <div className="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 border-b border-[#D8D2C5]/50">
+          {/* Left: Breadcrumbs & Report ID */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <button
               type="button"
-              onClick={() => onFlyToGlobe(issue)}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
-              title="Inspect 3D geospatial elevation"
+              onClick={onBackToTriage || onClose}
+              className="back-to-triage-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
+              title="Return to triage dashboard (Esc)"
             >
-              <Globe size={13} className="text-[#E65336]" />
-              <span>3D Globe</span>
+              <ArrowLeft size={14} />
+              <span className="hidden sm:inline">Back to Triage</span>
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
-            title="Print municipal dossier"
-          >
-            <Printer size={13} />
-            <span className="hidden sm:inline">Print / Export</span>
-          </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs uppercase tracking-wider text-[#687567] hidden md:inline font-mono">
+                Workspace /
+              </span>
+              <div
+                onClick={handleCopyReportId}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-[#D8D2C5] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#E65336] transition-colors"
+                title="Click to copy Report ID"
+              >
+                <span className="text-[#E65336]">#{issue.trackingCode}</span>
+                <Copy size={11} className="text-[#687567]" />
+                {copiedReportId && <span className="text-[10px] text-emerald-600 font-semibold">COPIED!</span>}
+              </div>
+            </div>
 
-          {/* Persona indicator / Switcher pill */}
-          <button
-            type="button"
-            onClick={onOpenAuth}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#242522] text-[#F5F1E8] text-xs font-mono hover:bg-[#383A35] transition-colors cursor-pointer"
-            title="Click to view pilot profile or change role"
-          >
-            <User size={13} className="text-[#E65336]" />
-            <span className="uppercase text-[11px] font-medium tracking-wide">
-              {currentUser?.role || currentUserRole}
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold uppercase tracking-wide border shrink-0 ${currentStatusConfig.bg} ${currentStatusConfig.text} ${currentStatusConfig.border}`}
+            >
+              {issue.status.replace(/_/g, " ")}
             </span>
-          </button>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
-            title="Close workspace (Esc)"
-          >
-            <X size={16} />
-          </button>
+            <span
+              className={`px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 ${severityColors[issue.severity]}`}
+            >
+              {issue.severity} SEVERITY
+            </span>
+          </div>
+
+          {/* Right: Actions, Role indicator, Close */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {onFlyToGlobe && (
+              <button
+                type="button"
+                onClick={() => onFlyToGlobe(issue)}
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
+                title="Inspect 3D geospatial elevation"
+              >
+                <Globe size={13} className="text-[#E65336]" />
+                <span>3D Globe</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
+              title="Print municipal dossier"
+            >
+              <Printer size={13} />
+              <span>Print</span>
+            </button>
+
+            {/* Persona indicator / Switcher pill */}
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#242522] text-[#F5F1E8] text-xs font-mono hover:bg-[#383A35] transition-colors cursor-pointer"
+              title="Click to view pilot profile or change role"
+            >
+              <User size={13} className="text-[#E65336]" />
+              <span className="uppercase text-[10px] sm:text-[11px] font-medium tracking-wide">
+                {currentUser?.role || currentUserRole}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+              title="Close workspace (Esc)"
+              aria-label="Close workspace"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
+
+        {/* Tier 2: Municipal Persona Switcher Sub-Bar */}
+        {onSwitchPersona && (
+          <div className="px-3.5 sm:px-6 py-1.5 bg-[#FAF8F5] flex items-center justify-between gap-3 overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#687567] font-bold">
+                Persona Perspective:
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {MUNICIPAL_PERSONAS.map((p) => {
+                const isActive = activePersona === p.role
+                const roleIcons: Record<string, string> = {
+                  SUPER_ADMIN: "🛡️",
+                  DEPARTMENT_ADMIN: "🏗️",
+                  INSPECTOR: "👷",
+                  CITIZEN: "👤",
+                }
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onSwitchPersona(p.role)}
+                    className={`persona-switch-btn flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer whitespace-nowrap min-h-[32px] ${
+                      isActive
+                        ? "bg-[#242522] text-[#F5F1E8] shadow-xs font-bold ring-1 ring-black/10"
+                        : "text-[#687567] hover:text-[#242522] hover:bg-white border border-transparent hover:border-[#D8D2C5]"
+                    }`}
+                    title={`${p.label}: ${p.description}`}
+                  >
+                    <span>{roleIcons[p.role]}</span>
+                    <span>{p.label}</span>
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse ml-0.5" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Full-Page 3-Column Content Workspace */}

@@ -257,122 +257,133 @@ export default function MunicipalAdminDashboard({
       <div className="triage-modal-backdrop" onClick={onClose} />
       <div className="triage-modal-container font-mono">
         {/* Top Municipal Government Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-[#D8D2C5] shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="w-10 h-10 rounded-xl bg-[#E65336] flex items-center justify-center text-white font-bold shadow-md shrink-0">
-              <ShieldAlert size={20} />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm sm:text-base font-bold text-[#242522] tracking-wide">
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 bg-white border-b border-[#D8D2C5] shrink-0 flex flex-col gap-2.5">
+          {/* Top Row: Shield Icon + Responsive Title + Window Controls (Refresh & Close) */}
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#E65336] flex items-center justify-center text-white font-bold shadow-md shrink-0">
+                <ShieldAlert size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xs sm:text-base font-bold text-[#242522] tracking-wide leading-tight">
                   MUNICIPAL ADMIN COMMAND SUITE
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-bold border border-red-300">
-                  GOVERNMENT OF GREATER MUMBAI (MCGM)
-                </span>
+                <div className="mt-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[9px] sm:text-[10px] font-bold border border-red-200">
+                    GOVERNMENT OF GREATER MUMBAI (MCGM)
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-[#687567] truncate">
-                Automated Pothole Triage, Field Contractor Dispatch &amp; Executive Resolution Certification
-              </p>
+            </div>
+
+            {/* Window Controls: Refresh & Close aligned top right */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                title="Refresh municipal database"
+                aria-label="Refresh database"
+              >
+                <RefreshCw size={15} className={isRefreshing ? "animate-spin text-[#E65336]" : ""} />
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                title="Close Command Suite (Esc)"
+                aria-label="Close Command Suite"
+              >
+                <X size={17} />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 ml-4">
-            {/* Quick Switch to Citizen Public View */}
+          {/* Subtitle & Citizen View Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#D8D2C5]/50">
+            <p className="text-[11px] sm:text-xs text-[#687567] line-clamp-1">
+              Automated Pothole Triage, Field Contractor Dispatch &amp; Executive Resolution Certification
+            </p>
+
             {onOpenCitizenView && (
               <button
                 type="button"
                 onClick={onOpenCitizenView}
-                className="px-3 py-1.5 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-[#FAF8F5] hover:bg-[#ECE6D8] text-[#242522] text-xs font-semibold transition-colors cursor-pointer shadow-xs min-h-[36px]"
                 title="Preview what citizens and commuters see on the public road health portal"
               >
-                <Eye size={14} className="text-[#E65336]" />
-                <span className="hidden sm:inline">Switch to Citizen View</span>
-                <span className="sm:hidden">Citizen View</span>
+                <Eye size={13} className="text-[#E65336]" />
+                <span>Switch to Public Citizen View →</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-              className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer"
-              title="Refresh municipal database"
-            >
-              <RefreshCw size={16} className={isRefreshing ? "animate-spin text-[#E65336]" : ""} />
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer"
-              title="Close Command Suite (Esc)"
-            >
-              <X size={18} />
-            </button>
           </div>
         </div>
 
         {/* Persona Identity & Fast Role Switcher */}
-        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#161715] text-white flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-bold">
-              Active Municipal Persona:
-            </span>
-            <div className="flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded-lg border border-neutral-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <strong className="text-xs text-[#F5F1E8]">
-                {currentUser?.fullName || (activeRole === "SUPER_ADMIN" ? "System Administrator" : activeRole === "DEPARTMENT_ADMIN" ? "Chief Marcus Brody" : "Senior Inspector Sarah Chen")}
-              </strong>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-[#E65336] text-white">
-                {activeRole.replace("_", " ")}
-              </span>
+        <div className="px-3.5 sm:px-6 py-2.5 sm:py-3 bg-[#161715] text-white flex flex-col md:flex-row md:items-center justify-between gap-2.5 border-b border-neutral-800">
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-neutral-900/90 p-2 sm:px-3 sm:py-1.5 rounded-xl border border-neutral-800">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <div className="min-w-0">
+                <span className="text-[9px] uppercase tracking-wider text-neutral-400 font-bold block sm:hidden">
+                  Active Persona
+                </span>
+                <strong className="text-xs text-[#F5F1E8] truncate block">
+                  {currentUser?.fullName || (activeRole === "SUPER_ADMIN" ? "System Administrator" : activeRole === "DEPARTMENT_ADMIN" ? "Chief Marcus Brody" : "Senior Inspector Sarah Chen")}
+                </strong>
+              </div>
             </div>
+            <span className="text-[9px] sm:text-[10px] uppercase font-mono font-bold px-1.5 py-0.5 rounded bg-[#E65336] text-white shrink-0">
+              {activeRole.replace("_", " ")}
+            </span>
           </div>
 
           {onSwitchPersona && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-neutral-400 mr-1 uppercase">Switch Role:</span>
-              <button
-                type="button"
-                onClick={() => onSwitchPersona("SUPER_ADMIN")}
-                className={`px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer transition-colors ${
-                  activeRole === "SUPER_ADMIN"
-                    ? "bg-[#E65336] text-white"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                }`}
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => onSwitchPersona("DEPARTMENT_ADMIN")}
-                className={`px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer transition-colors ${
-                  activeRole === "DEPARTMENT_ADMIN"
-                    ? "bg-[#E65336] text-white"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                }`}
-              >
-                Dept Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => onSwitchPersona("INSPECTOR")}
-                className={`px-2.5 py-1 rounded text-[11px] font-bold cursor-pointer transition-colors ${
-                  activeRole === "INSPECTOR"
-                    ? "bg-[#E65336] text-white"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                }`}
-              >
-                Field Inspector
-              </button>
+            <div className="w-full md:w-auto">
+              <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onSwitchPersona("SUPER_ADMIN")}
+                  className={`px-2 py-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold cursor-pointer text-center transition-colors min-h-[38px] flex items-center justify-center ${
+                    activeRole === "SUPER_ADMIN"
+                      ? "bg-[#E65336] text-white shadow-xs"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  }`}
+                >
+                  Super Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSwitchPersona("DEPARTMENT_ADMIN")}
+                  className={`px-2 py-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold cursor-pointer text-center transition-colors min-h-[38px] flex items-center justify-center ${
+                    activeRole === "DEPARTMENT_ADMIN"
+                      ? "bg-[#E65336] text-white shadow-xs"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  }`}
+                >
+                  Dept Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSwitchPersona("INSPECTOR")}
+                  className={`px-2 py-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold cursor-pointer text-center transition-colors min-h-[38px] flex items-center justify-center ${
+                    activeRole === "INSPECTOR"
+                      ? "bg-[#E65336] text-white shadow-xs"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  }`}
+                >
+                  Field Inspector
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         {/* Executive Governance Metrics Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 p-3.5 sm:p-5 bg-[#FAF8F5] border-b border-[#D8D2C5]">
-          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 p-3.5 sm:p-5 bg-[#FAF8F5] border-b border-[#D8D2C5]">
+          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
               1. Inbound AI Triage
             </span>
@@ -382,7 +393,7 @@ export default function MunicipalAdminDashboard({
             </div>
           </div>
 
-          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs">
+          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
               2. Work Orders Pending
             </span>
@@ -392,7 +403,7 @@ export default function MunicipalAdminDashboard({
             </div>
           </div>
 
-          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs">
+          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
               3. Field Crews Active
             </span>
@@ -402,7 +413,7 @@ export default function MunicipalAdminDashboard({
             </div>
           </div>
 
-          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs">
+          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
               4. Awaiting Final Seal
             </span>
@@ -414,7 +425,7 @@ export default function MunicipalAdminDashboard({
             </div>
           </div>
 
-          <div className="p-3 bg-white rounded-xl border border-emerald-300 bg-emerald-50/50 shadow-xs">
+          <div className="col-span-2 sm:col-span-1 p-3 bg-white rounded-xl border border-emerald-300 bg-emerald-50/50 shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
               5. Certified Fixed
             </span>
@@ -445,14 +456,14 @@ export default function MunicipalAdminDashboard({
         {/* Role-Specific Triage Queues and Filters */}
         <div className="p-3.5 sm:p-6 space-y-4">
           {/* Queue Tab Buttons based on Active Role */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#D8D2C5]">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-3 pb-3 border-b border-[#D8D2C5]">
+            <div className="overflow-x-auto scrollbar-none flex items-center gap-1.5 pb-1">
               {activeRole === "SUPER_ADMIN" && (
                 <>
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("all_city")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "all_city"
                         ? "bg-[#242522] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -463,7 +474,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("ai_verification")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "ai_verification"
                         ? "bg-amber-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -474,7 +485,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("work_orders")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "work_orders"
                         ? "bg-blue-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -485,7 +496,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("field_active")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "field_active"
                         ? "bg-indigo-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -496,7 +507,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("final_certification")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "final_certification"
                         ? "bg-purple-800 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -507,7 +518,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("critical")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "critical"
                         ? "bg-[#E65336] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -518,7 +529,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("certified_repaired")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "certified_repaired"
                         ? "bg-emerald-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -534,7 +545,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("work_orders")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "work_orders"
                         ? "bg-[#242522] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -545,7 +556,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("dept_audit")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "dept_audit"
                         ? "bg-purple-800 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -556,7 +567,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("active_crews")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "active_crews"
                         ? "bg-blue-800 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -567,7 +578,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("certified_repaired")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "certified_repaired"
                         ? "bg-emerald-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -583,7 +594,7 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("my_assigned")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "my_assigned"
                         ? "bg-[#242522] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -594,18 +605,18 @@ export default function MunicipalAdminDashboard({
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("upload_evidence")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "upload_evidence"
                         ? "bg-[#E65336] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
                     }`}
                   >
-                    Stage 3/4: Upload Physical Evidence (Matching GPS)
+                    Stage 3/4: Upload Evidence
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveQueueTab("completed_jobs")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                       activeQueueTab === "completed_jobs"
                         ? "bg-emerald-700 text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
@@ -618,22 +629,22 @@ export default function MunicipalAdminDashboard({
             </div>
 
             {/* Ward & Search Filters */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full pt-1">
+              <div className="relative flex-1">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#687567]" />
                 <input
                   type="text"
                   placeholder="Search tracking #, street..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-white text-xs w-48 focus:outline-none focus:border-[#E65336]"
+                  className="pl-8 pr-3 py-2 rounded-lg border border-[#D8D2C5] bg-white text-xs w-full focus:outline-none focus:border-[#E65336] min-h-[38px]"
                 />
               </div>
 
               <select
                 value={selectedWard}
                 onChange={(e) => setSelectedWard(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white text-xs font-medium focus:outline-none"
+                className="px-2.5 py-2 rounded-lg border border-[#D8D2C5] bg-white text-xs font-medium focus:outline-none w-full sm:w-auto min-h-[38px]"
               >
                 <option value="all">All Mumbai Wards</option>
                 <option value="Ward K/E">Ward K/E (Andheri WEH)</option>
@@ -645,7 +656,7 @@ export default function MunicipalAdminDashboard({
               <select
                 value={selectedSeverity}
                 onChange={(e) => setSelectedSeverity(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white text-xs font-medium focus:outline-none"
+                className="px-2.5 py-2 rounded-lg border border-[#D8D2C5] bg-white text-xs font-medium focus:outline-none w-full sm:w-auto min-h-[38px]"
               >
                 <option value="all">All Severities</option>
                 <option value="critical">Critical</option>
@@ -733,7 +744,7 @@ export default function MunicipalAdminDashboard({
                       </div>
 
                       {/* Right Action Block */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                         {/* Stage 1 Super Admin Quick Action */}
                         {activeRole === "SUPER_ADMIN" && issue.status === "reported" && (
                           <button
@@ -747,7 +758,7 @@ export default function MunicipalAdminDashboard({
                                 "AI Computer Vision Detection Confirmed by Super Admin; triaged to Area Ward Department."
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                           >
                             <CheckCircle2 size={13} />
                             <span>Verify AI &amp; Triage</span>
@@ -767,7 +778,7 @@ export default function MunicipalAdminDashboard({
                                 "Work Order issued to Municipal Hot-Mix Asphalt Crew 4."
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                           >
                             <Wrench size={13} />
                             <span>Dispatch Crew</span>
@@ -787,7 +798,7 @@ export default function MunicipalAdminDashboard({
                                 "Traffic cones deployed. Field milling & resurfacing initiated on site."
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                           >
                             <Activity size={13} />
                             <span>Start Resurfacing</span>
@@ -807,7 +818,7 @@ export default function MunicipalAdminDashboard({
                                 "Chief Marcus Brody approved field asphalt quality and forwarded to Super Admin."
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                           >
                             <CheckCircle2 size={13} />
                             <span>Approve Quality</span>
@@ -827,7 +838,7 @@ export default function MunicipalAdminDashboard({
                                 "Super Admin granted Tier 4 Executive Quality Certification. Pothole permanently resolved."
                               )
                             }
-                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                           >
                             <CheckCircle2 size={13} />
                             <span>🏆 Grant Executive Seal</span>
@@ -840,7 +851,7 @@ export default function MunicipalAdminDashboard({
                             e.stopPropagation()
                             onSelectIssue(issue)
                           }}
-                          className="px-3 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                          className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <span>Manage Workspace</span>
                           <ChevronRight size={13} />

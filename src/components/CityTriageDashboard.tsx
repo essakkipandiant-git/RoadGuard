@@ -507,38 +507,100 @@ export default function CityTriageDashboard({
         transition={{ type: "spring", stiffness: 140, damping: 22 }}
       >
         {/* Top Header with Role-Specific Branding */}
-        <div className="triage-top-bar">
-          <div className="triage-title-group">
-            <span className="eyebrow">
-              <span />
-              {activePersona === "SUPER_ADMIN" && "SUPER ADMIN EXECUTIVE COMMAND · GREATER MUMBAI (MCGM)"}
-              {activePersona === "DEPARTMENT_ADMIN" && "DEPARTMENTAL OPERATIONS · HIGHWAYS & INFRASTRUCTURE"}
-              {activePersona === "INSPECTOR" && "FIELD INSPECTION & TACTICAL CREW OPERATIONS"}
-              {activePersona === "CITIZEN" && "CITIZEN COMMUNITY ROADGUARD TRANSPARENCY"}
-            </span>
-            <h2 id="triage-dashboard-title" className="triage-heading flex items-center gap-2.5">
-              {activePersona === "SUPER_ADMIN" && "CITY ROAD RISK & TRIAGE OPERATIONS"}
-              {activePersona === "DEPARTMENT_ADMIN" && "DEPARTMENT WORK ORDER & CREW DISPATCH"}
-              {activePersona === "INSPECTOR" && "FIELD INSPECTOR ON-SITE ASSESSMENT QUEUE"}
-              {activePersona === "CITIZEN" && "COMMUNITY ROAD DEFECTS & VERIFIED REPAIRS"}
-            </h2>
-          </div>
+        {/* Top Header with Role-Specific Branding */}
+        <div className="px-3.5 sm:px-7 py-3 sm:py-4 bg-white border-b border-[#242522]/8 flex flex-col gap-2.5 sm:gap-3 shrink-0">
+          {/* Row 1: Eyebrow, Heading, and Primary Window Controls (Refresh & Close) */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <span className="eyebrow mb-1">
+                <span />
+                {activePersona === "SUPER_ADMIN" && "SUPER ADMIN EXECUTIVE COMMAND · GREATER MUMBAI (MCGM)"}
+                {activePersona === "DEPARTMENT_ADMIN" && "DEPARTMENTAL OPERATIONS · HIGHWAYS & INFRASTRUCTURE"}
+                {activePersona === "INSPECTOR" && "FIELD INSPECTION & TACTICAL CREW OPERATIONS"}
+                {activePersona === "CITIZEN" && "CITIZEN COMMUNITY ROADGUARD TRANSPARENCY"}
+              </span>
+              <h2 id="triage-dashboard-title" className="text-sm sm:text-xl font-bold text-[#181916] tracking-tight leading-snug">
+                {activePersona === "SUPER_ADMIN" && "CITY ROAD RISK & TRIAGE OPERATIONS"}
+                {activePersona === "DEPARTMENT_ADMIN" && "DEPARTMENT WORK ORDER & CREW DISPATCH"}
+                {activePersona === "INSPECTOR" && "FIELD INSPECTOR ON-SITE ASSESSMENT QUEUE"}
+                {activePersona === "CITIZEN" && "COMMUNITY ROAD DEFECTS & VERIFIED REPAIRS"}
+              </h2>
+            </div>
 
-          <div className="triage-top-controls">
-            {onOpenAdminSuite && (
+            {/* Top-Right Window Controls: Refresh & Close always accessible */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={onOpenAdminSuite}
-                className="px-3 py-1.5 rounded-xl bg-[#242522] hover:bg-[#383A35] text-white text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-xs cursor-pointer mr-1"
-                title="Open Municipal Admin Command Suite for authorized officers"
+                onClick={handleManualRefresh}
+                className={`triage-icon-btn ${isRefreshing ? "animate-spin" : ""}`}
+                title="Refresh live database metrics"
+                aria-label="Refresh dashboard"
               >
-                <ShieldAlert size={14} className="text-[#E65336]" />
-                <span className="hidden sm:inline">Admin Command Suite →</span>
-                <span className="sm:hidden">Admin →</span>
+                <RefreshCw size={15} />
               </button>
-            )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="triage-close-btn"
+                aria-label="Close dashboard"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
 
-            {/* Quick 1-Click Persona Segmented Switcher for TCS Reviewers */}
+          {/* Row 2: Role Switcher & Persona Controls (Stacked below on mobile, inline on desktop) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#242522]/5">
+            <div className="flex flex-wrap items-center gap-2">
+              {onOpenAdminSuite && (
+                <button
+                  type="button"
+                  onClick={onOpenAdminSuite}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#242522] hover:bg-[#383A35] text-white text-[11px] sm:text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-xs cursor-pointer min-h-[34px]"
+                  title="Open Municipal Admin Command Suite for authorized officers"
+                >
+                  <ShieldAlert size={13} className="text-[#E65336]" />
+                  <span className="hidden sm:inline">Admin Command Suite →</span>
+                  <span className="sm:hidden">Admin Suite →</span>
+                </button>
+              )}
+
+              {/* Role Switcher Pill */}
+              {onOpenAuth ? (
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="triage-role-pill min-h-[34px]"
+                  title="Click to switch municipal persona or view profile"
+                >
+                  <User size={13} className="text-vermilion" />
+                  <label className="hidden sm:inline">PERSONA:</label>
+                  <strong>
+                    {currentUser ? currentUser.fullName.split(" ")[0] : currentUserRole.toUpperCase()}
+                  </strong>
+                  <span className="switch-tag">
+                    {currentUser ? (currentUser.role === "SUPER_ADMIN" ? "ADMIN" : currentUser.role.replace("_", " ")) : currentUserRole.toUpperCase()}
+                  </span>
+                </button>
+              ) : (
+                <div className="triage-role-pill min-h-[34px]">
+                  <User size={13} className="text-vermilion" />
+                  <label>ROLE:</label>
+                  <select
+                    value={currentUserRole}
+                    onChange={(e) => onRoleChange(e.target.value as UserRole)}
+                    className="role-dropdown-clean"
+                  >
+                    <option value="citizen">Citizen Observer</option>
+                    <option value="authority">District Authority</option>
+                    <option value="crew">Maintenance Crew</option>
+                    <option value="inspector">Verification Officer</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Quick 1-Click Persona Segmented Switcher for TCS Reviewers (desktop only) */}
             <div className="hidden lg:flex items-center gap-1 bg-[#ECE6D8] p-1 rounded-xl border border-[#D8D2C5]">
               {MUNICIPAL_PERSONAS.map((p) => {
                 const isActive = activePersona === p.role
@@ -582,97 +644,41 @@ export default function CityTriageDashboard({
                 )
               })}
             </div>
-
-            {/* Role Switcher Pill */}
-            {onOpenAuth ? (
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                className="triage-role-pill"
-                title="Click to switch municipal persona or view profile"
-              >
-                <User size={13} className="text-vermilion" />
-                <label>PERSONA:</label>
-                <strong>
-                  {currentUser ? currentUser.fullName.split(" ")[0] : currentUserRole.toUpperCase()}
-                </strong>
-                <span className="switch-tag">
-                  {currentUser ? currentUser.role.replace("_", " ") : currentUserRole.toUpperCase()}
-                </span>
-              </button>
-            ) : (
-              <div className="triage-role-pill">
-                <User size={13} className="text-vermilion" />
-                <label>ROLE:</label>
-                <select
-                  value={currentUserRole}
-                  onChange={(e) => onRoleChange(e.target.value as UserRole)}
-                  className="role-dropdown-clean"
-                >
-                  <option value="citizen">Citizen Observer</option>
-                  <option value="authority">District Authority</option>
-                  <option value="crew">Maintenance Crew</option>
-                  <option value="inspector">Verification Officer</option>
-                </select>
-              </div>
-            )}
-
-            <button
-              onClick={handleManualRefresh}
-              className={`triage-icon-btn ${isRefreshing ? "animate-spin" : ""}`}
-              title="Refresh live database metrics"
-            >
-              <RefreshCw size={15} />
-            </button>
-
-            <button
-              onClick={onClose}
-              className="triage-close-btn"
-              aria-label="Close dashboard"
-            >
-              <X size={18} />
-            </button>
           </div>
         </div>
 
         {/* Persona Context Banner Ribbon */}
-        <div className="px-3 sm:px-7 py-2 bg-[#f4f1ea] border-b border-[#242522]/8 flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-2 text-[#687567]">
-            {activePersona === "SUPER_ADMIN" && (
-              <>
-                <ShieldCheck size={14} className="text-emerald-700" />
-                <span>Tier 4 Global Authority · Full ward allocation, inspector assignments, work order dispatch &amp; audit oversight.</span>
-              </>
-            )}
-            {activePersona === "DEPARTMENT_ADMIN" && (
-              <>
-                <Building2 size={14} className="text-amber-600" />
-                <span>Highways &amp; Infrastructure Division · Contractor dispatch, asphalt crew scheduling &amp; SLA compliance triage.</span>
-              </>
-            )}
-            {activePersona === "INSPECTOR" && (
-              <>
-                <HardHat size={14} className="text-sky-600" />
-                <span>
-                  Senior Inspector Sarah Jenkins · On-site asphalt assessment, structural cavity verification &amp; resurfacing quality sign-off.
+        <div className="px-3.5 sm:px-7 py-2.5 bg-[#f4f1ea] border-b border-[#242522]/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-start sm:items-center gap-2.5 text-[#687567] min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 shadow-xs">
+              {activePersona === "SUPER_ADMIN" && <ShieldCheck size={14} className="text-emerald-700" />}
+              {activePersona === "DEPARTMENT_ADMIN" && <Building2 size={14} className="text-amber-700" />}
+              {activePersona === "INSPECTOR" && <HardHat size={14} className="text-sky-700" />}
+              {activePersona === "CITIZEN" && <User size={14} className="text-emerald-700" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <strong className="text-[#242522] font-sans font-bold text-xs">
+                  {currentUser?.fullName || (activePersona === "CITIZEN" ? "Citizen Alliance (Elena Vance)" : "Municipal Officer")}
+                </strong>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold uppercase">
+                  {activePersona === "CITIZEN" ? "Citizen Alliance" : activePersona.replace("_", " ")}
                 </span>
-              </>
-            )}
-            {activePersona === "CITIZEN" && (
-              <>
-                <User size={14} className="text-emerald-600" />
-                <span>
-                  Citizen Alliance (Elena Vance) · GPS road hazard reporting, photo evidence submission &amp; public repair tracking.
-                </span>
-              </>
-            )}
+              </div>
+              <p className="text-[11px] text-[#687567] leading-relaxed break-words">
+                {activePersona === "CITIZEN" && "GPS road hazard reporting, photographic evidence submission & public repair tracking across Greater Mumbai."}
+                {activePersona === "SUPER_ADMIN" && "Tier 4 Global Authority · Full ward allocation, inspector assignments, work order dispatch & audit oversight."}
+                {activePersona === "DEPARTMENT_ADMIN" && "Highways & Infrastructure Division · Contractor dispatch, asphalt crew scheduling & SLA compliance triage."}
+                {activePersona === "INSPECTOR" && "Senior Inspector Sarah Jenkins · On-site asphalt assessment, structural cavity verification & resurfacing quality sign-off."}
+              </p>
+            </div>
           </div>
 
           {actionSuccessMsg && (
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-sans text-xs font-bold border border-emerald-300"
+              className="self-start sm:self-auto px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 font-sans text-xs font-bold border border-emerald-300 shrink-0"
             >
               ✓ {actionSuccessMsg}
             </motion.div>
@@ -680,12 +686,12 @@ export default function CityTriageDashboard({
         </div>
 
         {/* 6 STRUCTURED TOP VIEWS NAVIGATION BAR */}
-        <div className="px-3 sm:px-7 py-2 bg-[#ECE6D8] border-b border-[#D8D2C5] flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="px-3.5 sm:px-7 py-2 bg-[#ECE6D8] border-b border-[#D8D2C5] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
           <nav aria-label="Dashboard primary views" className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => setActiveView("overview")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "overview"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                   : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -698,7 +704,7 @@ export default function CityTriageDashboard({
             <button
               type="button"
               onClick={() => setActiveView("issues")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "issues"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                   : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -714,7 +720,7 @@ export default function CityTriageDashboard({
             <button
               type="button"
               onClick={() => setActiveView("risk_map")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "risk_map"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                   : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -727,7 +733,7 @@ export default function CityTriageDashboard({
             <button
               type="button"
               onClick={() => setActiveView("resolution")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "resolution"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                   : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -743,7 +749,7 @@ export default function CityTriageDashboard({
             <button
               type="button"
               onClick={() => setActiveView("analytics")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "analytics"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                   : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -757,7 +763,7 @@ export default function CityTriageDashboard({
               <button
                 type="button"
                 onClick={() => setActiveView("admin")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                   activeView === "admin"
                     ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
                     : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
@@ -772,7 +778,7 @@ export default function CityTriageDashboard({
           <button
             type="button"
             onClick={onOpenReportModal}
-            className="px-3 py-1.5 rounded-lg bg-[#E65336] hover:bg-[#d04529] text-white text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+            className="px-3 py-2 sm:py-1.5 rounded-lg bg-[#E65336] hover:bg-[#d04529] text-white text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap shadow-sm cursor-pointer min-h-[38px]"
           >
             <span>+ Report Hazard</span>
           </button>
@@ -999,14 +1005,14 @@ export default function CityTriageDashboard({
         {activeView === "issues" && (
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Persona Perspective Tabs Bar */}
-            <div className="px-7 pt-3 pb-1 bg-[#f5f2eb] border-b border-[#242522]/8 flex items-center justify-between gap-2 overflow-x-auto">
+            <div className="px-3.5 sm:px-7 pt-2.5 pb-2 bg-[#f5f2eb] border-b border-[#242522]/8 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
               <div className="flex items-center gap-1.5 shrink-0">
                 {activePersona === "INSPECTOR" && (
                   <>
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("my_assigned")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "my_assigned"
                           ? "bg-[#E65336] text-white shadow-sm"
                           : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
@@ -1022,7 +1028,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("needs_inspection")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "needs_inspection"
                           ? "bg-[#242522] text-white shadow-sm"
                           : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
@@ -1035,7 +1041,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("active_repairs")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "active_repairs"
                           ? "bg-[#242522] text-white shadow-sm"
                           : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
@@ -1048,7 +1054,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("repaired")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
                           : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
@@ -1065,7 +1071,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("community")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "community"
                           ? "bg-[#E65336] text-white shadow-sm"
                           : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
@@ -1081,7 +1087,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("my_reports")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "my_reports"
                           ? "bg-[#242522] text-white shadow-sm"
                           : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
@@ -1094,7 +1100,7 @@ export default function CityTriageDashboard({
                     <button
                       type="button"
                       onClick={() => setPerspectiveTab("repaired")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
                           : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
@@ -1227,7 +1233,7 @@ export default function CityTriageDashboard({
                   <Search size={16} className="triage-search-icon" />
                   <input
                     type="text"
-                    placeholder="Search by defect ID (#RG-...), street, category, or keyword..."
+                    placeholder="Search defect ID (#RG-...), street or keyword..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="triage-search-input"

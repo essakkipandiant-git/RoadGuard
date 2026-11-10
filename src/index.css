@@ -67,6 +67,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 9px 14px 9px 24px;
   border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 20px;
@@ -178,9 +179,10 @@
 .desktop-nav {
   display: flex;
   align-items: center;
-  gap: clamp(10px, 1.2vw, 18px);
+  gap: clamp(8px, 1.1vw, 16px);
   flex-shrink: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .desktop-nav a {
@@ -191,6 +193,7 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
   transition: color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .desktop-nav a:hover {
@@ -239,8 +242,8 @@
   display: none;
 }
 
-/* Collapse desktop navigation to clean hamburger under 1280px */
-@media (max-width: 1279px) {
+/* Collapse desktop navigation to clean hamburger under 1360px so staff suite buttons never collide */
+@media (max-width: 1359px) {
   .desktop-nav {
     display: none !important;
   }
@@ -3877,8 +3880,9 @@ footer {
 .nav-actions-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 0.8vw, 10px);
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .nav-suite-toggle {
@@ -3890,6 +3894,7 @@ footer {
   background: rgba(236, 230, 216, 0.85);
   border: 1px solid rgba(216, 210, 197, 0.9);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-suite-btn {
@@ -3906,6 +3911,8 @@ footer {
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(36, 37, 34, 0.08);
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-suite-btn:hover {
@@ -3925,6 +3932,8 @@ footer {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-public-btn:hover {
@@ -5986,6 +5995,89 @@ footer {
   color: #687567;
   max-width: 400px;
   margin: 0;
+}
+
+/* Mobile Responsiveness for Citizen Triage & Community Issue Cards */
+@media (max-width: 640px) {
+  .triage-table-container {
+    padding: 10px 12px !important;
+  }
+  .triage-filter-selectors-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .triage-filter-select-wrap {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    height: 38px !important;
+    padding: 0 8px !important;
+  }
+  .triage-select-filter {
+    flex: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .triage-match-count-pill {
+    grid-column: span 2 !important;
+    width: 100% !important;
+    text-align: center !important;
+    margin-left: 0 !important;
+  }
+  .triage-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .triage-issue-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+  .triage-card-img-col {
+    width: 100% !important;
+    height: 160px !important;
+    aspect-ratio: 16 / 9 !important;
+  }
+  .triage-card-title {
+    white-space: normal !important;
+    line-height: 1.35 !important;
+  }
+  .triage-card-address {
+    white-space: normal !important;
+  }
+  .triage-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .footer-left-metrics {
+    width: 100% !important;
+    justify-content: space-between !important;
+    white-space: normal !important;
+  }
+  .footer-right-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    margin-left: 0 !important;
+  }
+  .triage-sub-btn,
+  .triage-action-btn {
+    min-height: 36px !important;
+    flex: 1 !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .triage-filter-selectors-row {
+    grid-template-columns: 1fr !important;
+  }
+  .triage-match-count-pill {
+    grid-column: span 1 !important;
+  }
 }
 
 /* 3D Globe Legend & Attribution */

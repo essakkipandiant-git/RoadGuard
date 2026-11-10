@@ -176,17 +176,25 @@ function Header({
         </span>
       </a>
       <nav className="desktop-nav" aria-label="Main navigation">
-        {navItems.map(([label, id]) => (
-          <a className={active === id ? "active" : ""} href={`#${id}`} key={id}>
-            {label}
-          </a>
-        ))}
+        {navItems.map(([label, id]) => {
+          // Hide secondary links on medium desktop to prevent any clustering
+          const isSecondary = id === "impact" || id === "about"
+          return (
+            <a
+              className={`${active === id ? "active" : ""} ${isSecondary ? "hidden 2xl:inline-block" : ""}`}
+              href={`#${id}`}
+              key={id}
+            >
+              {label}
+            </a>
+          )
+        })}
       </nav>
       <div className="nav-actions-group">
         <button
           type="button"
           onClick={onOpenAuth}
-          className="nav-user-button glass"
+          className="nav-user-button glass shrink-0"
           title={
             currentUser
               ? `Signed in as ${currentUser.fullName} (${currentUser.role})`
@@ -195,56 +203,62 @@ function Header({
         >
           {currentUser ? (
             <>
-              <span className="nav-avatar-circle">
+              <span className="nav-avatar-circle shrink-0">
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </span>
-              <span className="nav-user-name hidden 2xl:inline">{currentUser.fullName.split(" ")[0]}</span>
-              <span className={`role-badge role-${currentUser.role.toLowerCase()}`}>
-                {currentUser.role === "SUPER_ADMIN" ? "ADMIN" : currentUser.role === "DEPARTMENT_ADMIN" ? "DEPT" : currentUser.role.replace("_", " ")}
+              <span className="nav-user-name hidden 2xl:inline truncate max-w-[80px]">
+                {currentUser.fullName.split(" ")[0]}
+              </span>
+              <span className={`role-badge role-${currentUser.role.toLowerCase()} shrink-0`}>
+                {currentUser.role === "SUPER_ADMIN"
+                  ? "ADMIN"
+                  : currentUser.role === "DEPARTMENT_ADMIN"
+                  ? "DEPT"
+                  : currentUser.role.replace("_", " ")}
               </span>
             </>
           ) : (
             <>
-              <User size={13} />
+              <User size={13} className="shrink-0" />
               <span>Sign In</span>
             </>
           )}
         </button>
 
         {isStaff ? (
-          <div className="nav-suite-toggle">
+          <div className="nav-suite-toggle shrink-0">
             <button
               type="button"
               onClick={onOpenAdminSuite || onOpenTriage}
-              className="nav-suite-btn"
+              className="nav-suite-btn shrink-0"
               title="Open Municipal Admin Command Suite"
             >
-              <ShieldAlert size={13} className="text-[#E65336]" />
-              <span className="hidden 2xl:inline">Command Suite</span>
-              <span className="2xl:hidden">Suite</span>
-              <span className="nav-count-badge">{issuesCount}</span>
+              <ShieldAlert size={13} className="text-[#E65336] shrink-0" />
+              <span className="hidden 2xl:inline whitespace-nowrap">Command Suite</span>
+              <span className="2xl:hidden whitespace-nowrap">Suite</span>
+              <span className="nav-count-badge shrink-0">{issuesCount}</span>
             </button>
             <button
               type="button"
               onClick={onOpenTriage}
-              className="nav-public-btn"
+              className="nav-public-btn shrink-0"
               title="Preview Public Citizen Road Tracker"
             >
-              <Activity size={12} />
-              <span className="hidden 2xl:inline">Public Portal</span>
-              <span className="2xl:hidden hidden xl:inline">Public</span>
+              <Activity size={12} className="shrink-0" />
+              <span className="hidden 2xl:inline whitespace-nowrap">Public Portal</span>
+              <span className="2xl:hidden whitespace-nowrap">Public</span>
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={onOpenTriage}
-            className="nav-triage-button glass"
+            className="nav-triage-button glass shrink-0"
             title="Open Public Road Tracker (Citizen View)"
           >
-            <Activity size={13} className="text-vermilion" />
-            <span>Tracker</span>
-            <span className="nav-count-badge">{issuesCount}</span>
+            <Activity size={13} className="text-vermilion shrink-0" />
+            <span className="whitespace-nowrap">Tracker</span>
+            <span className="nav-count-badge shrink-0">{issuesCount}</span>
           </button>
         )}
 
@@ -253,7 +267,7 @@ function Header({
             e.preventDefault()
             onOpenGlobe()
           }}
-          className="nav-report-btn"
+          className="nav-report-btn shrink-0 whitespace-nowrap"
         >
           <span className="hidden 2xl:inline">Report a pothole</span>
           <span className="2xl:hidden hidden sm:inline">Report Hazard</span>

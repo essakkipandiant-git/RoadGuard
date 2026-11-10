@@ -69,10 +69,10 @@ type GlobeLocationPickerProps = {
 // Preset quick locations for immediate exploration
 const PRESET_LOCATIONS = [
   {
-    name: "Harbour Ave (London)",
-    lat: 51.5082,
-    lng: -0.1245,
-    city: "London, UK",
+    name: "Western Express Highway (Mumbai)",
+    lat: 19.076,
+    lng: 72.8777,
+    city: "Mumbai, India",
   },
   {
     name: "Marine Drive (Mumbai)",
@@ -93,10 +93,10 @@ const PRESET_LOCATIONS = [
     city: "New Delhi, India",
   },
   {
-    name: "Times Square (New York)",
-    lat: 40.758,
-    lng: -73.9855,
-    city: "New York, USA",
+    name: "Anna Salai (Chennai)",
+    lat: 13.0604,
+    lng: 80.2496,
+    city: "Chennai, India",
   },
 ]
 

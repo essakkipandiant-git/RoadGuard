@@ -361,7 +361,7 @@ export function mapBackendIssueToRoadIssue(raw: any): RoadIssue {
   // Work order / repair record
   const latestWorkOrder = raw.workOrders?.[0]
   const repair: RepairVerificationRecord = {
-    assignedCrew: latestWorkOrder?.assignedCrew || (status === "assigned" || status === "in_progress" ? "London Highways Asphalt Crew 4" : undefined),
+    assignedCrew: latestWorkOrder?.assignedCrew || (status === "assigned" || status === "in_progress" ? "MCGM Ward K/E Rapid Asphalt Crew 2" : undefined),
     assignedAt: latestWorkOrder?.scheduledDate || raw.updatedAt,
     workOrderNumber: latestWorkOrder?.orderNumber || (raw.reportNumber ? `WO-${raw.reportNumber.replace("RG-", "")}` : undefined),
     repairCompletedAt: status === "verified_repaired" ? raw.updatedAt : undefined,
@@ -378,12 +378,12 @@ export function mapBackendIssueToRoadIssue(raw: any): RoadIssue {
     severity,
     status,
     coordinates: {
-      lat: Number(raw.latitude) || 51.5074,
-      lng: Number(raw.longitude) || -0.1278,
+      lat: Number(raw.latitude) || 19.076,
+      lng: Number(raw.longitude) || 72.8777,
     },
-    address: raw.address || "London, UK",
-    roadName: raw.address?.split(",")?.[0] || "Municipal Road",
-    city: raw.ward?.city || "London",
+    address: raw.address || "Western Express Highway, Mumbai, India",
+    roadName: raw.address?.split(",")?.[0] || "Western Express Highway",
+    city: raw.ward?.city || "Mumbai",
     originalPhotoUrl: originalImg,
     annotatedPhotoUrl: annotatedImg,
     detection,
