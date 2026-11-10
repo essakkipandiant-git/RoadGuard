@@ -130,6 +130,9 @@ export interface RepairVerificationRecord {
   verifiedBy?: string
   verifiedAt?: string
   reopenReason?: string
+  deptAuditApprovedAt?: string
+  deptAuditedBy?: string
+  executiveCertifiedBy?: string
 }
 
 export interface Coordinates {

@@ -82,6 +82,7 @@ interface CityTriageDashboardProps {
   currentUser?: ApiUser | null
   onOpenAuth?: () => void
   onSwitchPersona?: (roleOrEmail: string) => void
+  onOpenAdminSuite?: () => void
 }
 
 export default function CityTriageDashboard({
@@ -97,6 +98,7 @@ export default function CityTriageDashboard({
   currentUser,
   onOpenAuth,
   onSwitchPersona,
+  onOpenAdminSuite,
 }: CityTriageDashboardProps) {
   // 6 Structured Views: Overview, Reported Issues, Risk Map, Resolution Tracking, Analytics, Administration
   const [activeView, setActiveView] = useState<DashboardViewTab>("issues")
@@ -523,6 +525,19 @@ export default function CityTriageDashboard({
           </div>
 
           <div className="triage-top-controls">
+            {onOpenAdminSuite && (
+              <button
+                type="button"
+                onClick={onOpenAdminSuite}
+                className="px-3 py-1.5 rounded-xl bg-[#242522] hover:bg-[#383A35] text-white text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-xs cursor-pointer mr-1"
+                title="Open Municipal Admin Command Suite for authorized officers"
+              >
+                <ShieldAlert size={14} className="text-[#E65336]" />
+                <span className="hidden sm:inline">Admin Command Suite →</span>
+                <span className="sm:hidden">Admin →</span>
+              </button>
+            )}
+
             {/* Quick 1-Click Persona Segmented Switcher for TCS Reviewers */}
             <div className="hidden lg:flex items-center gap-1 bg-[#ECE6D8] p-1 rounded-xl border border-[#D8D2C5]">
               {MUNICIPAL_PERSONAS.map((p) => {

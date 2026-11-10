@@ -69,7 +69,8 @@ describe("Phase 13: Frontend End-to-End User Journeys & Edge Case Testing", () =
       expect(mapBackendStatus("ASSIGNED")).toBe("assigned")
       expect(mapBackendStatus("IN_PROGRESS")).toBe("in_progress")
       expect(mapBackendStatus("VERIFIED")).toBe("under_review")
-      expect(mapBackendStatus("REPAIR_COMPLETED")).toBe("verified_repaired")
+      expect(mapBackendStatus("REPAIR_COMPLETED")).toBe("repair_completed")
+      expect(mapBackendStatus("CLOSED")).toBe("verified_repaired")
       expect(mapBackendStatus("REOPENED")).toBe("reopened")
       expect(mapBackendStatus("REJECTED")).toBe("rejected")
 

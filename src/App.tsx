@@ -12,6 +12,7 @@ import {
   MapPin,
   Menu,
   Navigation,
+  ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
   User,
@@ -33,6 +34,7 @@ import PotholeReportModal from "./components/PotholeReportModal"
 import IssueDetailDrawer from "./components/IssueDetailDrawer"
 import IssueManagementWorkspace from "./components/IssueManagementWorkspace"
 import CityTriageDashboard from "./components/CityTriageDashboard"
+import MunicipalAdminDashboard from "./components/MunicipalAdminDashboard"
 import AuthModal from "./components/AuthModal"
 import SyncReportsBanner from "./components/SyncReportsBanner"
 import { RoadIssue, UserRole } from "./types/roadguard"
@@ -134,6 +136,7 @@ function Header({
   active,
   onOpenGlobe,
   onOpenTriage,
+  onOpenAdminSuite,
   onOpenAuth,
   issuesCount,
   currentUser,
@@ -141,6 +144,7 @@ function Header({
   active: string
   onOpenGlobe: () => void
   onOpenTriage: () => void
+  onOpenAdminSuite?: () => void
   onOpenAuth: () => void
   issuesCount: number
   currentUser: ApiUser | null
@@ -148,6 +152,12 @@ function Header({
   const [open, setOpen] = useState(false)
   const { scrollY } = useScroll()
   const [scrolled, setScrolled] = useState(false)
+
+  const isStaff =
+    currentUser?.role === "SUPER_ADMIN" ||
+    currentUser?.role === "DEPARTMENT_ADMIN" ||
+    currentUser?.role === "INSPECTOR" ||
+    (currentUser?.role as any) === "FIELD_ADMIN"
 
   useEffect(() => {
     return scrollY.on("change", (latest) => {
@@ -201,16 +211,42 @@ function Header({
           )}
         </button>
 
-        <button
-          type="button"
-          onClick={onOpenTriage}
-          className="nav-triage-button glass"
-          title="Open City Risk Triage & Management Dashboard"
-        >
-          <Activity size={14} className="text-vermilion" />
-          <span>Manage</span>
-          <span className="nav-count-badge">{issuesCount}</span>
-        </button>
+        {isStaff ? (
+          <>
+            <button
+              type="button"
+              onClick={onOpenAdminSuite || onOpenTriage}
+              className="nav-triage-button glass"
+              style={{ borderColor: "rgba(230, 83, 54, 0.45)", background: "rgba(230, 83, 54, 0.08)" }}
+              title="Open Municipal Admin Command Suite"
+            >
+              <ShieldAlert size={14} className="text-vermilion" />
+              <span>Command Suite</span>
+              <span className="nav-count-badge">{issuesCount}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onOpenTriage}
+              className="nav-triage-button glass"
+              title="Open Public Road Tracker (Citizen View)"
+            >
+              <Activity size={14} className="text-[#687567]" />
+              <span>Public View</span>
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenTriage}
+            className="nav-triage-button glass"
+            title="Open Public Road Tracker (Citizen View)"
+          >
+            <Activity size={14} className="text-vermilion" />
+            <span>Public Tracker</span>
+            <span className="nav-count-badge">{issuesCount}</span>
+          </button>
+        )}
+
         <ButtonLink
           onClick={(e) => {
             e.preventDefault()
@@ -270,18 +306,48 @@ function Header({
                 </>
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                onOpenTriage()
-              }}
-              className="nav-triage-button glass mb-2"
-              style={{ width: "100%", justifyContent: "center" }}
-            >
-              <Activity size={14} className="text-vermilion" />
-              <span>City Risk Triage ({issuesCount})</span>
-            </button>
+            {isStaff ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    if (onOpenAdminSuite) onOpenAdminSuite()
+                    else onOpenTriage()
+                  }}
+                  className="nav-triage-button glass mb-2"
+                  style={{ width: "100%", justifyContent: "center", borderColor: "rgba(230, 83, 54, 0.45)" }}
+                >
+                  <ShieldAlert size={14} className="text-vermilion" />
+                  <span>Municipal Command Suite ({issuesCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    onOpenTriage()
+                  }}
+                  className="nav-triage-button glass mb-2"
+                  style={{ width: "100%", justifyContent: "center" }}
+                >
+                  <Activity size={14} className="text-[#687567]" />
+                  <span>Public Road Tracker</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  onOpenTriage()
+                }}
+                className="nav-triage-button glass mb-2"
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                <Activity size={14} className="text-vermilion" />
+                <span>Public Road Tracker ({issuesCount})</span>
+              </button>
+            )}
             <ButtonLink
               onClick={(e) => {
                 e.preventDefault()
@@ -1589,6 +1655,7 @@ export default function App() {
   const [isGlobeOpen, setIsGlobeOpen] = useState(false)
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isTriageOpen, setIsTriageOpen] = useState(false)
+  const [isAdminSuiteOpen, setIsAdminSuiteOpen] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [selectedLocation, setSelectedLocation] =
@@ -1605,6 +1672,35 @@ export default function App() {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false)
   const [selectedIssueForWorkspace, setSelectedIssueForWorkspace] =
     useState<RoadIssue | null>(null)
+
+  const isStaffUser =
+    currentUser?.role === "SUPER_ADMIN" ||
+    currentUser?.role === "DEPARTMENT_ADMIN" ||
+    currentUser?.role === "INSPECTOR" ||
+    (currentUser?.role as any) === "FIELD_ADMIN" ||
+    currentUserRole === "authority" ||
+    currentUserRole === "crew" ||
+    currentUserRole === "inspector"
+
+  const handleOpenTriage = () => {
+    if (isStaffUser) {
+      setIsAdminSuiteOpen(true)
+      setIsTriageOpen(false)
+    } else {
+      setIsTriageOpen(true)
+      setIsAdminSuiteOpen(false)
+    }
+  }
+
+  const handleOpenAdminSuite = () => {
+    setIsAdminSuiteOpen(true)
+    setIsTriageOpen(false)
+  }
+
+  const handleOpenCitizenView = () => {
+    setIsTriageOpen(true)
+    setIsAdminSuiteOpen(false)
+  }
 
   const refreshIssues = async () => {
     try {
@@ -1785,6 +1881,7 @@ export default function App() {
           setSelectedIssueForWorkspace(found)
           setIsWorkspaceOpen(true)
           setIsTriageOpen(false)
+          setIsAdminSuiteOpen(false)
           setIsDrawerOpen(false)
         } else {
           apiClient.issues
@@ -1794,6 +1891,7 @@ export default function App() {
                 setSelectedIssueForWorkspace(mapped)
                 setIsWorkspaceOpen(true)
                 setIsTriageOpen(false)
+                setIsAdminSuiteOpen(false)
                 setIsDrawerOpen(false)
               }
             })
@@ -1820,7 +1918,11 @@ export default function App() {
     if (window.location.pathname.startsWith("/manage/issues/")) {
       window.history.pushState(null, "", "/")
     }
-    setIsTriageOpen(true)
+    if (isStaffUser) {
+      setIsAdminSuiteOpen(true)
+    } else {
+      setIsTriageOpen(true)
+    }
   }
 
   useEffect(() => {
@@ -1862,7 +1964,8 @@ export default function App() {
       <Header
         active={active}
         onOpenGlobe={handleStartReporting}
-        onOpenTriage={() => setIsTriageOpen(true)}
+        onOpenTriage={handleOpenCitizenView}
+        onOpenAdminSuite={handleOpenAdminSuite}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         issuesCount={issues.length}
         currentUser={currentUser}
@@ -1876,7 +1979,7 @@ export default function App() {
           <RiskMap
             onSelectIssueForGlobe={handleSelectIssueForGlobe}
             onOpenDetails={handleOpenIssueDetails}
-            onOpenTriage={() => setIsTriageOpen(true)}
+            onOpenTriage={handleOpenTriage}
           />
         </ScrollSectionTransition>
         <ScrollSectionTransition id="section-repair-wrap">
@@ -1945,7 +2048,7 @@ export default function App() {
         }}
       />
 
-      {/* City Risk & Triage Operations Dashboard */}
+      {/* Citizen Public Road Transparency Portal */}
       <CityTriageDashboard
         isOpen={isTriageOpen}
         onClose={() => setIsTriageOpen(false)}
@@ -1955,8 +2058,10 @@ export default function App() {
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onSwitchPersona={handleSwitchPersona}
+        onOpenAdminSuite={handleOpenAdminSuite}
         onSelectIssue={(issue) => {
           setIsTriageOpen(false)
+          setIsAdminSuiteOpen(false)
           setIsDrawerOpen(false)
           setSelectedIssueForWorkspace(issue)
           setIsWorkspaceOpen(true)
@@ -1972,6 +2077,35 @@ export default function App() {
         onOpenReportModal={() => {
           setIsTriageOpen(false)
           setIsReportModalOpen(true)
+        }}
+        onRefreshData={refreshIssues}
+      />
+
+      {/* Municipal Admin Command Suite (Government Executive Portal) */}
+      <MunicipalAdminDashboard
+        isOpen={isAdminSuiteOpen}
+        onClose={() => setIsAdminSuiteOpen(false)}
+        issues={issues}
+        currentUserRole={currentUserRole}
+        onRoleChange={setCurrentUserRole}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSwitchPersona={handleSwitchPersona}
+        onOpenCitizenView={handleOpenCitizenView}
+        onSelectIssue={(issue) => {
+          setIsAdminSuiteOpen(false)
+          setIsTriageOpen(false)
+          setIsDrawerOpen(false)
+          setSelectedIssueForWorkspace(issue)
+          setIsWorkspaceOpen(true)
+          const targetUrl = `/manage/issues/${issue.trackingCode || issue.id}`
+          if (window.location.pathname !== targetUrl) {
+            window.history.pushState(null, "", targetUrl)
+          }
+        }}
+        onOpenGlobeForIssue={(issue) => {
+          setIsAdminSuiteOpen(false)
+          handleSelectIssueForGlobe(issue)
         }}
         onRefreshData={refreshIssues}
       />

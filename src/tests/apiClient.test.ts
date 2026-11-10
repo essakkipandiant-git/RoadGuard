@@ -33,7 +33,7 @@ describe("Phase 9: Frontend API Client & Data Transformation Tests", () => {
       expect(mapBackendStatus("VERIFIED")).toBe("under_review")
       expect(mapBackendStatus("ASSIGNED")).toBe("assigned")
       expect(mapBackendStatus("IN_PROGRESS")).toBe("in_progress")
-      expect(mapBackendStatus("REPAIR_COMPLETED")).toBe("verified_repaired")
+      expect(mapBackendStatus("REPAIR_COMPLETED")).toBe("repair_completed")
       expect(mapBackendStatus("CLOSED")).toBe("verified_repaired")
       expect(mapBackendStatus("REOPENED")).toBe("reopened")
       expect(mapBackendStatus("REJECTED")).toBe("rejected")

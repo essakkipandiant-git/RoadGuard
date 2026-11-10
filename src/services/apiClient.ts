@@ -196,8 +196,12 @@ export function mapBackendStatus(st?: string): IssueStatus {
       return "assigned"
     case "IN_PROGRESS":
       return "in_progress"
+    case "AWAITING_VERIFICATION":
+      return "awaiting_verification"
     case "REPAIR_COMPLETED":
+      return "repair_completed"
     case "CLOSED":
+    case "VERIFIED_REPAIRED":
       return "verified_repaired"
     case "REOPENED":
       return "reopened"
