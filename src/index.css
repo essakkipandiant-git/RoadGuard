@@ -6330,3 +6330,110 @@ footer {
   border-color: #dc2626;
 }
 
+/* =========================================================================
+   COMPREHENSIVE MOBILE-FIRST RESPONSIVE OPTIMIZATION (≤ 640px)
+   ========================================================================= */
+@media (max-width: 640px) {
+  /* Reporting Modal Full-Bleed on Smartphones */
+  .report-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .report-modal-card {
+    width: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    padding: 16px 14px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal-close-btn {
+    top: 14px !important;
+    right: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Triage Dashboards & Municipal Command Suite */
+  .triage-modal-overlay {
+    padding: 0 !important;
+  }
+
+  .triage-modal-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  .triage-top-bar {
+    padding: 12px 14px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .triage-top-controls {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .triage-controls-panel {
+    padding: 12px 14px !important;
+  }
+
+  .triage-search-actions-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .triage-metrics-grid {
+    padding: 10px 14px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .metric-num-row strong {
+    font-size: 20px !important;
+  }
+
+  .triage-issue-card {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .triage-card-img-wrap {
+    width: 100% !important;
+    height: 160px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Auth Modal */
+  .auth-modal-card {
+    width: 100% !important;
+    max-width: 100vw !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Drawer Mobile Bottom Sheet */
+  .drawer-panel {
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .triage-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+

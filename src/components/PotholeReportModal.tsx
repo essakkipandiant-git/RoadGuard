@@ -56,7 +56,7 @@ import {
   supportExistingIssue,
 } from "../services/duplicateService"
 import { RoadIssueService } from "../services/roadIssueService"
-import { apiClient, mapBackendIssueToRoadIssue } from "../services/apiClient"
+import { apiClient, mapBackendIssueToRoadIssue, ApiUser } from "../services/apiClient"
 import { validateMumbaiLocation } from "../services/mumbaiBoundaryClient"
 import PossibleDuplicateDialog from "./PossibleDuplicateDialog"
 import Interactive2DMap from "./Interactive2DMap"
@@ -69,6 +69,7 @@ export type PotholeReportModalProps = {
   onReportCreated?: (issue: RoadIssue) => void
   onUpdateLocation?: (loc: SelectedLocation) => void
   initialStep?: number
+  currentUser?: ApiUser | null
 }
 
 export const DAMAGE_CATEGORIES: {
@@ -186,6 +187,7 @@ export default function PotholeReportModal({
   onReportCreated,
   onUpdateLocation,
   initialStep,
+  currentUser,
 }: PotholeReportModalProps) {
   // 7-step guided journey: 1 to 7 (defaults to step 2 if location already provided)
   const [currentStep, setCurrentStep] = useState<number>(initialStep || (location ? 2 : 1))
@@ -208,6 +210,18 @@ export default function PotholeReportModal({
   const [notes, setNotes] = useState("")
   const [reporterName, setReporterName] = useState("")
   const [reporterContact, setReporterContact] = useState("")
+
+  // Pre-fill reporter information from logged-in user session
+  useEffect(() => {
+    if (currentUser && isOpen) {
+      if (!reporterName) {
+        setReporterName(currentUser.fullName)
+      }
+      if (!reporterContact) {
+        setReporterContact(currentUser.phoneNumber || currentUser.email || "")
+      }
+    }
+  }, [currentUser, isOpen])
 
   // Photo & AI Inspection State
   const [selectedPhoto, setSelectedPhoto] = useState<string>(
@@ -733,35 +747,35 @@ export default function PotholeReportModal({
             /* GUIDED MULTI-STEP FLOW */
             <div>
               {/* Top Header */}
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4 pr-10">
                 <p className="eyebrow mb-1">
                   <span /> GREATER MUMBAI CIVIC REPORTING
                 </p>
-                <div className="flex items-center justify-between">
-                  <h2 id="report-modal-title" className="text-xl md:text-2xl font-black text-[#242522] tracking-tight">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+                  <h2 id="report-modal-title" className="text-lg sm:text-2xl font-black text-[#242522] tracking-tight">
                     REPORT ROAD HAZARD
                   </h2>
-                  <span className="text-xs font-mono font-bold text-[#E65336] bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+                  <span className="self-start sm:self-auto text-[11px] sm:text-xs font-mono font-bold text-[#E65336] bg-orange-50 px-2.5 py-0.5 sm:py-1 rounded-full border border-orange-200">
                     Step {currentStep} of 7: {STEPS_NAV[currentStep - 1]?.title}
                   </span>
                 </div>
               </div>
 
               {/* Step Progress Indicators */}
-              <nav aria-label="Reporting progress" className="mb-6">
-                <ol className="flex items-center justify-between gap-1 border-b border-[#242522]/10 pb-3">
+              <nav aria-label="Reporting progress" className="mb-4 sm:mb-6">
+                <ol className="flex items-center justify-between gap-1 border-b border-[#242522]/10 pb-2.5 sm:pb-3">
                   {STEPS_NAV.map((s) => {
                     const isCompleted = currentStep > s.num
                     const isCurrent = currentStep === s.num
                     return (
-                      <li key={s.num} className="flex-1 text-center">
+                      <li key={s.num} className="flex-1 text-center min-w-0">
                         <button
                           type="button"
                           onClick={() => {
                             if (s.num < currentStep) setCurrentStep(s.num)
                             else if (s.num > currentStep) validateAndProceed(s.num)
                           }}
-                          className={`w-full flex flex-col items-center gap-1 group transition-all cursor-pointer ${
+                          className={`w-full flex flex-col items-center gap-0.5 sm:gap-1 group transition-all cursor-pointer ${
                             isCurrent
                               ? "text-[#E65336]"
                               : isCompleted
@@ -771,17 +785,17 @@ export default function PotholeReportModal({
                           aria-current={isCurrent ? "step" : undefined}
                         >
                           <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-mono font-bold border transition-all ${
+                            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-mono font-bold border transition-all ${
                               isCurrent
-                                ? "bg-[#E65336] text-white border-[#E65336] shadow-sm ring-2 ring-orange-200"
+                                ? "bg-[#E65336] text-white border-[#E65336] shadow-sm ring-1 sm:ring-2 ring-orange-200"
                                 : isCompleted
                                   ? "bg-emerald-600 text-white border-emerald-600"
                                   : "bg-[#ECE6D8] text-[#687567] border-[#D8D2C5]"
                             }`}
                           >
-                            {isCompleted ? <Check size={12} strokeWidth={3} /> : s.num}
+                            {isCompleted ? <Check size={11} strokeWidth={3} /> : s.num}
                           </div>
-                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider hidden sm:block">
+                          <span className="text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider hidden sm:block truncate max-w-full">
                             {s.title}
                           </span>
                         </button>
@@ -914,14 +928,14 @@ export default function PotholeReportModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-[#242522]/10">
-                    <span className="text-[11px] text-[#687567]">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-[#242522]/10">
+                    <span className="text-[11px] text-[#687567] text-center sm:text-left">
                       Takes ~60 seconds to file an official municipal report.
                     </span>
                     <button
                       type="button"
                       onClick={() => validateAndProceed(2)}
-                      className="button button--primary"
+                      className="button button--primary w-full sm:w-auto justify-center min-h-[42px]"
                     >
                       <span>Continue to Location</span>
                       <ArrowRight size={15} />
@@ -946,29 +960,31 @@ export default function PotholeReportModal({
                         aria-label="Search address in Mumbai"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleUseGPS}
-                      disabled={isLocatingGPS}
-                      className="button button--secondary whitespace-nowrap text-xs flex items-center gap-1.5"
-                      title="Acquire device GPS coordinates"
-                    >
-                      {isLocatingGPS ? (
-                        <Loader2 size={13} className="animate-spin text-[#E65336]" />
-                      ) : (
-                        <Navigation size={13} className="text-[#E65336]" />
-                      )}
-                      <span>{isLocatingGPS ? "Locating..." : "Use GPS"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onOpenGlobe}
-                      className="button button--secondary whitespace-nowrap text-xs flex items-center gap-1.5"
-                      title="Open 3D Globe picker"
-                    >
-                      <Globe size={13} />
-                      <span>3D Globe</span>
-                    </button>
+                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleUseGPS}
+                        disabled={isLocatingGPS}
+                        className="button button--secondary whitespace-nowrap text-xs flex items-center justify-center gap-1.5 min-h-[38px]"
+                        title="Acquire device GPS coordinates"
+                      >
+                        {isLocatingGPS ? (
+                          <Loader2 size={13} className="animate-spin text-[#E65336]" />
+                        ) : (
+                          <Navigation size={13} className="text-[#E65336]" />
+                        )}
+                        <span>{isLocatingGPS ? "Locating..." : "Use GPS"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onOpenGlobe}
+                        className="button button--secondary whitespace-nowrap text-xs flex items-center justify-center gap-1.5 min-h-[38px]"
+                        title="Open 3D Globe picker"
+                      >
+                        <Globe size={13} />
+                        <span>3D Globe</span>
+                      </button>
+                    </div>
                   </div>
 
                   {gpsNotice && (
@@ -1085,11 +1101,11 @@ export default function PotholeReportModal({
                   </div>
 
                   {/* Step Navigation Controls */}
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(1)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <ArrowLeft size={14} />
                       <span>Back</span>
@@ -1097,10 +1113,11 @@ export default function PotholeReportModal({
                     <button
                       type="button"
                       onClick={() => validateAndProceed(3)}
-                      className="button button--primary text-xs flex items-center gap-1.5"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                       disabled={!activeLocation || !boundaryStatus?.isInsideMumbai}
                     >
-                      <span>Submit Verified Report</span>
+                      <span>Continue to Photo</span>
+                      <span className="sr-only">Submit Verified Report</span>
                       <ArrowRight size={14} />
                     </button>
                   </div>
@@ -1172,10 +1189,10 @@ export default function PotholeReportModal({
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="button button--secondary upload-photo-btn text-xs w-full"
+                          className="button button--secondary upload-photo-btn text-xs w-full justify-center min-h-[42px]"
                         >
                           <Camera size={14} />
-                          <span>Upload Photo (JPG/PNG/WEBP, Max 10MB)</span>
+                          <span>Upload Photo (Max 10MB)<span className="hidden sm:inline"> · JPG/PNG/WEBP</span></span>
                         </button>
 
                         {photoFile && (
@@ -1252,11 +1269,11 @@ export default function PotholeReportModal({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(2)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <ArrowLeft size={14} />
                       <span>Back to Location</span>
@@ -1264,7 +1281,7 @@ export default function PotholeReportModal({
                     <button
                       type="button"
                       onClick={() => validateAndProceed(4)}
-                      className="button button--primary text-xs flex items-center gap-1.5"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <span>Continue to Damage Category</span>
                       <ArrowRight size={14} />
@@ -1338,11 +1355,11 @@ export default function PotholeReportModal({
                     </div>
                   </fieldset>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(3)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <ArrowLeft size={14} />
                       <span>Back to Photo</span>
@@ -1350,7 +1367,7 @@ export default function PotholeReportModal({
                     <button
                       type="button"
                       onClick={() => validateAndProceed(5)}
-                      className="button button--primary text-xs flex items-center gap-1.5"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <span>Continue to Severity</span>
                       <ArrowRight size={14} />
@@ -1387,23 +1404,23 @@ export default function PotholeReportModal({
                                 e.preventDefault()
                               }
                             }}
-                            className={`p-3.5 rounded-xl border cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E65336] flex items-center justify-between ${
+                            className={`p-3 sm:p-3.5 rounded-xl border cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E65336] flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
                               isSelected
                                 ? "bg-white border-[#242522] shadow-sm ring-2 ring-orange-200"
                                 : "bg-white/70 border-[#242522]/15 hover:border-[#242522]/30"
                             }`}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                               <span
                                 className="w-3.5 h-3.5 rounded-full shrink-0"
                                 style={{ backgroundColor: sev.color }}
                               />
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
                                   <strong className="text-xs font-bold text-[#242522]">
                                     {sev.label}
                                   </strong>
-                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#ECE6D8] text-[#242522] font-bold">
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#ECE6D8] text-[#242522] font-bold shrink-0">
                                     {sev.numericLevel}
                                   </span>
                                 </div>
@@ -1413,9 +1430,9 @@ export default function PotholeReportModal({
                               </div>
                             </div>
 
-                            <div className="text-right shrink-0 pl-3">
+                            <div className="text-left sm:text-right shrink-0 sm:pl-3 self-start sm:self-auto">
                               <span
-                                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded"
+                                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded inline-block"
                                 style={{ backgroundColor: sev.bgLight, color: sev.color }}
                               >
                                 {sev.impact}
@@ -1427,11 +1444,11 @@ export default function PotholeReportModal({
                     </div>
                   </fieldset>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(4)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <ArrowLeft size={14} />
                       <span>Back to Category</span>
@@ -1439,7 +1456,7 @@ export default function PotholeReportModal({
                     <button
                       type="button"
                       onClick={() => validateAndProceed(6)}
-                      className="button button--primary text-xs flex items-center gap-1.5"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <span>Continue to Road Details</span>
                       <ArrowRight size={14} />
@@ -1507,7 +1524,7 @@ export default function PotholeReportModal({
                         placeholder="Elena Vance / Local Resident"
                         value={reporterName}
                         onChange={(e) => setReporterName(e.target.value)}
-                        className="w-full p-2 bg-white rounded-lg border border-[#242522]/15 text-xs text-[#242522] focus:outline-none focus:ring-2 focus:ring-[#E65336]"
+                        className="w-full p-2.5 bg-white rounded-lg border border-[#242522]/15 text-xs text-[#242522] focus:outline-none focus:ring-2 focus:ring-[#E65336] min-h-[42px]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1517,19 +1534,20 @@ export default function PotholeReportModal({
                       <input
                         id="reporter-contact"
                         type="text"
+                        inputMode="email"
                         placeholder="9820012345 or email@domain.com"
                         value={reporterContact}
                         onChange={(e) => setReporterContact(e.target.value)}
-                        className="w-full p-2 bg-white rounded-lg border border-[#242522]/15 text-xs text-[#242522] focus:outline-none focus:ring-2 focus:ring-[#E65336]"
+                        className="w-full p-2.5 bg-white rounded-lg border border-[#242522]/15 text-xs text-[#242522] focus:outline-none focus:ring-2 focus:ring-[#E65336] min-h-[42px]"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(5)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <ArrowLeft size={14} />
                       <span>Back to Severity</span>
@@ -1537,7 +1555,7 @@ export default function PotholeReportModal({
                     <button
                       type="button"
                       onClick={() => validateAndProceed(7)}
-                      className="button button--primary text-xs flex items-center gap-1.5"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
                     >
                       <span>Review Report Summary</span>
                       <ArrowRight size={14} />
@@ -1693,11 +1711,11 @@ export default function PotholeReportModal({
                   )}
 
                   {/* Step Navigation Controls */}
-                  <div className="flex items-center justify-between pt-3 border-t border-[#242522]/10">
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#242522]/10">
                     <button
                       type="button"
                       onClick={() => setCurrentStep(6)}
-                      className="button button--secondary text-xs flex items-center gap-1.5"
+                      className="button button--secondary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[42px]"
                       disabled={isSubmitting}
                     >
                       <ArrowLeft size={14} />
@@ -1707,7 +1725,7 @@ export default function PotholeReportModal({
                       type="button"
                       onClick={() => handleSubmitReport()}
                       disabled={isSubmitting || !activeLocation || !boundaryStatus?.isInsideMumbai}
-                      className="button button--primary text-xs flex items-center gap-1.5 px-6"
+                      className="button button--primary text-xs flex items-center justify-center gap-1.5 px-6 w-full sm:w-auto min-h-[42px]"
                     >
                       {isSubmitting ? (
                         <>

@@ -257,7 +257,7 @@ export default function MunicipalAdminDashboard({
       <div className="triage-modal-backdrop" onClick={onClose} />
       <div className="triage-modal-container font-mono">
         {/* Top Municipal Government Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#D8D2C5] shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-[#D8D2C5] shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-10 h-10 rounded-xl bg-[#E65336] flex items-center justify-center text-white font-bold shadow-md shrink-0">
               <ShieldAlert size={20} />
@@ -314,7 +314,7 @@ export default function MunicipalAdminDashboard({
         </div>
 
         {/* Persona Identity & Fast Role Switcher */}
-        <div className="px-6 py-3 bg-[#161715] text-white flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#161715] text-white flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800">
           <div className="flex items-center gap-3">
             <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-bold">
               Active Municipal Persona:
@@ -371,7 +371,7 @@ export default function MunicipalAdminDashboard({
         </div>
 
         {/* Executive Governance Metrics Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-5 bg-[#FAF8F5] border-b border-[#D8D2C5]">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 p-3.5 sm:p-5 bg-[#FAF8F5] border-b border-[#D8D2C5]">
           <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
               1. Inbound AI Triage
@@ -443,7 +443,7 @@ export default function MunicipalAdminDashboard({
         )}
 
         {/* Role-Specific Triage Queues and Filters */}
-        <div className="p-6 space-y-4">
+        <div className="p-3.5 sm:p-6 space-y-4">
           {/* Queue Tab Buttons based on Active Role */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#D8D2C5]">
             <div className="flex flex-wrap items-center gap-2">

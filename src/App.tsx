@@ -39,7 +39,7 @@ import AuthModal from "./components/AuthModal"
 import SyncReportsBanner from "./components/SyncReportsBanner"
 import { RoadIssue, UserRole } from "./types/roadguard"
 import { RoadIssueService } from "./services/roadIssueService"
-import { apiClient, ApiUser, mapBackendRole } from "./services/apiClient"
+import { apiClient, ApiUser, mapBackendRole, getLocalStoredUser, setLocalStoredUser } from "./services/apiClient"
 import { MUNICIPAL_PERSONAS } from "./constants/personas"
 
 // Continuous cinematic urban road visual assets (Golden-hour city asphalt journey)
@@ -1778,8 +1778,15 @@ export default function App() {
   // Load active session and fetch live database records on mount
   useEffect(() => {
     async function initSessionAndIssues() {
+      // 1. Immediately restore any authenticated user from localStorage (e.g. on static Vercel deployments)
+      const stored = getLocalStoredUser()
+      if (stored) {
+        setCurrentUser(stored)
+        setCurrentUserRole(mapBackendRole(stored.role))
+      }
+
       const savedPersona = localStorage.getItem("roadguard_active_persona")
-      if (savedPersona) {
+      if (savedPersona && (!stored || stored.role !== savedPersona)) {
         const found = MUNICIPAL_PERSONAS.find((p) => p.role === savedPersona)
         if (found) {
           try {
@@ -1804,7 +1811,7 @@ export default function App() {
             setCurrentUserRole(mapBackendRole(found.role))
           }
         }
-      } else {
+      } else if (!stored) {
         try {
           const user = await apiClient.auth.getMe()
           if (user) {
@@ -1831,6 +1838,7 @@ export default function App() {
 
   const handleUserChange = (user: ApiUser | null) => {
     setCurrentUser(user)
+    setLocalStoredUser(user)
     if (user) {
       setCurrentUserRole(mapBackendRole(user.role))
       localStorage.setItem("roadguard_active_persona", user.role)
@@ -2069,6 +2077,7 @@ export default function App() {
         location={selectedLocation}
         onOpenGlobe={handleOpenGlobe}
         onUpdateLocation={setSelectedLocation}
+        currentUser={currentUser}
         onReportCreated={(newIssue) => {
           refreshIssues()
           setSelectedIssueForDrawer(newIssue)

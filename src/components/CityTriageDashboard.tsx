@@ -636,7 +636,7 @@ export default function CityTriageDashboard({
         </div>
 
         {/* Persona Context Banner Ribbon */}
-        <div className="px-7 py-2 bg-[#f4f1ea] border-b border-[#242522]/8 flex items-center justify-between text-xs font-mono">
+        <div className="px-3 sm:px-7 py-2 bg-[#f4f1ea] border-b border-[#242522]/8 flex items-center justify-between text-xs font-mono">
           <div className="flex items-center gap-2 text-[#687567]">
             {activePersona === "SUPER_ADMIN" && (
               <>
@@ -680,7 +680,7 @@ export default function CityTriageDashboard({
         </div>
 
         {/* 6 STRUCTURED TOP VIEWS NAVIGATION BAR */}
-        <div className="px-7 py-2 bg-[#ECE6D8] border-b border-[#D8D2C5] flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="px-3 sm:px-7 py-2 bg-[#ECE6D8] border-b border-[#D8D2C5] flex items-center justify-between gap-2 overflow-x-auto">
           <nav aria-label="Dashboard primary views" className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -782,7 +782,7 @@ export default function CityTriageDashboard({
             VIEW 1: OVERVIEW (EXECUTIVE KPIS, EMERGENCY TRIAGE ALERTS, WARD SUMMARY)
            ========================================================================= */}
         {activeView === "overview" && (
-          <div className="p-7 space-y-6 overflow-y-auto max-h-[75vh]">
+          <div className="p-3.5 sm:p-7 space-y-4 sm:space-y-6 overflow-y-auto max-h-[75vh]">
             {/* Executive KPIs */}
             <div>
               <span className="eyebrow mb-2">
@@ -1783,7 +1783,7 @@ export default function CityTriageDashboard({
             VIEW 4: RESOLUTION TRACKING (SLA COMPLIANCE & VERIFIED REPAIRS)
            ========================================================================= */}
         {activeView === "resolution" && (
-          <div className="p-7 space-y-6 overflow-y-auto max-h-[75vh]">
+          <div className="p-3.5 sm:p-7 space-y-4 sm:space-y-6 overflow-y-auto max-h-[75vh]">
             <div className="flex items-center justify-between">
               <div>
                 <span className="eyebrow mb-1">
@@ -1902,7 +1902,7 @@ export default function CityTriageDashboard({
             VIEW 5: ANALYTICS (RISK DISTRIBUTION, CATEGORY BREAKDOWN, WARD STATS)
            ========================================================================= */}
         {activeView === "analytics" && (
-          <div className="p-7 space-y-6 overflow-y-auto max-h-[75vh]">
+          <div className="p-3.5 sm:p-7 space-y-4 sm:space-y-6 overflow-y-auto max-h-[75vh]">
             <div>
               <span className="eyebrow mb-1">
                 <span /> SPATIAL & INFRASTRUCTURE INTELLIGENCE
@@ -2017,7 +2017,7 @@ export default function CityTriageDashboard({
             VIEW 6: ADMINISTRATION (MUNICIPAL ROSTER, WARD JURISDICTIONS, AUDIT TRAIL)
            ========================================================================= */}
         {activeView === "admin" && (
-          <div className="p-7 space-y-6 overflow-y-auto max-h-[75vh]">
+          <div className="p-3.5 sm:p-7 space-y-4 sm:space-y-6 overflow-y-auto max-h-[75vh]">
             <div>
               <span className="eyebrow mb-1">
                 <span /> MUNICIPAL GOVERNANCE &amp; PERSONNEL
