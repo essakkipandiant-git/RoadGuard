@@ -4,106 +4,127 @@ import bcrypt from "bcryptjs"
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🌱 Starting RoadGuard database seed...")
+  console.log("🌱 Seeding Greater Mumbai (MCGM) RoadGuard database...")
 
   const defaultPasswordHash = await bcrypt.hash("Password123!", 10)
 
   // 1. Seed Municipal Departments
-  console.log("   Seeding departments...")
+  console.log("   Seeding Mumbai Municipal Departments...")
   const highwaysDept = await prisma.department.upsert({
     where: { name: "Highways & Road Infrastructure Department" },
-    update: {},
+    update: {
+      description: "Responsible for VG-30 bitumen resurfacing, arterial corridor structural integrity, and flyover slip roads.",
+      contactEmail: "highways@mcgm.roadguard.gov.in",
+    },
     create: {
       name: "Highways & Road Infrastructure Department",
-      description: "Responsible for asphalt resurfacing, road structural integrity, and arterial corridors.",
-      contactEmail: "highways@roadguard.local",
+      description: "Responsible for VG-30 bitumen resurfacing, arterial corridor structural integrity, and flyover slip roads.",
+      contactEmail: "highways@mcgm.roadguard.gov.in",
       isActive: true,
     },
   })
 
   const publicWorksDept = await prisma.department.upsert({
     where: { name: "Public Works & Urban Drainage Division" },
-    update: {},
+    update: {
+      description: "Manages subsurface subsidence, stormwater culverts, and utility trench restorations across Greater Mumbai.",
+      contactEmail: "pwd@mcgm.roadguard.gov.in",
+    },
     create: {
       name: "Public Works & Urban Drainage Division",
-      description: "Manages subsurface subsidence, drainage culverts, and street utilities.",
-      contactEmail: "publicworks@roadguard.local",
+      description: "Manages subsurface subsidence, stormwater culverts, and utility trench restorations across Greater Mumbai.",
+      contactEmail: "pwd@mcgm.roadguard.gov.in",
       isActive: true,
     },
   })
 
   const trafficDept = await prisma.department.upsert({
-    where: { name: "Municipal Traffic & Safety Operations" },
-    update: {},
+    where: { name: "Mumbai Traffic Police & Safety Operations" },
+    update: {
+      description: "Coordinates traffic diversions, arterial lane closures, and rapid pothole hazard cordoning.",
+      contactEmail: "traffic@mcgm.roadguard.gov.in",
+    },
     create: {
-      name: "Municipal Traffic & Safety Operations",
-      description: "Coordinates traffic diversions, pedestrian crossings, and rapid incident response.",
-      contactEmail: "traffic@roadguard.local",
+      name: "Mumbai Traffic Police & Safety Operations",
+      description: "Coordinates traffic diversions, arterial lane closures, and rapid pothole hazard cordoning.",
+      contactEmail: "traffic@mcgm.roadguard.gov.in",
       isActive: true,
     },
   })
 
-  // 2. Seed Wards
-  console.log("   Seeding municipal wards...")
-  const ward1 = await prisma.ward.upsert({
-    where: { wardCode: "WARD-01" },
-    update: {},
+  // 2. Seed Greater Mumbai Wards
+  console.log("   Seeding MCGM Municipal Wards...")
+  const wardKE = await prisma.ward.upsert({
+    where: { wardCode: "WARD-KE" },
+    update: { name: "Ward K/E (Andheri East - WEH)", city: "Mumbai" },
     create: {
-      wardCode: "WARD-01",
-      name: "Central Downtown District",
-      city: "London",
+      wardCode: "WARD-KE",
+      name: "Ward K/E (Andheri East - WEH)",
+      city: "Mumbai",
       departmentId: highwaysDept.id,
       isActive: true,
     },
   })
 
-  const ward2 = await prisma.ward.upsert({
-    where: { wardCode: "WARD-02" },
-    update: {},
+  const wardHW = await prisma.ward.upsert({
+    where: { wardCode: "WARD-HW" },
+    update: { name: "Ward H/W (Bandra West & Linking Road)", city: "Mumbai" },
     create: {
-      wardCode: "WARD-02",
-      name: "North Commercial Corridor",
-      city: "London",
+      wardCode: "WARD-HW",
+      name: "Ward H/W (Bandra West & Linking Road)",
+      city: "Mumbai",
+      departmentId: highwaysDept.id,
+      isActive: true,
+    },
+  })
+
+  const wardA = await prisma.ward.upsert({
+    where: { wardCode: "WARD-A" },
+    update: { name: "Ward A (Marine Drive & Colaba)", city: "Mumbai" },
+    create: {
+      wardCode: "WARD-A",
+      name: "Ward A (Marine Drive & Colaba)",
+      city: "Mumbai",
       departmentId: publicWorksDept.id,
       isActive: true,
     },
   })
 
-  const ward3 = await prisma.ward.upsert({
-    where: { wardCode: "WARD-03" },
-    update: {},
+  const wardGN = await prisma.ward.upsert({
+    where: { wardCode: "WARD-GN" },
+    update: { name: "Ward G/N (Dadar TT & Mahim)", city: "Mumbai" },
     create: {
-      wardCode: "WARD-03",
-      name: "Harbour & Maritime Sector",
-      city: "London",
-      departmentId: highwaysDept.id,
-      isActive: true,
-    },
-  })
-
-  const ward4 = await prisma.ward.upsert({
-    where: { wardCode: "WARD-04" },
-    update: {},
-    create: {
-      wardCode: "WARD-04",
-      name: "Eastern Residential Sector",
-      city: "London",
+      wardCode: "WARD-GN",
+      name: "Ward G/N (Dadar TT & Mahim)",
+      city: "Mumbai",
       departmentId: trafficDept.id,
       isActive: true,
     },
   })
 
-  // 3. Seed Users across all 4 roles
-  console.log("   Seeding user accounts...")
+  const wardL = await prisma.ward.upsert({
+    where: { wardCode: "WARD-L" },
+    update: { name: "Ward L (Kurla & BKC Connector)", city: "Mumbai" },
+    create: {
+      wardCode: "WARD-L",
+      name: "Ward L (Kurla & BKC Connector)",
+      city: "Mumbai",
+      departmentId: highwaysDept.id,
+      isActive: true,
+    },
+  })
+
+  // 3. Seed Users across all 4 personas
+  console.log("   Seeding official municipal user accounts...")
   const superAdmin = await prisma.user.upsert({
     where: { email: "admin@roadguard.local" },
-    update: {},
+    update: { fullName: "System Administrator", role: "SUPER_ADMIN" },
     create: {
       email: "admin@roadguard.local",
       passwordHash: defaultPasswordHash,
       fullName: "System Administrator",
       role: "SUPER_ADMIN",
-      phoneNumber: "+44 20 7946 0900",
+      phoneNumber: "+91 22 2262 0251",
       isActive: true,
       emailVerified: true,
     },
@@ -112,6 +133,8 @@ async function main() {
   const deptAdmin = await prisma.user.upsert({
     where: { email: "highways.chief@roadguard.local" },
     update: {
+      fullName: "District Operations Chief",
+      role: "DEPARTMENT_ADMIN",
       departmentId: highwaysDept.id,
     },
     create: {
@@ -120,7 +143,7 @@ async function main() {
       fullName: "District Operations Chief",
       role: "DEPARTMENT_ADMIN",
       departmentId: highwaysDept.id,
-      phoneNumber: "+44 20 7946 0901",
+      phoneNumber: "+91 22 2262 0252",
       isActive: true,
       emailVerified: true,
     },
@@ -129,6 +152,8 @@ async function main() {
   const inspector = await prisma.user.upsert({
     where: { email: "inspector.sarah@roadguard.local" },
     update: {
+      fullName: "Senior Inspector Sarah Chen",
+      role: "INSPECTOR",
       departmentId: highwaysDept.id,
     },
     create: {
@@ -137,7 +162,7 @@ async function main() {
       fullName: "Senior Inspector Sarah Chen",
       role: "INSPECTOR",
       departmentId: highwaysDept.id,
-      phoneNumber: "+44 20 7946 0902",
+      phoneNumber: "+91 22 2262 0253",
       isActive: true,
       emailVerified: true,
     },
@@ -145,249 +170,393 @@ async function main() {
 
   const citizen = await prisma.user.upsert({
     where: { email: "citizen.test@roadguard.local" },
-    update: {},
+    update: { fullName: "Elena Vance (Citizen Alliance)", role: "CITIZEN" },
     create: {
       email: "citizen.test@roadguard.local",
       passwordHash: defaultPasswordHash,
       fullName: "Elena Vance (Citizen Alliance)",
       role: "CITIZEN",
-      phoneNumber: "+44 7700 900142",
+      phoneNumber: "+91 98200 12345",
       isActive: true,
       emailVerified: true,
     },
   })
 
-  // 4. Seed Development Issues with Images & Status History
-  console.log("   Seeding initial road issues...")
-  const issue1 = await prisma.roadIssue.upsert({
-    where: { reportNumber: "RG-10492" },
-    update: {},
-    create: {
+  // Clean up duplicate test records if any
+  console.log("   Cleaning up legacy duplicate test issues...")
+  await prisma.roadIssue.deleteMany({
+    where: {
+      title: "Large Void Under Asphalt on City Road",
+    },
+  })
+
+  // 4. Seed Diverse Greater Mumbai Issues Across All 5 Stages
+  console.log("   Seeding balanced Greater Mumbai road hazards across all 5 stages...")
+
+  const issuesSeedData = [
+    // -------------------------------------------------------------
+    // STAGE 1: INBOUND CITIZEN REPORTS (AI Edge Verified, Awaiting Dept Triage)
+    // -------------------------------------------------------------
+    {
       reportNumber: "RG-10492",
-      title: "Critical Pothole Cavity",
-      description: "Severe asphalt cavity on active bike corridor near bus stop, continuous water pooling during rain.",
-      damageCategory: "CAVITY",
-      damageSeverity: "CRITICAL",
-      depth: 62.0,
-      latitude: 51.5082,
-      longitude: -0.1245,
-      address: "Harbour Ave near Pier 4, London",
-      wardId: ward3.id,
+      title: "Deep Impact Cavity near Bandra Toll Plaza",
+      description: "Severe asphalt cavity on active south-bound corridor near toll approach, causing sudden vehicle deflection.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "CRITICAL" as const,
+      depth: 74.0,
+      latitude: 19.0544,
+      longitude: 72.8267,
+      address: "Bandra-Worli Sea Link Approach, Bandra West, Mumbai",
+      wardId: wardHW.id,
       departmentId: highwaysDept.id,
       reportedById: citizen.id,
-      status: "REPORTED",
-      riskScore: 89,
-      images: {
-        create: [
-          {
-            imageUrl: "/images/detection_asphalt.jpg",
-            imageType: "ORIGINAL_REPORT",
-          },
-          {
-            imageUrl: "/images/detection_asphalt.jpg",
-            imageType: "AI_ANNOTATED",
-          },
-        ],
-      },
-      statusHistory: {
-        create: [
-          {
-            previousStatus: null,
-            newStatus: "REPORTED",
-            changedById: citizen.id,
-            remarks: "Report filed by citizen with GPS coordinates.",
-          },
-        ],
-      },
+      status: "REPORTED" as const,
+      riskScore: 92,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "AI_ANNOTATED" as const },
+      ],
+      remarks: "Report filed by citizen commuter. AI optical confidence 98.4%.",
     },
-  })
-
-  const issue2 = await prisma.roadIssue.upsert({
-    where: { reportNumber: "RG-28190" },
-    update: {},
-    create: {
-      reportNumber: "RG-28190",
-      title: "Surface Web Cracking",
-      description: "Longitudinal structural wear expanding across 1.4m of lane near school crossing.",
-      damageCategory: "CRACK",
-      damageSeverity: "HIGH",
-      depth: 24.0,
-      latitude: 51.5061,
-      longitude: -0.131,
-      address: "Mason Street, Junction 9, London",
-      wardId: ward1.id,
-      departmentId: highwaysDept.id,
-      reportedById: citizen.id,
-      status: "IN_PROGRESS",
-      riskScore: 68,
-      images: {
-        create: [
-          {
-            imageUrl: "/images/hero_road.jpg",
-            imageType: "ORIGINAL_REPORT",
-          },
-        ],
-      },
-      statusHistory: {
-        create: [
-          {
-            previousStatus: null,
-            newStatus: "REPORTED",
-            changedById: citizen.id,
-            remarks: "Report logged.",
-          },
-          {
-            previousStatus: "REPORTED",
-            newStatus: "UNDER_REVIEW",
-            changedById: inspector.id,
-            remarks: "Severity validated. Structural water ingress confirmed.",
-          },
-          {
-            previousStatus: "UNDER_REVIEW",
-            newStatus: "ASSIGNED",
-            changedById: deptAdmin.id,
-            remarks: "Assigned to Municipal Asphalt Crew 4.",
-          },
-          {
-            previousStatus: "ASSIGNED",
-            newStatus: "IN_PROGRESS",
-            changedById: deptAdmin.id,
-            remarks: "Traffic cones deployed. Crack mill & seal operation underway.",
-          },
-        ],
-      },
-      workOrders: {
-        create: [
-          {
-            departmentId: highwaysDept.id,
-            workDescription: "Crack mill and seal operation",
-            priority: "HIGH",
-            status: "IN_PROGRESS",
-          },
-        ],
-      },
-    },
-  })
-
-  const issue3 = await prisma.roadIssue.upsert({
-    where: { reportNumber: "RG-39104" },
-    update: {},
-    create: {
-      reportNumber: "RG-39104",
-      title: "Edge Failure & Pavement Subsidence",
-      description: "Restored and sealed with zero surface irregularities remaining.",
-      damageCategory: "EDGE",
-      damageSeverity: "LOW",
-      depth: 18.0,
-      latitude: 51.512,
-      longitude: -0.119,
-      address: "North Loop near Kingsway, London",
-      wardId: ward2.id,
+    {
+      reportNumber: "RG-18302",
+      title: "Bitumen Displacement along Marine Drive Promenade",
+      description: "High-wear longitudinal cracking expanding near pedestrian promenade crossing.",
+      damageCategory: "CRACK" as const,
+      damageSeverity: "HIGH" as const,
+      depth: 42.0,
+      latitude: 18.9438,
+      longitude: 72.8232,
+      address: "Netaji Subhash Chandra Bose Road, Marine Drive, Mumbai",
+      wardId: wardA.id,
       departmentId: publicWorksDept.id,
       reportedById: citizen.id,
-      status: "REPAIR_COMPLETED",
-      riskScore: 12,
-      images: {
-        create: [
-          {
-            imageUrl: "/images/detection_asphalt.jpg",
-            imageType: "ORIGINAL_REPORT",
-          },
-          {
-            imageUrl: "/images/repaired_road.jpg",
-            imageType: "REPAIR_AFTER",
-          },
-        ],
-      },
-      statusHistory: {
-        create: [
-          {
-            previousStatus: null,
-            newStatus: "REPORTED",
-            changedById: citizen.id,
-            remarks: "Initial defect reported.",
-          },
-          {
-            previousStatus: "REPORTED",
-            newStatus: "REPAIR_COMPLETED",
-            changedById: inspector.id,
-            remarks: "Resurfacing finished and verified.",
-          },
-        ],
-      },
+      status: "REPORTED" as const,
+      riskScore: 78,
+      images: [
+        { imageUrl: "/images/hero_road.jpg", imageType: "ORIGINAL_REPORT" as const },
+      ],
+      remarks: "Citizen observation verified via Edge CV.",
     },
-  })
+    {
+      reportNumber: "RG-20184",
+      title: "Severe Longitudinal Trench at Dadar TT Circle",
+      description: "Trench settlement adjacent to bus terminal lane creating heavy vibration for two-wheelers.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "CRITICAL" as const,
+      depth: 68.0,
+      latitude: 19.0178,
+      longitude: 72.8478,
+      address: "Dr. Babasaheb Ambedkar Road, Dadar TT Circle, Mumbai",
+      wardId: wardGN.id,
+      departmentId: trafficDept.id,
+      reportedById: citizen.id,
+      status: "REPORTED" as const,
+      riskScore: 88,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+      ],
+      remarks: "High-traffic corridor risk flagged.",
+    },
 
-  const issue4 = await prisma.roadIssue.upsert({
-    where: { reportNumber: "RG-49201" },
-    update: {},
-    create: {
+    // -------------------------------------------------------------
+    // STAGE 2: UNDER REVIEW / DEPT WORK ORDERS PENDING
+    // -------------------------------------------------------------
+    {
       reportNumber: "RG-49201",
-      title: "High-Speed Lane Depression",
-      description: "Severe cavity on high-volume corridor (610 vehicles/hour) within 110m of hospital route.",
-      damageCategory: "CAVITY",
-      damageSeverity: "CRITICAL",
-      depth: 74.0,
-      latitude: 51.5034,
-      longitude: -0.1288,
-      address: "Willow Road Arterial Junction, London",
-      wardId: ward4.id,
+      title: "Subsurface Subsidence on WEH Northbound Lane 2",
+      description: "Severe cavity on high-volume Western Express corridor (610 vehicles/hour) within 110m of hospital flyover route.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "CRITICAL" as const,
+      depth: 82.0,
+      latitude: 19.1136,
+      longitude: 72.8697,
+      address: "Western Express Highway, Ward K/E, Andheri East, Mumbai",
+      wardId: wardKE.id,
       departmentId: highwaysDept.id,
       reportedById: citizen.id,
-      status: "UNDER_REVIEW",
-      riskScore: 93,
-      images: {
-        create: [
-          {
-            imageUrl: "/images/detection_asphalt.jpg",
-            imageType: "ORIGINAL_REPORT",
-          },
-        ],
-      },
-      statusHistory: {
-        create: [
-          {
-            previousStatus: null,
-            newStatus: "REPORTED",
-            changedById: citizen.id,
-            remarks: "Emergency telemetry report logged.",
-          },
-          {
-            previousStatus: "REPORTED",
-            newStatus: "UNDER_REVIEW",
-            changedById: inspector.id,
-            remarks: "Escalated to priority 1 review queue.",
-          },
-        ],
-      },
+      assignedInspectorId: inspector.id,
+      status: "UNDER_REVIEW" as const,
+      riskScore: 94,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "AI_ANNOTATED" as const },
+      ],
+      remarks: "AI detection validated by Super Admin; routed to Highways Dept for crew dispatch.",
     },
-  })
+    {
+      reportNumber: "RG-51042",
+      title: "Edge Erosion near SV Road Commercial Corridor",
+      description: "Shoulder bitumen breakup expanding towards stormwater drain inlet.",
+      damageCategory: "EDGE" as const,
+      damageSeverity: "HIGH" as const,
+      depth: 48.0,
+      latitude: 19.0833,
+      longitude: 72.8398,
+      address: "Swami Vivekanand Road, Santacruz West, Mumbai",
+      wardId: wardHW.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "UNDER_REVIEW" as const,
+      riskScore: 76,
+      images: [
+        { imageUrl: "/images/hero_road.jpg", imageType: "ORIGINAL_REPORT" as const },
+      ],
+      remarks: "Field inspector assigned for engineering measurement.",
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 3: WORK ORDER DISPATCHED / FIELD CREW RESTORATION ACTIVE
+    // -------------------------------------------------------------
+    {
+      reportNumber: "RG-28190",
+      title: "Transverse Thermal Fracture near BKC Flyover Slip",
+      description: "Milling and hot-mix asphalt operation currently underway by Municipal Hot-Mix Asphalt Crew 4.",
+      damageCategory: "CRACK" as const,
+      damageSeverity: "HIGH" as const,
+      depth: 38.0,
+      latitude: 19.0657,
+      longitude: 72.8682,
+      address: "BKC Connector, Bandra Kurla Complex, Mumbai",
+      wardId: wardL.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "IN_PROGRESS" as const,
+      riskScore: 71,
+      images: [
+        { imageUrl: "/images/hero_road.jpg", imageType: "ORIGINAL_REPORT" as const },
+      ],
+      remarks: "Traffic cones deployed. Hot-mix VG-30 laying in progress.",
+    },
+    {
+      reportNumber: "RG-63201",
+      title: "Asphalt Cavity on CST Road Kurla Arterial",
+      description: "Work order #WO-MCGM-402 active. Field crew deployed with compactor roller.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "HIGH" as const,
+      depth: 55.0,
+      latitude: 19.0712,
+      longitude: 72.8791,
+      address: "CST Road, Kurla West, Mumbai",
+      wardId: wardL.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "ASSIGNED" as const,
+      riskScore: 68,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+      ],
+      remarks: "Dispatched to Quick Response Contractor Crew 2.",
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 4: RESTORATION COMPLETED (EVIDENCE UPLOADED, PENDING DEPT AUDIT)
+    // -------------------------------------------------------------
+    {
+      reportNumber: "RG-39104",
+      title: "Depression on Linking Road Commercial Strip",
+      description: "Resurfaced with VG-30 bitumen. Physical photo evidence submitted with matching GPS coordinates (delta 2.1m).",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "HIGH" as const,
+      depth: 52.0,
+      latitude: 19.0596,
+      longitude: 72.8331,
+      address: "Linking Road near Waterfield Road, Bandra West, Mumbai",
+      wardId: wardHW.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "REPAIR_COMPLETED" as const,
+      riskScore: 20,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/repaired_road.jpg", imageType: "REPAIR_AFTER" as const },
+      ],
+      remarks: "Field crew uploaded physical proof. Awaiting Department Head engineering audit.",
+    },
+    {
+      reportNumber: "RG-77209",
+      title: "Surface Cavity near Powai JVLR Corridor",
+      description: "Milled and compacted with hot-mix asphalt. Post-repair photo uploaded for municipal sign-off.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "CRITICAL" as const,
+      depth: 65.0,
+      latitude: 19.1258,
+      longitude: 72.9056,
+      address: "Jogeshwari-Vikhroli Link Road, Powai, Mumbai",
+      wardId: wardKE.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "REPAIR_COMPLETED" as const,
+      riskScore: 18,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/repaired_road.jpg", imageType: "REPAIR_AFTER" as const },
+      ],
+      remarks: "Field evidence submitted with 99.8% GPS lock match.",
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 5: DEPT AUDIT APPROVED (AWAITING FINAL SUPER ADMIN EXECUTIVE SEAL)
+    // -------------------------------------------------------------
+    {
+      reportNumber: "RG-81319",
+      title: "Severe Subsidence near Sion Circle Flyover",
+      description: "Dept Admin Marcus Brody completed on-site engineering audit and approved quality compliance.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "CRITICAL" as const,
+      depth: 70.0,
+      latitude: 19.0398,
+      longitude: 72.8622,
+      address: "Dr. Ambedkar Road, Sion Circle, Mumbai",
+      wardId: wardGN.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "REPAIR_COMPLETED" as const,
+      riskScore: 15,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/repaired_road.jpg", imageType: "REPAIR_AFTER" as const },
+      ],
+      remarks: "Dept Head approved quality audit; forwarded to Super Admin for Final Executive Seal.",
+    },
+
+    // -------------------------------------------------------------
+    // STAGE 5: CERTIFIED REPAIRED & SAFE (Executive Seal Granted)
+    // -------------------------------------------------------------
+    {
+      reportNumber: "RG-90214",
+      title: "Restored Arterial Cavity at Colaba Causeway",
+      description: "Permanently restored and certified by Super Admin executive sign-off. Road surface smooth and compliant.",
+      damageCategory: "CAVITY" as const,
+      damageSeverity: "LOW" as const,
+      depth: 14.0,
+      latitude: 18.9186,
+      longitude: 72.8282,
+      address: "Shahid Bhagat Singh Road, Colaba, Mumbai",
+      wardId: wardA.id,
+      departmentId: highwaysDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "CLOSED" as const,
+      riskScore: 0,
+      images: [
+        { imageUrl: "/images/detection_asphalt.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/repaired_road.jpg", imageType: "REPAIR_AFTER" as const },
+      ],
+      remarks: "Executive Seal granted by Super Admin. Fully certified.",
+    },
+    {
+      reportNumber: "RG-91500",
+      title: "Resurfaced Lane near Marine Lines Flyover",
+      description: "Milled and hot-mix resurfaced. Verified 100% surface match by municipal vision scanner.",
+      damageCategory: "CRACK" as const,
+      damageSeverity: "LOW" as const,
+      depth: 12.0,
+      latitude: 18.9442,
+      longitude: 72.8258,
+      address: "Maharshi Karve Road, Marine Lines, Mumbai",
+      wardId: wardA.id,
+      departmentId: publicWorksDept.id,
+      reportedById: citizen.id,
+      assignedInspectorId: inspector.id,
+      status: "CLOSED" as const,
+      riskScore: 0,
+      images: [
+        { imageUrl: "/images/hero_road.jpg", imageType: "ORIGINAL_REPORT" as const },
+        { imageUrl: "/images/repaired_road.jpg", imageType: "REPAIR_AFTER" as const },
+      ],
+      remarks: "Tier 4 Executive Certificate issued. Case closed.",
+    },
+  ]
+
+  for (const item of issuesSeedData) {
+    const issue = await prisma.roadIssue.upsert({
+      where: { reportNumber: item.reportNumber },
+      update: {
+        title: item.title,
+        description: item.description,
+        damageCategory: item.damageCategory,
+        damageSeverity: item.damageSeverity,
+        depth: item.depth,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        address: item.address,
+        wardId: item.wardId,
+        departmentId: item.departmentId,
+        reportedById: item.reportedById,
+        assignedInspectorId: item.assignedInspectorId || null,
+        status: item.status,
+        riskScore: item.riskScore,
+      },
+      create: {
+        reportNumber: item.reportNumber,
+        title: item.title,
+        description: item.description,
+        damageCategory: item.damageCategory,
+        damageSeverity: item.damageSeverity,
+        depth: item.depth,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        address: item.address,
+        wardId: item.wardId,
+        departmentId: item.departmentId,
+        reportedById: item.reportedById,
+        assignedInspectorId: item.assignedInspectorId || null,
+        status: item.status,
+        riskScore: item.riskScore,
+      },
+    })
+
+    // Upsert images
+    for (const img of item.images) {
+      await prisma.issueImage.create({
+        data: {
+          issueId: issue.id,
+          imageUrl: img.imageUrl,
+          imageType: img.imageType,
+        },
+      })
+    }
+
+    // Upsert Initial Status History
+    await prisma.statusHistory.create({
+      data: {
+        issueId: issue.id,
+        previousStatus: null,
+        newStatus: item.status,
+        changedById: citizen.id,
+        remarks: item.remarks,
+      },
+    })
+  }
 
   // 5. Seed Initial Audit Log
   await prisma.auditLog.create({
     data: {
       userId: superAdmin.id,
-      action: "DATABASE_INITIALIZED",
+      action: "DATABASE_INITIALIZED_MUMBAI",
       entityType: "System",
       details: JSON.stringify({
         departmentsCount: 3,
-        wardsCount: 4,
+        wardsCount: 5,
         usersCount: 4,
-        issuesCount: 4,
+        issuesCount: issuesSeedData.length,
       }),
       ipAddress: "127.0.0.1",
     },
   })
 
-  console.log("✅ Seed completed successfully:")
-  console.log(`   - 3 Departments created`)
-  console.log(`   - 4 Wards created`)
-  console.log(`   - 4 Users created (default password: Password123!)`)
-  console.log(`     * Admin:      admin@roadguard.local`)
-  console.log(`     * Dept Chief: highways.chief@roadguard.local`)
-  console.log(`     * Inspector:  inspector.sarah@roadguard.local`)
-  console.log(`     * Citizen:    citizen.test@roadguard.local`)
-  console.log(`   - 4 Sample Road Issues initialized`)
+  console.log("✅ Greater Mumbai Seed completed successfully!")
+  console.log(`   - 3 MCGM Departments`)
+  console.log(`   - 5 Mumbai Wards (K/E, H/W, A, G/N, L)`)
+  console.log(`   - 4 Role Accounts (admin, highways.chief, inspector.sarah, citizen.test)`)
+  console.log(`   - ${issuesSeedData.length} Realistic Mumbai Road Defects across all 5 Stages`)
 }
 
 main()
@@ -398,4 +567,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
-

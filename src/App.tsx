@@ -198,9 +198,9 @@ function Header({
               <span className="nav-avatar-circle">
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </span>
-              <span>{currentUser.fullName.split(" ")[0]}</span>
+              <span className="hidden xl:inline">{currentUser.fullName.split(" ")[0]}</span>
               <span className={`role-badge role-${currentUser.role.toLowerCase()}`}>
-                {currentUser.role.replace("_", " ")}
+                {currentUser.role === "SUPER_ADMIN" ? "SUPER ADMIN" : currentUser.role.replace("_", " ")}
               </span>
             </>
           ) : (
@@ -212,28 +212,28 @@ function Header({
         </button>
 
         {isStaff ? (
-          <>
+          <div className="flex items-center bg-[#ECE6D8]/80 p-0.5 rounded-full border border-[#D8D2C5]">
             <button
               type="button"
               onClick={onOpenAdminSuite || onOpenTriage}
-              className="nav-triage-button glass"
-              style={{ borderColor: "rgba(230, 83, 54, 0.45)", background: "rgba(230, 83, 54, 0.08)" }}
+              className="px-3 py-1.5 rounded-full text-xs font-mono font-bold text-[#E65336] hover:bg-white flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
               title="Open Municipal Admin Command Suite"
             >
-              <ShieldAlert size={14} className="text-vermilion" />
-              <span>Command Suite</span>
+              <ShieldAlert size={13} className="text-[#E65336]" />
+              <span className="hidden sm:inline">Command Suite</span>
+              <span className="sm:hidden">Suite</span>
               <span className="nav-count-badge">{issuesCount}</span>
             </button>
             <button
               type="button"
               onClick={onOpenTriage}
-              className="nav-triage-button glass"
-              title="Open Public Road Tracker (Citizen View)"
+              className="px-2.5 py-1.5 rounded-full text-xs font-mono text-[#687567] hover:text-[#242522] hover:bg-white/70 flex items-center gap-1 transition-all cursor-pointer"
+              title="Preview Public Citizen Road Tracker"
             >
-              <Activity size={14} className="text-[#687567]" />
-              <span>Public View</span>
+              <Activity size={12} />
+              <span>Public</span>
             </button>
-          </>
+          </div>
         ) : (
           <button
             type="button"

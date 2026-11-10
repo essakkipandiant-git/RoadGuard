@@ -75,9 +75,9 @@ export default function MunicipalAdminDashboard({
     return "SUPER_ADMIN"
   }, [currentUser?.role, currentUserRole])
 
-  // Active Queue Tab
+  // Active Queue Tab - Super Admin defaults to all active city issues for complete executive visibility
   const defaultTab = useMemo(() => {
-    if (activeRole === "SUPER_ADMIN") return "ai_verification"
+    if (activeRole === "SUPER_ADMIN") return "all_city"
     if (activeRole === "DEPARTMENT_ADMIN") return "work_orders"
     return "my_assigned"
   }, [activeRole])
@@ -126,6 +126,9 @@ export default function MunicipalAdminDashboard({
     const criticalCorridors = issues.filter(
       (i) => (i.severity === "critical" || i.risk.score >= 80) && i.status !== "verified_repaired" && i.status !== "closed"
     ).length
+    const allActive = issues.filter(
+      (i) => i.status !== "verified_repaired" && i.status !== "closed" && i.status !== "rejected"
+    ).length
 
     return {
       aiVerification,
@@ -135,6 +138,7 @@ export default function MunicipalAdminDashboard({
       executiveCertPending,
       certifiedRepaired,
       criticalCorridors,
+      allActive,
     }
   }, [issues])
 
@@ -143,8 +147,15 @@ export default function MunicipalAdminDashboard({
     return issues.filter((issue) => {
       // 1. Queue Tab Filter
       if (activeRole === "SUPER_ADMIN") {
-        if (activeQueueTab === "ai_verification") {
+        if (activeQueueTab === "all_city") {
+          // Show all active city defects
+          if (issue.status === "verified_repaired" || issue.status === "closed") return false
+        } else if (activeQueueTab === "ai_verification") {
           if (issue.status !== "reported") return false
+        } else if (activeQueueTab === "work_orders") {
+          if (issue.status !== "under_review") return false
+        } else if (activeQueueTab === "field_active") {
+          if (issue.status !== "assigned" && issue.status !== "in_progress") return false
         } else if (activeQueueTab === "final_certification") {
           if (issue.status !== "awaiting_verification" && issue.status !== "repair_completed") return false
         } else if (activeQueueTab === "critical") {
@@ -152,9 +163,6 @@ export default function MunicipalAdminDashboard({
           if (issue.status === "verified_repaired" || issue.status === "closed") return false
         } else if (activeQueueTab === "certified_repaired") {
           if (issue.status !== "verified_repaired" && issue.status !== "closed") return false
-        } else if (activeQueueTab === "all_city") {
-          // Show all active city defects
-          if (issue.status === "verified_repaired" || issue.status === "closed") return false
         }
       } else if (activeRole === "DEPARTMENT_ADMIN") {
         if (activeQueueTab === "work_orders") {
@@ -249,39 +257,38 @@ export default function MunicipalAdminDashboard({
       <div className="triage-modal-backdrop" onClick={onClose} />
       <div className="triage-modal-container font-mono">
         {/* Top Municipal Government Header */}
-        <div className="triage-header">
-          <div className="triage-header-title">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-xl bg-[#E65336] flex items-center justify-center text-white font-bold shadow-md">
-                <ShieldAlert size={20} />
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-bold text-[#242522] tracking-wide">
-                    MUNICIPAL ADMIN COMMAND SUITE
-                  </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-bold border border-red-300">
-                    GOVERNMENT OF GREATER MUMBAI (MCGM)
-                  </span>
-                </div>
-                <p className="text-xs text-[#687567]">
-                  Automated Pothole Triage, Field Contractor Dispatch &amp; Executive Resolution Certification
-                </p>
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-[#D8D2C5] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-xl bg-[#E65336] flex items-center justify-center text-white font-bold shadow-md shrink-0">
+              <ShieldAlert size={20} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-sm sm:text-base font-bold text-[#242522] tracking-wide">
+                  MUNICIPAL ADMIN COMMAND SUITE
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-bold border border-red-300">
+                  GOVERNMENT OF GREATER MUMBAI (MCGM)
+                </span>
               </div>
+              <p className="text-xs text-[#687567] truncate">
+                Automated Pothole Triage, Field Contractor Dispatch &amp; Executive Resolution Certification
+              </p>
             </div>
           </div>
 
-          <div className="triage-header-actions">
+          <div className="flex items-center gap-2 shrink-0 ml-4">
             {/* Quick Switch to Citizen Public View */}
             {onOpenCitizenView && (
               <button
                 type="button"
                 onClick={onOpenCitizenView}
-                className="px-3 py-1.5 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 title="Preview what citizens and commuters see on the public road health portal"
               >
                 <Eye size={14} className="text-[#E65336]" />
-                <span>Switch to Citizen View</span>
+                <span className="hidden sm:inline">Switch to Citizen View</span>
+                <span className="sm:hidden">Citizen View</span>
               </button>
             )}
 
@@ -289,7 +296,7 @@ export default function MunicipalAdminDashboard({
               type="button"
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              className="triage-icon-button"
+              className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer"
               title="Refresh municipal database"
             >
               <RefreshCw size={16} className={isRefreshing ? "animate-spin text-[#E65336]" : ""} />
@@ -298,7 +305,7 @@ export default function MunicipalAdminDashboard({
             <button
               type="button"
               onClick={onClose}
-              className="triage-icon-button"
+              className="p-2 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#F5F1E8] text-[#242522] transition-colors cursor-pointer"
               title="Close Command Suite (Esc)"
             >
               <X size={18} />
@@ -444,14 +451,47 @@ export default function MunicipalAdminDashboard({
                 <>
                   <button
                     type="button"
-                    onClick={() => setActiveQueueTab("ai_verification")}
+                    onClick={() => setActiveQueueTab("all_city")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      activeQueueTab === "ai_verification"
+                      activeQueueTab === "all_city"
                         ? "bg-[#242522] text-white shadow-sm"
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
                     }`}
                   >
-                    Stage 1: AI Verification ({counts.aiVerification})
+                    All Active City Defects ({counts.allActive})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveQueueTab("ai_verification")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      activeQueueTab === "ai_verification"
+                        ? "bg-amber-700 text-white shadow-sm"
+                        : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
+                    }`}
+                  >
+                    Stage 1: AI Triage ({counts.aiVerification})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveQueueTab("work_orders")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      activeQueueTab === "work_orders"
+                        ? "bg-blue-700 text-white shadow-sm"
+                        : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
+                    }`}
+                  >
+                    Stage 2: Dept Work Orders ({counts.workOrderPending})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveQueueTab("field_active")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      activeQueueTab === "field_active"
+                        ? "bg-indigo-700 text-white shadow-sm"
+                        : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
+                    }`}
+                  >
+                    Stage 3: Field Crews ({counts.fieldActive})
                   </button>
                   <button
                     type="button"
@@ -462,7 +502,7 @@ export default function MunicipalAdminDashboard({
                         : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
                     }`}
                   >
-                    Stage 5: Final Executive Seal ({counts.auditPending + counts.executiveCertPending})
+                    Stage 4 &amp; 5: Executive Seal ({counts.auditPending + counts.executiveCertPending})
                   </button>
                   <button
                     type="button"
@@ -474,17 +514,6 @@ export default function MunicipalAdminDashboard({
                     }`}
                   >
                     Critical Corridors ({counts.criticalCorridors})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveQueueTab("all_city")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      activeQueueTab === "all_city"
-                        ? "bg-[#242522] text-white shadow-sm"
-                        : "bg-white text-[#687567] hover:bg-[#F5F1E8] border border-[#D8D2C5]"
-                    }`}
-                  >
-                    All City Hazards
                   </button>
                   <button
                     type="button"
@@ -722,6 +751,46 @@ export default function MunicipalAdminDashboard({
                           >
                             <CheckCircle2 size={13} />
                             <span>Verify AI &amp; Triage</span>
+                          </button>
+                        )}
+
+                        {/* Stage 2 Dept Admin Quick Action */}
+                        {(activeRole === "DEPARTMENT_ADMIN" || activeRole === "SUPER_ADMIN") && issue.status === "under_review" && (
+                          <button
+                            type="button"
+                            disabled={actionLoadingId === issue.id}
+                            onClick={(e) =>
+                              handleExecuteQuickAction(
+                                e,
+                                issue,
+                                "DISPATCH_WORK_ORDER",
+                                "Work Order issued to Municipal Hot-Mix Asphalt Crew 4."
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                          >
+                            <Wrench size={13} />
+                            <span>Dispatch Crew</span>
+                          </button>
+                        )}
+
+                        {/* Stage 3 Inspector / Crew Quick Action */}
+                        {(activeRole === "INSPECTOR" || activeRole === "SUPER_ADMIN") && issue.status === "assigned" && (
+                          <button
+                            type="button"
+                            disabled={actionLoadingId === issue.id}
+                            onClick={(e) =>
+                              handleExecuteQuickAction(
+                                e,
+                                issue,
+                                "UPDATE_PROGRESS",
+                                "Traffic cones deployed. Field milling & resurfacing initiated on site."
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                          >
+                            <Activity size={13} />
+                            <span>Start Resurfacing</span>
                           </button>
                         )}
 
