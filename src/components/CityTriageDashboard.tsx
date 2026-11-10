@@ -201,8 +201,6 @@ export default function CityTriageDashboard({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
-
   // Helpers to test persona ownership/assignment
   const isAssignedToInspector = (issue: RoadIssue) => {
     if (activePersona !== "INSPECTOR" && !currentUser) return false
@@ -489,6 +487,8 @@ export default function CityTriageDashboard({
     })
     return { critical, high, moderate, low }
   }, [issues])
+
+  if (!isOpen) return null
 
   return (
     <div className="triage-modal-overlay">
