@@ -198,40 +198,41 @@ function Header({
               <span className="nav-avatar-circle">
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </span>
-              <span className="hidden xl:inline">{currentUser.fullName.split(" ")[0]}</span>
+              <span className="nav-user-name hidden 2xl:inline">{currentUser.fullName.split(" ")[0]}</span>
               <span className={`role-badge role-${currentUser.role.toLowerCase()}`}>
-                {currentUser.role === "SUPER_ADMIN" ? "SUPER ADMIN" : currentUser.role.replace("_", " ")}
+                {currentUser.role === "SUPER_ADMIN" ? "ADMIN" : currentUser.role === "DEPARTMENT_ADMIN" ? "DEPT" : currentUser.role.replace("_", " ")}
               </span>
             </>
           ) : (
             <>
-              <User size={14} />
+              <User size={13} />
               <span>Sign In</span>
             </>
           )}
         </button>
 
         {isStaff ? (
-          <div className="flex items-center bg-[#ECE6D8]/80 p-0.5 rounded-full border border-[#D8D2C5]">
+          <div className="nav-suite-toggle">
             <button
               type="button"
               onClick={onOpenAdminSuite || onOpenTriage}
-              className="px-3 py-1.5 rounded-full text-xs font-mono font-bold text-[#E65336] hover:bg-white flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+              className="nav-suite-btn"
               title="Open Municipal Admin Command Suite"
             >
               <ShieldAlert size={13} className="text-[#E65336]" />
-              <span className="hidden sm:inline">Command Suite</span>
-              <span className="sm:hidden">Suite</span>
+              <span className="hidden 2xl:inline">Command Suite</span>
+              <span className="2xl:hidden">Suite</span>
               <span className="nav-count-badge">{issuesCount}</span>
             </button>
             <button
               type="button"
               onClick={onOpenTriage}
-              className="px-2.5 py-1.5 rounded-full text-xs font-mono text-[#687567] hover:text-[#242522] hover:bg-white/70 flex items-center gap-1 transition-all cursor-pointer"
+              className="nav-public-btn"
               title="Preview Public Citizen Road Tracker"
             >
               <Activity size={12} />
-              <span>Public</span>
+              <span className="hidden 2xl:inline">Public Portal</span>
+              <span className="2xl:hidden hidden xl:inline">Public</span>
             </button>
           </div>
         ) : (
@@ -241,8 +242,8 @@ function Header({
             className="nav-triage-button glass"
             title="Open Public Road Tracker (Citizen View)"
           >
-            <Activity size={14} className="text-vermilion" />
-            <span>Public Tracker</span>
+            <Activity size={13} className="text-vermilion" />
+            <span>Tracker</span>
             <span className="nav-count-badge">{issuesCount}</span>
           </button>
         )}
@@ -252,8 +253,11 @@ function Header({
             e.preventDefault()
             onOpenGlobe()
           }}
+          className="nav-report-btn"
         >
-          Report a pothole
+          <span className="hidden 2xl:inline">Report a pothole</span>
+          <span className="2xl:hidden hidden sm:inline">Report Hazard</span>
+          <span className="sm:hidden">Report</span>
         </ButtonLink>
       </div>
       <button
@@ -262,52 +266,47 @@ function Header({
         aria-label="Toggle navigation"
         aria-expanded={open}
       >
-        {open ? <X /> : <Menu />}
+        {open ? <X size={18} /> : <Menu size={18} />}
       </button>
       <AnimatePresence>
         {open && (
           <motion.nav
             className="mobile-nav"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
+            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
             transition={{ duration: 0.2 }}
           >
-            {navItems.map(([label, id]) => (
-              <a
-                href={`#${id}`}
-                key={id}
-                onClick={() => setOpen(false)}
-                className={active === id ? "active" : ""}
-              >
-                {label}
-              </a>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                onOpenAuth()
-              }}
-              className="nav-user-button glass mb-2"
-              style={{ width: "100%", justifyContent: "center" }}
-            >
-              {currentUser ? (
-                <>
-                  <span className="nav-avatar-circle">
-                    {currentUser.fullName.charAt(0).toUpperCase()}
+            {/* Mobile User Profile Header Card */}
+            <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="nav-avatar-circle shrink-0">
+                  {currentUser ? currentUser.fullName.charAt(0).toUpperCase() : "U"}
+                </span>
+                <div className="min-w-0">
+                  <strong className="text-xs text-[#242522] block font-mono truncate">
+                    {currentUser ? currentUser.fullName : "Citizen Observer"}
+                  </strong>
+                  <span className="text-[10px] text-[#687567] uppercase font-mono block">
+                    {currentUser ? currentUser.role.replace("_", " ") : "PUBLIC ACCESS"}
                   </span>
-                  <span>{currentUser.fullName} ({currentUser.role.replace("_", " ")})</span>
-                </>
-              ) : (
-                <>
-                  <User size={14} />
-                  <span>Pilot Sign In / Personas</span>
-                </>
-              )}
-            </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  onOpenAuth()
+                }}
+                className="px-2.5 py-1 text-[11px] font-mono font-bold text-[#E65336] bg-[#E65336]/10 rounded-lg border border-[#E65336]/30 hover:bg-[#E65336]/20 transition-colors shrink-0"
+              >
+                Switch Role
+              </button>
+            </div>
+
+            {/* Staff Controls in Mobile Drawer */}
             {isStaff ? (
-              <>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -315,11 +314,13 @@ function Header({
                     if (onOpenAdminSuite) onOpenAdminSuite()
                     else onOpenTriage()
                   }}
-                  className="nav-triage-button glass mb-2"
-                  style={{ width: "100%", justifyContent: "center", borderColor: "rgba(230, 83, 54, 0.45)" }}
+                  className="p-2.5 rounded-xl bg-[#242522] text-[#F5F1E8] text-xs font-mono font-bold flex flex-col items-center gap-1 text-center shadow-xs"
                 >
-                  <ShieldAlert size={14} className="text-vermilion" />
-                  <span>Municipal Command Suite ({issuesCount})</span>
+                  <div className="flex items-center gap-1.5 text-[#E65336]">
+                    <ShieldAlert size={14} />
+                    <span>Admin Suite</span>
+                  </div>
+                  <span className="text-[10px] text-neutral-400">{issuesCount} Active Defects</span>
                 </button>
                 <button
                   type="button"
@@ -327,13 +328,15 @@ function Header({
                     setOpen(false)
                     onOpenTriage()
                   }}
-                  className="nav-triage-button glass mb-2"
-                  style={{ width: "100%", justifyContent: "center" }}
+                  className="p-2.5 rounded-xl bg-white border border-[#D8D2C5] text-[#242522] text-xs font-mono font-bold flex flex-col items-center gap-1 text-center shadow-xs"
                 >
-                  <Activity size={14} className="text-[#687567]" />
-                  <span>Public Road Tracker</span>
+                  <div className="flex items-center gap-1.5 text-emerald-700">
+                    <Activity size={14} />
+                    <span>Public Portal</span>
+                  </div>
+                  <span className="text-[10px] text-[#687567]">Citizen View</span>
                 </button>
-              </>
+              </div>
             ) : (
               <button
                 type="button"
@@ -341,19 +344,43 @@ function Header({
                   setOpen(false)
                   onOpenTriage()
                 }}
-                className="nav-triage-button glass mb-2"
-                style={{ width: "100%", justifyContent: "center" }}
+                className="w-full p-2.5 rounded-xl bg-white border border-[#D8D2C5] text-[#242522] text-xs font-mono font-bold flex items-center justify-between shadow-xs"
               >
-                <Activity size={14} className="text-vermilion" />
-                <span>Public Road Tracker ({issuesCount})</span>
+                <div className="flex items-center gap-2">
+                  <Activity size={15} className="text-[#E65336]" />
+                  <span>Public Road Tracker</span>
+                </div>
+                <span className="nav-count-badge">{issuesCount}</span>
               </button>
             )}
+
+            {/* Vertical Navigation Links */}
+            <div className="space-y-1 py-1">
+              {navItems.map(([label, id]) => (
+                <a
+                  href={`#${id}`}
+                  key={id}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-mono font-medium transition-colors ${
+                    active === id
+                      ? "bg-[#E65336]/10 text-[#E65336] font-bold"
+                      : "text-[#242522] hover:bg-neutral-100"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {active === id && <span className="w-1.5 h-1.5 rounded-full bg-[#E65336]" />}
+                </a>
+              ))}
+            </div>
+
+            {/* Primary Full-Width CTA */}
             <ButtonLink
               onClick={(e) => {
                 e.preventDefault()
                 setOpen(false)
                 onOpenGlobe()
               }}
+              className="w-full justify-center"
             >
               Report a pothole
             </ButtonLink>
