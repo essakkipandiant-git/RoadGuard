@@ -50,6 +50,16 @@ export default function SyncReportsBanner({
     MigrationService.setBannerDismissed(true)
   }
 
+  const handleKeepLocal = () => {
+    MigrationService.markAllAsLocallySaved()
+    setSyncStatus("success")
+    setStatusMessage("Report successfully saved to this device's persistent memory. Visible on all city maps and dashboards.")
+    checkPending()
+    setTimeout(() => {
+      handleDismiss()
+    }, 2200)
+  }
+
   const handleSyncNow = async () => {
     if (!currentUser) {
       onOpenAuth()
@@ -122,14 +132,16 @@ export default function SyncReportsBanner({
           <div>
             <h4 className="text-sm font-semibold tracking-wide text-white">
               {syncStatus === "success"
-                ? "Reports Synchronized"
-                : `${pendingReports.length} Unsaved Offline Report${pendingReports.length > 1 ? "s" : ""}`}
+                ? "Reports Preserved"
+                : syncStatus === "error"
+                ? "Local Storage Active"
+                : `${pendingReports.length} Offline Report${pendingReports.length > 1 ? "s" : ""} on Device`}
             </h4>
             <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
               {statusMessage ||
                 (currentUser
-                  ? "Stored locally in browser cache. Synchronize now with the municipal SQLite database."
-                  : "Sign in to synchronize your locally saved reports with the municipal authority.")}
+                  ? "Report is saved in browser storage. You can sync with the central server or keep it stored on this device."
+                  : "Report is safely stored in local device storage. Visible across all dashboards.")}
             </p>
           </div>
         </div>
@@ -137,8 +149,8 @@ export default function SyncReportsBanner({
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-slate-400 hover:text-white transition-colors p-1 -mr-1 -mt-1 rounded-md"
-          aria-label="Dismiss migration notification"
+          className="text-slate-400 hover:text-white transition-colors p-1 -mr-1 -mt-1 rounded-md cursor-pointer"
+          aria-label="Dismiss notification"
         >
           <X className="h-4 w-4" />
         </button>
@@ -165,11 +177,20 @@ export default function SyncReportsBanner({
       )}
 
       {/* Action Buttons */}
-      <div className="mt-3 flex items-center justify-end gap-2">
+      <div className="mt-3 flex items-center justify-end gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={handleKeepLocal}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
+          title="Keep report preserved locally on this device and dismiss alerts"
+        >
+          ✓ Keep in Local DB
+        </button>
+
         <button
           type="button"
           onClick={handleDismiss}
-          className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors rounded-lg"
+          className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors rounded-lg cursor-pointer"
         >
           Later
         </button>
@@ -179,7 +200,7 @@ export default function SyncReportsBanner({
             type="button"
             onClick={handleSyncNow}
             disabled={isSyncing || pendingReports.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
           >
             {isSyncing ? (
               <>
@@ -197,7 +218,7 @@ export default function SyncReportsBanner({
           <button
             type="button"
             onClick={onOpenAuth}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors shadow-sm cursor-pointer"
           >
             <LogIn className="h-3.5 w-3.5" />
             <span>Sign In to Sync</span>

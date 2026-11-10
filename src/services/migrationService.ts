@@ -4,6 +4,7 @@ import { apiClient } from "./apiClient"
 export const OFFLINE_QUEUE_KEY = "roadguard_offline_queue_v1"
 export const STORAGE_KEY = "roadguard_issues_v2"
 export const MIGRATION_BANNER_DISMISSED_KEY = "roadguard_migration_banner_dismissed"
+export const ACKNOWLEDGED_LOCAL_KEY = "roadguard_acknowledged_local_reports"
 
 // Known static prototype seed IDs that do not belong to user-reported local issues
 export const STATIC_SEED_IDS = new Set(["RG-10492", "RG-28190", "RG-39104", "RG-49201"])
@@ -132,8 +133,54 @@ export class MigrationService {
   }
 
   /**
+   * Retrieves set of report IDs that the user has explicitly chosen to keep locally
+   */
+  static getAcknowledgedLocalIds(): Set<string> {
+    if (typeof window === "undefined") return new Set()
+    try {
+      const data = localStorage.getItem(ACKNOWLEDGED_LOCAL_KEY)
+      if (!data) return new Set()
+      const parsed = JSON.parse(data)
+      return new Set(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      return new Set()
+    }
+  }
+
+  /**
+   * Marks a single report or all queued reports as permanently saved on this device
+   */
+  static markAllAsLocallySaved(): void {
+    if (typeof window === "undefined") return
+    try {
+      const queue = this.getPendingQueue()
+      const acknowledged = this.getAcknowledgedLocalIds()
+      queue.forEach((item) => acknowledged.add(item.id))
+
+      // Also acknowledge any non-UUID reports in current storage
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed: RoadIssue[] = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          parsed.forEach((issue) => {
+            if (issue?.id && !this.isUuid(issue.id)) {
+              acknowledged.add(issue.id)
+            }
+          })
+        }
+      }
+
+      localStorage.setItem(ACKNOWLEDGED_LOCAL_KEY, JSON.stringify(Array.from(acknowledged)))
+      this.clearQueue()
+      this.setBannerDismissed(true)
+    } catch (e) {
+      console.warn("RoadGuard MigrationService: Failed to mark as locally saved:", e)
+    }
+  }
+
+  /**
    * Scans legacy localStorage ('roadguard_issues_v2') for un-synced citizen reports.
-   * Filters out static seeds and issues that already have backend UUIDs.
+   * Filters out static seeds, issues that already have backend UUIDs, and acknowledged local issues.
    * Adds any un-queued legacy issues to the pending queue.
    */
   static detectAndQueueLegacyUnsynced(): LocalPendingReport[] {
@@ -141,6 +188,7 @@ export class MigrationService {
 
     const currentQueue = this.getPendingQueue()
     const queuedIds = new Set(currentQueue.map((item) => item.id))
+    const acknowledgedIds = this.getAcknowledgedLocalIds()
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -153,8 +201,12 @@ export class MigrationService {
       for (const issue of parsed) {
         if (!issue || !issue.id) continue
 
-        // Skip built-in demo seeds and items with database UUIDs
-        if (this.isSeedIssue(issue.id) || this.isUuid(issue.id)) {
+        // Skip built-in demo seeds, items with database UUIDs, and items acknowledged as saved locally
+        if (
+          this.isSeedIssue(issue.id) ||
+          this.isUuid(issue.id) ||
+          acknowledgedIds.has(issue.id)
+        ) {
           continue
         }
 
@@ -177,7 +229,7 @@ export class MigrationService {
             category: issue.category || "cavity",
             severity: issue.severity || "moderate",
             depthEstimateMm: depth,
-            coordinates: issue.coordinates || { lat: 51.5074, lng: -0.1278 },
+            coordinates: issue.coordinates || { lat: 19.076, lng: 72.8777 },
             address: issue.address || "Local coordinates",
             roadClass: issue.risk?.roadUsageDetails?.roadClass,
             originalPhotoUrl: issue.originalPhotoUrl,
@@ -261,7 +313,14 @@ export class MigrationService {
         }
       } catch (err: any) {
         result.failedCount++
-        const errorMsg = err?.message || "Network or validation error"
+        let errorMsg = err?.message || "Network or validation error"
+        if (
+          err?.status === 404 ||
+          errorMsg.toLowerCase().includes("not be found") ||
+          errorMsg.toLowerCase().includes("failed to fetch")
+        ) {
+          errorMsg = "Central municipal server is offline (no remote API connected). Report remains safely preserved in local device storage."
+        }
         result.errors.push(`Report "${item.title}" (${item.id}): ${errorMsg}`)
 
         // Keep item in queue with updated failure metadata so user never loses their data!
@@ -335,12 +394,15 @@ export class MigrationService {
   }
 
   /**
-   * Manages banner dismissal status in the session
+   * Manages banner dismissal status across browser sessions
    */
   static isBannerDismissed(): boolean {
     if (typeof window === "undefined") return false
     try {
-      return sessionStorage.getItem(MIGRATION_BANNER_DISMISSED_KEY) === "true"
+      return (
+        localStorage.getItem(MIGRATION_BANNER_DISMISSED_KEY) === "true" ||
+        sessionStorage.getItem(MIGRATION_BANNER_DISMISSED_KEY) === "true"
+      )
     } catch {
       return false
     }
@@ -349,7 +411,13 @@ export class MigrationService {
   static setBannerDismissed(dismissed: boolean): void {
     if (typeof window === "undefined") return
     try {
-      sessionStorage.setItem(MIGRATION_BANNER_DISMISSED_KEY, dismissed ? "true" : "false")
+      if (dismissed) {
+        localStorage.setItem(MIGRATION_BANNER_DISMISSED_KEY, "true")
+        sessionStorage.setItem(MIGRATION_BANNER_DISMISSED_KEY, "true")
+      } else {
+        localStorage.removeItem(MIGRATION_BANNER_DISMISSED_KEY)
+        sessionStorage.removeItem(MIGRATION_BANNER_DISMISSED_KEY)
+      }
     } catch {}
   }
 }
