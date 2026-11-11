@@ -12,9 +12,15 @@ import dotenv from "dotenv"
 // Load environment variables from server root
 dotenv.config({ path: path.resolve(__dirname, "../.env") })
 
-const databaseUrl = process.env.DATABASE_URL || "file:./roadguard.db"
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:./roadguard.db"
+}
+
+const databaseUrl = process.env.DATABASE_URL
 const isPostgres = databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://")
 const schemaPath = path.resolve(__dirname, "../prisma/schema.prisma")
+const serverDir = path.resolve(__dirname, "..")
+const execEnv = { ...process.env, DATABASE_URL: databaseUrl }
 
 console.log("---------------------------------------------------------------")
 console.log("🏛️  RoadGuard Database Initializer")
@@ -47,11 +53,11 @@ async function runDatabaseSync() {
     configurePrismaProvider()
 
     console.log("[DB-INIT] Generating Prisma Client...")
-    execSync("npx prisma generate", { stdio: "inherit", cwd: path.resolve(__dirname, "..") })
+    execSync("npx prisma generate", { stdio: "inherit", cwd: serverDir, env: execEnv })
 
     console.log("[DB-INIT] Synchronizing database schema...")
     // db push ensures all tables, enums, indexes, and relations are created safely without losing data
-    execSync("npx prisma db push --skip-generate", { stdio: "inherit", cwd: path.resolve(__dirname, "..") })
+    execSync("npx prisma db push --skip-generate", { stdio: "inherit", cwd: serverDir, env: execEnv })
 
     // Dynamically require PrismaClient to verify database connectivity & seed if needed
     const { PrismaClient } = await import("@prisma/client")
@@ -63,7 +69,7 @@ async function runDatabaseSync() {
 
       if (departmentCount === 0) {
         console.log("[DB-INIT] Fresh database detected. Executing initial municipal seed...")
-        execSync("npx tsx prisma/seed.ts", { stdio: "inherit", cwd: path.resolve(__dirname, "..") })
+        execSync("npx tsx prisma/seed.ts", { stdio: "inherit", cwd: serverDir, env: execEnv })
         console.log("[DB-INIT] Initial seed completed successfully.")
       } else {
         console.log("[DB-INIT] Municipal data verified. Skipping duplicate seed.")
