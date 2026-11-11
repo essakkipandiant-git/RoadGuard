@@ -515,7 +515,7 @@ export default function CityTriageDashboard({
       >
         {/* Top Header with Role-Specific Branding */}
         {/* Top Header with Role-Specific Branding */}
-        <div className="px-3.5 sm:px-7 py-3 sm:py-4 bg-white border-b border-[#242522]/8 flex flex-col gap-2.5 sm:gap-3 shrink-0">
+        <div className="px-3.5 sm:px-7 py-3 sm:py-4 bg-[#F5F1E8] border-b border-[#D8D2C5] flex flex-col gap-2.5 sm:gap-3 shrink-0">
           {/* Row 1: Eyebrow, Heading, and Primary Window Controls (Refresh & Close) */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -631,7 +631,7 @@ export default function CityTriageDashboard({
                     className={`persona-switch-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       isActive
                         ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                        : "text-[#687567] hover:text-[#242522] hover:bg-white/60"
+                        : "text-[#687567] hover:text-[#242522] hover:bg-[#FAF6ED]/80"
                     }`}
                     title={`Switch view to ${p.name} (${p.label})`}
                   >
@@ -701,7 +701,7 @@ export default function CityTriageDashboard({
               className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "overview"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                  : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                  : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
               }`}
             >
               <BarChart3 size={13} />
@@ -714,7 +714,7 @@ export default function CityTriageDashboard({
               className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "issues"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                  : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                  : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
               }`}
             >
               <FileText size={13} />
@@ -730,7 +730,7 @@ export default function CityTriageDashboard({
               className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "risk_map"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                  : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                  : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
               }`}
             >
               <MapPin size={13} />
@@ -743,7 +743,7 @@ export default function CityTriageDashboard({
               className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "resolution"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                  : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                  : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
               }`}
             >
               <Clock size={13} />
@@ -759,7 +759,7 @@ export default function CityTriageDashboard({
               className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                 activeView === "analytics"
                   ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                  : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                  : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
               }`}
             >
               <TrendingUp size={13} />
@@ -773,7 +773,7 @@ export default function CityTriageDashboard({
                 className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[38px] cursor-pointer ${
                   activeView === "admin"
                     ? "bg-[#242522] text-[#F5F1E8] shadow-sm"
-                    : "bg-white/80 text-[#242522] hover:bg-white border border-[#242522]/10"
+                    : "bg-[#EAE3D3] text-[#242522] hover:bg-[#E1D8C5] border border-[#D4CCB8]"
                 }`}
               >
                 <ShieldAlert size={13} />
@@ -874,7 +874,7 @@ export default function CityTriageDashboard({
                   <div
                     key={alert.id}
                     onClick={() => onSelectIssue(alert)}
-                    className="p-3.5 rounded-xl bg-white border border-rose-200 hover:border-rose-400 transition-all cursor-pointer shadow-sm flex items-start gap-3 group"
+                    className="p-3.5 rounded-xl bg-gradient-to-br from-[#FFF5F2] to-[#FCE8E2] border border-rose-300/80 border-l-4 border-l-[#E65336] hover:border-rose-500 transition-all cursor-pointer shadow-sm flex items-start gap-3 group"
                   >
                     <img
                       src={alert.annotatedPhotoUrl || alert.originalPhotoUrl}
@@ -912,7 +912,7 @@ export default function CityTriageDashboard({
 
             {/* Ward Summary Deck */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-white/80 border border-[#242522]/10 space-y-2">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-[#FCF9F2] to-[#F3EDE0] border border-[#D4CCB8] border-t-[3px] border-t-[#687567] shadow-xs space-y-2">
                 <span className="text-xs font-mono font-bold text-[#8B9185] block uppercase">
                   Wards with Highest Activity
                 </span>
@@ -936,7 +936,7 @@ export default function CityTriageDashboard({
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/80 border border-[#242522]/10 space-y-2">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-[#FCF9F2] to-[#F3EDE0] border border-[#D4CCB8] border-t-[3px] border-t-[#687567] shadow-xs space-y-2">
                 <span className="text-xs font-mono font-bold text-[#8B9185] block uppercase">
                   SLA Response Readiness
                 </span>
@@ -971,7 +971,7 @@ export default function CityTriageDashboard({
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/80 border border-[#242522]/10 space-y-3">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-[#FAF6EE] to-[#EFE8D8] border border-[#D4CCB8] border-t-[3px] border-t-[#E65336] shadow-xs space-y-3">
                 <span className="text-xs font-mono font-bold text-[#8B9185] block uppercase">
                   Quick Navigation
                 </span>
@@ -1012,7 +1012,7 @@ export default function CityTriageDashboard({
         {activeView === "issues" && (
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Persona Perspective Tabs Bar */}
-            <div className="px-3.5 sm:px-7 pt-2.5 pb-2 bg-[#f5f2eb] border-b border-[#242522]/8 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
+            <div className="px-3.5 sm:px-7 pt-2.5 pb-2 bg-[#EAE3D3] border-b border-[#D4CCB8] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
               <div className="flex items-center gap-1.5 shrink-0">
                 {activePersona === "INSPECTOR" && (
                   <>
@@ -1022,7 +1022,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "my_assigned"
                           ? "bg-[#E65336] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <HardHat size={13} />
@@ -1038,7 +1038,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "needs_inspection"
                           ? "bg-[#242522] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Clock size={13} />
@@ -1051,7 +1051,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "active_repairs"
                           ? "bg-[#242522] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Wrench size={13} />
@@ -1064,7 +1064,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
-                          : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+                          : "bg-emerald-50/90 text-emerald-900 border border-emerald-300/80 hover:bg-emerald-100"
                       }`}
                     >
                       <CheckCircle2 size={13} />
@@ -1081,7 +1081,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "community"
                           ? "bg-[#E65336] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Globe size={13} />
@@ -1097,7 +1097,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "my_reports"
                           ? "bg-[#242522] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <User size={13} />
@@ -1110,7 +1110,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-2 sm:py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap min-h-[36px] cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
-                          : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+                          : "bg-emerald-50/90 text-emerald-900 border border-emerald-300/80 hover:bg-emerald-100"
                       }`}
                     >
                       <CheckCircle2 size={13} className="text-emerald-600" />
@@ -1127,7 +1127,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "dept_queue"
                           ? "bg-[#E65336] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Building2 size={13} />
@@ -1140,7 +1140,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "pending_dispatch"
                           ? "bg-[#242522] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Clock size={13} />
@@ -1153,7 +1153,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
-                          : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+                          : "bg-emerald-50/90 text-emerald-900 border border-emerald-300/80 hover:bg-emerald-100"
                       }`}
                     >
                       <CheckCircle2 size={13} />
@@ -1170,7 +1170,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "all_city"
                           ? "bg-[#E65336] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Layers size={13} />
@@ -1183,7 +1183,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "critical"
                           ? "bg-[#b91c1c] text-white shadow-sm"
-                          : "bg-white text-[#b91c1c] border border-red-200 hover:bg-red-50"
+                          : "bg-rose-50/90 text-[#b91c1c] border border-rose-300/80 hover:bg-rose-100"
                       }`}
                     >
                       <AlertTriangle size={13} />
@@ -1196,7 +1196,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "unassigned"
                           ? "bg-amber-600 text-white shadow-sm"
-                          : "bg-white text-amber-800 border border-amber-200 hover:bg-amber-50"
+                          : "bg-amber-50/90 text-amber-900 border border-amber-300/80 hover:bg-amber-100"
                       }`}
                     >
                       <UserCheck size={13} />
@@ -1209,7 +1209,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "in_progress"
                           ? "bg-[#242522] text-white shadow-sm"
-                          : "bg-white text-[#242522] border border-[#242522]/10 hover:bg-[#FAF8F5]"
+                          : "bg-[#F7F2E7] text-[#242522] border border-[#D4CCB8] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <Wrench size={13} />
@@ -1222,7 +1222,7 @@ export default function CityTriageDashboard({
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                         perspectiveTab === "repaired"
                           ? "bg-emerald-700 text-white shadow-sm"
-                          : "bg-white text-emerald-800 border border-emerald-200 hover:bg-emerald-50"
+                          : "bg-emerald-50/90 text-emerald-900 border border-emerald-300/80 hover:bg-emerald-100"
                       }`}
                     >
                       <CheckCircle2 size={13} />
@@ -1383,13 +1383,26 @@ export default function CityTriageDashboard({
                     const reportedByMe = isReportedByCitizen(issue)
                     const isLoadingAction = actionLoadingId === issue.id
                     const isExpanded = expandedIssueId === issue.id
+                    const issueCardTone = isIssueResolved(issue)
+                      ? "card-tone-resolved"
+                      : issue.status === "in_progress" || issue.status === "repair_completed"
+                        ? "card-tone-in-progress"
+                        : issue.status === "assigned"
+                          ? "card-tone-assigned"
+                          : issue.risk.score >= 85 || issue.severity === "critical"
+                            ? "card-tone-critical"
+                            : issue.status === "under_review"
+                              ? "card-tone-review"
+                              : issue.risk.score >= 60 || issue.severity === "high"
+                                ? "card-tone-high"
+                                : ""
 
                     return (
                       <div
                         key={issue.id}
-                        className={`triage-issue-card relative ${
-                          assignedToMe ? "ring-2 ring-sky-500 bg-sky-50/20" : ""
-                        } ${reportedByMe ? "ring-2 ring-emerald-500 bg-emerald-50/20" : ""}`}
+                        className={`triage-issue-card ${issueCardTone} relative ${
+                          assignedToMe ? "ring-2 ring-sky-500" : ""
+                        } ${reportedByMe ? "ring-2 ring-emerald-500" : ""}`}
                         onClick={() => onSelectIssue(issue)}
                       >
                         {/* Role-Specific Card Top Banner */}
@@ -1470,7 +1483,7 @@ export default function CityTriageDashboard({
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="mt-2.5 p-3 rounded-lg bg-white/90 border border-[#242522]/10 text-xs font-mono space-y-1.5"
+                              className="mt-2.5 p-3 rounded-lg bg-[#FAF6EC]/90 border border-[#D4CCB8] text-xs font-mono space-y-1.5"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -1704,7 +1717,7 @@ export default function CityTriageDashboard({
             </div>
 
             {/* Side Drawer with Selected Issue or Quick Cluster List */}
-            <div className="w-full md:w-80 bg-white/90 border-t md:border-t-0 md:border-l border-[#242522]/15 p-4 overflow-y-auto max-h-[300px] md:max-h-none flex flex-col justify-between">
+            <div className="w-full md:w-80 bg-[#F5F1E8]/95 border-t md:border-t-0 md:border-l border-[#D4CCB8] p-4 overflow-y-auto max-h-[300px] md:max-h-none flex flex-col justify-between">
               {mapSelectedIssue ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -1775,7 +1788,7 @@ export default function CityTriageDashboard({
                         <div
                           key={i.id}
                           onClick={() => setMapSelectedIssue(i)}
-                          className="p-2 rounded-lg border border-[#242522]/10 hover:border-orange-500 bg-white cursor-pointer text-xs transition-colors"
+                          className="p-2 rounded-lg border border-[#D4CCB8] hover:border-[#E65336] bg-[#FAF6ED] cursor-pointer text-xs transition-colors"
                         >
                           <div className="flex items-center justify-between mb-0.5">
                             <strong className="truncate max-w-[170px]">{i.title}</strong>
@@ -1844,7 +1857,11 @@ export default function CityTriageDashboard({
                 <div
                   key={issue.id}
                   onClick={() => onSelectIssue(issue)}
-                  className="p-4 rounded-xl bg-white border border-[#242522]/15 hover:border-[#242522]/30 shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-3"
+                  className={`p-4 rounded-xl border border-l-4 shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                    isIssueResolved(issue)
+                      ? "bg-gradient-to-br from-[#F2FAF6] to-[#E2F4EA] border-emerald-300/70 border-l-emerald-600 hover:border-emerald-500"
+                      : "bg-gradient-to-br from-[#F3F8FD] to-[#E4EFFA] border-sky-300/70 border-l-blue-600 hover:border-blue-500"
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -1931,7 +1948,7 @@ export default function CityTriageDashboard({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Risk Distribution Chart */}
-              <div className="p-5 rounded-xl bg-white/80 border border-[#242522]/10 space-y-4">
+              <div className="p-5 rounded-xl bg-gradient-to-br from-[#FCF9F2] to-[#F3EDE0] border border-[#D4CCB8] border-t-[3px] border-t-[#E65336] shadow-xs space-y-4">
                 <h4 className="text-sm font-bold text-[#242522] flex items-center gap-2">
                   <TrendingUp size={16} className="text-[#E65336]" />
                   AI Risk Priority Distribution
@@ -1993,7 +2010,7 @@ export default function CityTriageDashboard({
               </div>
 
               {/* Defect Category Breakdown */}
-              <div className="p-5 rounded-xl bg-white/80 border border-[#242522]/10 space-y-4">
+              <div className="p-5 rounded-xl bg-gradient-to-br from-[#FCF9F2] to-[#F3EDE0] border border-[#D4CCB8] border-t-[3px] border-t-[#E65336] shadow-xs space-y-4">
                 <h4 className="text-sm font-bold text-[#242522] flex items-center gap-2">
                   <Layers size={16} className="text-[#E65336]" />
                   Defect Classification Breakdown
@@ -2045,7 +2062,7 @@ export default function CityTriageDashboard({
             </div>
 
             {/* Personnel Roster */}
-            <div className="p-5 rounded-xl bg-white/80 border border-[#242522]/10 space-y-4">
+            <div className="p-5 rounded-xl bg-gradient-to-br from-[#FAF6EE] to-[#EFE8D8] border border-[#D4CCB8] border-t-[3px] border-t-[#242522] shadow-xs space-y-4">
               <h4 className="text-sm font-bold text-[#242522] flex items-center gap-2">
                 <UserCheck size={16} className="text-[#E65336]" />
                 Registered Municipal Officers &amp; Field Staff
@@ -2097,7 +2114,7 @@ export default function CityTriageDashboard({
             </div>
 
             {/* System Audit Trail Log */}
-            <div className="p-5 rounded-xl bg-white/80 border border-[#242522]/10 space-y-3">
+            <div className="p-5 rounded-xl bg-gradient-to-br from-[#FCF9F2] to-[#F3EDE0] border border-[#D4CCB8] border-t-[3px] border-t-[#687567] shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold text-[#242522] flex items-center gap-2">
                   <ShieldCheck size={16} className="text-[#E65336]" />
@@ -2138,7 +2155,7 @@ export default function CityTriageDashboard({
                       </div>
                       <p className="text-[#687567] text-[11px] font-sans">{log.action}</p>
                     </div>
-                    <span className="text-[10px] text-[#8B9185] bg-white px-2 py-1 rounded border border-[#242522]/10">
+                    <span className="text-[10px] text-[#5C6356] bg-[#ECE6D8] px-2 py-1 rounded border border-[#D4CCB8]">
                       {log.hash}
                     </span>
                   </div>

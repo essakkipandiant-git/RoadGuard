@@ -867,17 +867,17 @@ export default function IssueManagementWorkspace({
   ].filter(Boolean) as string[]
 
   return (
-    <div className="incident-workspace-viewport fixed inset-0 z-[200] overflow-y-auto bg-[#F4F1EA] text-[#242522] selection:bg-[#E65336] selection:text-white">
+    <div className="incident-workspace-viewport fixed inset-0 z-[200] overflow-y-auto bg-[#EAE4D6] text-[#242522] selection:bg-[#E65336] selection:text-white">
       {/* Top Municipal Workspace Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#F4F1EA]/95 backdrop-blur-md border-b border-[#D8D2C5] shadow-xs">
+      <header className="sticky top-0 z-40 bg-[#F5F1E8]/95 backdrop-blur-md border-b border-[#CFC7B4] shadow-xs">
         {/* Tier 1: Primary Identity & Window Controls */}
-        <div className="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 border-b border-[#D8D2C5]/50">
+        <div className="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 border-b border-[#D8D2C5]/70">
           {/* Left: Breadcrumbs & Report ID */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <button
               type="button"
               onClick={onBackToTriage || onClose}
-              className="back-to-triage-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
+              className="back-to-triage-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
               title="Return to triage dashboard (Esc)"
             >
               <ArrowLeft size={14} />
@@ -890,7 +890,7 @@ export default function IssueManagementWorkspace({
               </span>
               <div
                 onClick={handleCopyReportId}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-[#D8D2C5] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#E65336] transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FAF6ED] border border-[#CFC7B4] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#E65336] transition-colors"
                 title="Click to copy Report ID"
               >
                 <span className="text-[#E65336]">#{issue.trackingCode}</span>
@@ -918,7 +918,7 @@ export default function IssueManagementWorkspace({
               <button
                 type="button"
                 onClick={() => onFlyToGlobe(issue)}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono transition-colors"
                 title="Inspect 3D geospatial elevation"
               >
                 <Globe size={13} className="text-[#E65336]" />
@@ -929,7 +929,7 @@ export default function IssueManagementWorkspace({
             <button
               type="button"
               onClick={() => window.print()}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#ECE6D8] text-xs font-mono transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono transition-colors"
               title="Print municipal dossier"
             >
               <Printer size={13} />
@@ -952,7 +952,7 @@ export default function IssueManagementWorkspace({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg border border-[#D8D2C5] bg-white hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
               title="Close workspace (Esc)"
               aria-label="Close workspace"
             >
@@ -963,7 +963,7 @@ export default function IssueManagementWorkspace({
 
         {/* Tier 2: Municipal Persona Switcher Sub-Bar */}
         {onSwitchPersona && (
-          <div className="px-3.5 sm:px-6 py-1.5 bg-[#FAF8F5] flex items-center justify-between gap-3 overflow-x-auto scrollbar-none">
+          <div className="px-3.5 sm:px-6 py-1.5 bg-[#EFE9DC] flex items-center justify-between gap-3 overflow-x-auto scrollbar-none">
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#687567] font-bold">
                 Persona Perspective:
@@ -987,7 +987,7 @@ export default function IssueManagementWorkspace({
                     className={`persona-switch-btn flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer whitespace-nowrap min-h-[32px] ${
                       isActive
                         ? "bg-[#242522] text-[#F5F1E8] shadow-xs font-bold ring-1 ring-black/10"
-                        : "text-[#687567] hover:text-[#242522] hover:bg-white border border-transparent hover:border-[#D8D2C5]"
+                        : "text-[#687567] hover:text-[#242522] hover:bg-[#FAF6ED] border border-transparent hover:border-[#CFC7B4]"
                     }`}
                     title={`${p.label}: ${p.description}`}
                   >
@@ -1010,14 +1010,14 @@ export default function IssueManagementWorkspace({
           {/* ============================================================== */}
           <section className="lg:col-span-4 space-y-6">
             {/* Primary Photographic Evidence Card */}
-            <div className="bg-white rounded-2xl border border-[#D8D2C5] overflow-hidden shadow-sm">
+            <div className="bg-gradient-to-b from-[#FCF9F2] to-[#F3EDE0] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#242522] overflow-hidden shadow-sm">
               {/* Evidence Visualizer Selector Header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-[#FAF8F5] border-b border-[#D8D2C5]">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-[#E7E0CF] border-b border-[#CFC7B4]">
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#242522]">
                   <Eye size={13} className="text-[#E65336]" />
                   <span>EVIDENCE VISUALIZER</span>
                 </div>
-                <div className="flex items-center bg-white p-0.5 rounded-lg border border-[#D8D2C5] text-[11px] font-mono">
+                <div className="flex items-center bg-[#FAF6ED] p-0.5 rounded-lg border border-[#CFC7B4] text-[11px] font-mono">
                   <button
                     type="button"
                     onClick={() => setViewMode("photo")}
@@ -1197,7 +1197,7 @@ export default function IssueManagementWorkspace({
             </div>
 
             {/* Explainable Risk Assessment Intelligence Card */}
-            <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+            <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-[#E65336]" />
@@ -1261,7 +1261,7 @@ export default function IssueManagementWorkspace({
                   type="button"
                   onClick={handleSupportIssue}
                   disabled={isSupporting || issue.status === "closed"}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#FAF8F5] text-xs font-mono font-medium transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#EFE8D8] text-xs font-mono font-medium transition-colors cursor-pointer disabled:opacity-50"
                   title="Confirm pothole still exists"
                 >
                   <ThumbsUp size={13} className="text-[#E65336]" />
@@ -1320,7 +1320,7 @@ export default function IssueManagementWorkspace({
                     <p>
                       <strong>{claim.authorName || claim.user?.fullName || "Citizen Observer"}</strong> submitted physical evidence that this hazard has been resolved:
                     </p>
-                    <p className="bg-white p-2.5 rounded-lg border border-amber-200 text-[#687567] italic">
+                    <p className="bg-[#FAF6ED] p-2.5 rounded-lg border border-amber-300/80 text-[#4F564B] italic">
                       "{claim.description}"
                     </p>
                   </div>
@@ -1386,7 +1386,7 @@ export default function IssueManagementWorkspace({
               ))}
 
             {/* Visual Lifecycle Stepper Pipeline Card */}
-            <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm font-mono space-y-4">
+            <div className="bg-gradient-to-br from-[#F4F8FD] to-[#E6EFFA] rounded-2xl border border-[#C2D3E6] border-t-4 border-t-[#2563EB] p-5 shadow-sm font-mono space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#D8D2C5]/70">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-[#E65336]" />
@@ -1431,7 +1431,7 @@ export default function IssueManagementWorkspace({
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 md:p-6 shadow-sm font-mono space-y-4">
+            <div className="bg-gradient-to-br from-[#FAF7EF] to-[#F0EAD8] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-5 md:p-6 shadow-sm font-mono space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#D8D2C5]/70">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1513,7 +1513,7 @@ export default function IssueManagementWorkspace({
                                 ? "bg-emerald-700 border-white text-white shadow-md ring-4 ring-emerald-600/20"
                                 : isLatest
                                   ? "bg-[#E65336] border-white text-white shadow-md ring-4 ring-[#E65336]/20"
-                                  : "bg-white border-[#D8D2C5] text-[#242522]"
+                                  : "bg-[#F6F1E5] border-[#CFC7B4] text-[#242522]"
                             }`}
                           >
                             {m.stage === "reported" && <FileText size={12} />}
@@ -1565,7 +1565,7 @@ export default function IssueManagementWorkspace({
 
                             {/* Remarks / Reason */}
                             {m.remarks && (
-                              <p className="text-xs text-[#242522] bg-white p-2.5 rounded-lg border border-[#D8D2C5]/50 leading-relaxed">
+                              <p className="text-xs text-[#242522] bg-[#FAF6EC] p-2.5 rounded-lg border border-[#D4CCB8] leading-relaxed">
                                 {m.remarks}
                               </p>
                             )}
@@ -1609,7 +1609,7 @@ export default function IssueManagementWorkspace({
                             className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-all ${
                               isLatest
                                 ? "bg-[#E65336] border-white text-white shadow-md ring-4 ring-[#E65336]/20"
-                                : "bg-white border-[#D8D2C5] text-[#242522]"
+                                : "bg-[#F6F1E5] border-[#CFC7B4] text-[#242522]"
                             }`}
                           >
                             {evt.eventType === "REPORT_SUBMITTED" && <FileText size={12} />}
@@ -1659,7 +1659,7 @@ export default function IssueManagementWorkspace({
 
                             {/* Remarks / Reason */}
                             {evt.remarks && (
-                              <p className="text-xs text-[#242522] bg-white p-2.5 rounded-lg border border-[#D8D2C5]/50 leading-relaxed">
+                              <p className="text-xs text-[#242522] bg-[#FAF6EC] p-2.5 rounded-lg border border-[#D4CCB8] leading-relaxed">
                                 {evt.remarks}
                               </p>
                             )}
@@ -1706,7 +1706,7 @@ export default function IssueManagementWorkspace({
             {isCitizen && (
               <div className="space-y-6">
                 {/* Civic Transparency Badge Card */}
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-3 font-mono">
+                <div className="bg-gradient-to-br from-[#FFF6F2] to-[#FCEBE4] rounded-2xl border border-[#E65336]/30 border-t-4 border-t-[#E65336] p-5 shadow-sm space-y-3 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <Globe size={16} className="text-emerald-600" />
@@ -1729,7 +1729,7 @@ export default function IssueManagementWorkspace({
                 </div>
 
                 {/* Community Corroboration Card */}
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+                <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <ThumbsUp size={16} className="text-[#E65336]" />
@@ -1764,7 +1764,7 @@ export default function IssueManagementWorkspace({
                 </div>
 
                 {/* Citizen Photo Observation Card */}
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+                <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <Upload size={16} className="text-sky-600" />
@@ -1795,7 +1795,7 @@ export default function IssueManagementWorkspace({
             {/* ------------------------------------------------------------ */}
             {isInspector && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+                <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <HardHat size={16} className="text-sky-600" />
@@ -1814,7 +1814,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Assigned Inspection Officer
                       </span>
-                      <div className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60">
+                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
                         <HardHat size={14} className="text-sky-600 shrink-0" />
                         <strong className="text-[#242522] truncate text-xs">
                           {issue.assignedInspectorName || "Senior Inspector Sarah Chen"}
@@ -1826,7 +1826,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Assessment Mandate
                       </span>
-                      <div className="bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60 text-[#242522] text-xs font-medium">
+                      <div className="bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] text-[#242522] text-xs font-medium">
                         Cavity Depth &amp; Hot-Mix Quality Sign-off
                       </div>
                     </div>
@@ -1937,7 +1937,7 @@ export default function IssueManagementWorkspace({
                         type="button"
                         onClick={() => setActionModalType("REJECT_REPORT")}
                         disabled={isActionExecuting}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-600 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-red-300 bg-red-50/80 hover:bg-red-100 text-red-700 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
                       >
                         <X size={14} />
                         <span>Reject Report (Non-Compliant / Duplicate)</span>
@@ -1953,7 +1953,7 @@ export default function IssueManagementWorkspace({
             {/* ------------------------------------------------------------ */}
             {isDeptAdmin && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+                <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <Building2 size={16} className="text-amber-600" />
@@ -1972,7 +1972,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Assigned Maintenance Crew
                       </span>
-                      <div className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60">
+                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
                         <HardHat size={14} className="text-amber-600 shrink-0" />
                         <strong className="text-[#242522] truncate text-xs">
                           {issue.repair?.assignedCrew || "Hot-Mix Quick Response Crew 1"}
@@ -1984,7 +1984,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Active Work Order Reference
                       </span>
-                      <div className="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60">
+                      <div className="flex items-center justify-between bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
                         <span className="text-[#E65336] font-bold text-xs">
                           {issue.repair?.workOrderNumber || `WO-${issue.trackingCode}`}
                         </span>
@@ -2121,7 +2121,7 @@ export default function IssueManagementWorkspace({
             {/* ------------------------------------------------------------ */}
             {isSuperAdmin && (
               <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+                <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <ShieldAlert size={16} className="text-[#E65336]" />
@@ -2151,7 +2151,7 @@ export default function IssueManagementWorkspace({
                           <span>{issue.assignedInspectorName ? "Reassign" : "Assign"}</span>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60">
+                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
                         <HardHat size={14} className="text-sky-600 shrink-0" />
                         <span className="font-bold text-[#242522] text-xs truncate" title={issue.assignedInspectorName || "Unassigned"}>
                           {issue.assignedInspectorName || "Unassigned"}
@@ -2174,7 +2174,7 @@ export default function IssueManagementWorkspace({
                           <span>Transfer</span>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-[#D8D2C5]/60">
+                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
                         <Building2 size={14} className="text-[#E65336] shrink-0" />
                         <span className="font-bold text-[#242522] text-xs truncate" title={issue.departmentName || "Highways & Road Infrastructure"}>
                           {issue.departmentName || "Highways & Road Infrastructure"}
@@ -2213,7 +2213,7 @@ export default function IssueManagementWorkspace({
                           type="button"
                           onClick={() => setActionModalType("REJECT_REPORT")}
                           disabled={isActionExecuting}
-                          className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-600 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
+                          className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border border-red-300 bg-red-50/80 hover:bg-red-100 text-red-700 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
                         >
                           <X size={14} />
                           <span>Reject False Positive Report</span>
@@ -2341,7 +2341,7 @@ export default function IssueManagementWorkspace({
                             type="button"
                             onClick={() => setActionModalType("DISPATCH_WORK_ORDER")}
                             disabled={isActionExecuting}
-                            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-[#D8D2C5] bg-white hover:bg-[#FAF8F5] text-[#242522] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#EFE8D8] text-[#242522] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Wrench size={13} className="text-[#E65336]" />
                             <span>Executive Work Order &amp; Crew Dispatch</span>
@@ -2368,7 +2368,7 @@ export default function IssueManagementWorkspace({
             {/* ------------------------------------------------------------ */}
             {/* OFFICIAL DEPARTMENT DOSSIER (FOR ALL PERSONAS, EDITABLE BY ADM) */}
             {/* ------------------------------------------------------------ */}
-            <div className="bg-white rounded-2xl border border-[#D8D2C5] p-5 shadow-sm space-y-4 font-mono">
+            <div className="ws-panel-card bg-[#FCF9F2] rounded-2xl border border-[#CFC7B4] p-5 shadow-sm space-y-4 font-mono">
               <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={16} className="text-[#E65336]" />
@@ -2453,7 +2453,7 @@ export default function IssueManagementWorkspace({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-[#D8D2C5] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
+              className="bg-[#FAF6EC] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
             >
               <div className="flex items-center justify-between pb-2 border-b border-[#D8D2C5]">
                 <h3 className="text-sm font-bold text-[#242522] uppercase tracking-wide flex items-center gap-2">
@@ -2568,7 +2568,7 @@ export default function IssueManagementWorkspace({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-[#D8D2C5] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
+              className="bg-[#FAF6EC] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
             >
               <div className="flex items-center justify-between pb-2 border-b border-[#D8D2C5]">
                 <h3 className="text-sm font-bold text-[#242522] uppercase tracking-wide flex items-center gap-2">
@@ -2926,7 +2926,7 @@ export default function IssueManagementWorkspace({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-[#D8D2C5] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
+              className="bg-[#FAF6EC] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
             >
               <div className="flex items-center justify-between pb-2 border-b border-[#D8D2C5]">
                 <h3 className="text-sm font-bold text-[#242522] uppercase tracking-wide flex items-center gap-2">
@@ -2955,7 +2955,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         commUpdateType === "STILL_EXISTS"
                           ? "border-[#E65336] bg-[#F5F1E8] font-bold"
-                          : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-[#E65336] mb-1">
@@ -2973,7 +2973,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         commUpdateType === "WORSENED"
                           ? "border-[#E65336] bg-[#F5F1E8] font-bold"
-                          : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-amber-600 mb-1">
@@ -2991,7 +2991,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         commUpdateType === "REPAIR_IN_PROGRESS"
                           ? "border-[#E65336] bg-[#F5F1E8] font-bold"
-                          : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-indigo-600 mb-1">
@@ -3009,7 +3009,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         commUpdateType === "APPEARS_REPAIRED"
                           ? "border-[#E65336] bg-[#F5F1E8] font-bold"
-                          : "border-[#D8D2C5] bg-white hover:bg-[#FAF8F5]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] hover:bg-[#EFE8D8]"
                       }`}
                     >
                       <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
@@ -3100,7 +3100,7 @@ export default function IssueManagementWorkspace({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl border border-[#D8D2C5] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
+              className="bg-[#FAF6EC] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-6 max-w-lg w-full font-mono space-y-4 shadow-xl"
             >
               <div className="flex items-center justify-between pb-2 border-b border-[#D8D2C5]">
                 <h3 className="text-sm font-bold text-[#242522] uppercase tracking-wide flex items-center gap-2">
@@ -3135,7 +3135,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold ${
                         reviewDecision === "APPROVED"
                           ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                          : "border-[#D8D2C5] bg-white text-[#687567]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] text-[#52584D]"
                       }`}
                     >
                       Approve & Mark Repaired
@@ -3146,7 +3146,7 @@ export default function IssueManagementWorkspace({
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold ${
                         reviewDecision === "REJECTED"
                           ? "border-red-600 bg-red-50 text-red-800"
-                          : "border-[#D8D2C5] bg-white text-[#687567]"
+                          : "border-[#CFC7B4] bg-[#FAF6EC] text-[#52584D]"
                       }`}
                     >
                       Reject Claim
