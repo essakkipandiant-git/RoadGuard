@@ -867,17 +867,17 @@ export default function IssueManagementWorkspace({
   ].filter(Boolean) as string[]
 
   return (
-    <div className="incident-workspace-viewport fixed inset-0 z-[200] overflow-y-auto bg-[#EAE4D6] text-[#242522] selection:bg-[#E65336] selection:text-white">
+    <div className="incident-workspace-viewport fixed inset-0 z-[200] overflow-y-auto bg-[#F3F2EE] text-[#141413] selection:bg-[#141413] selection:text-white">
       {/* Top Municipal Workspace Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#F5F1E8]/95 backdrop-blur-md border-b border-[#CFC7B4] shadow-xs">
+      <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#DFDDD6] shadow-xs">
         {/* Tier 1: Primary Identity & Window Controls */}
-        <div className="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 border-b border-[#D8D2C5]/70">
+        <div className="px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-2.5 border-b border-[#E5E3DC]">
           {/* Left: Breadcrumbs & Report ID */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
             <button
               type="button"
               onClick={onBackToTriage || onClose}
-              className="back-to-triage-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
+              className="back-to-triage-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D6D3CB] bg-[#F7F6F2] hover:bg-[#141413] hover:text-white text-xs font-mono font-medium transition-colors cursor-pointer shrink-0"
               title="Return to triage dashboard (Esc)"
             >
               <ArrowLeft size={14} />
@@ -885,12 +885,12 @@ export default function IssueManagementWorkspace({
             </button>
 
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-xs uppercase tracking-wider text-[#687567] hidden md:inline font-mono">
+              <span className="text-xs uppercase tracking-wider text-[#6B6A64] hidden md:inline font-mono">
                 Workspace /
               </span>
               <div
                 onClick={handleCopyReportId}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FAF6ED] border border-[#CFC7B4] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#E65336] transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#F7F6F2] border border-[#D6D3CB] font-mono text-xs font-bold tracking-tight cursor-pointer hover:border-[#141413] transition-colors"
                 title="Click to copy Report ID"
               >
                 <span className="text-[#E65336]">#{issue.trackingCode}</span>
@@ -918,10 +918,10 @@ export default function IssueManagementWorkspace({
               <button
                 type="button"
                 onClick={() => onFlyToGlobe(issue)}
-                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono transition-colors"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D6D3CB] bg-[#F7F6F2] hover:bg-[#EAE8E1] text-xs font-mono transition-colors"
                 title="Inspect 3D geospatial elevation"
               >
-                <Globe size={13} className="text-[#E65336]" />
+                <Globe size={13} className="text-[#141413]" />
                 <span>3D Globe</span>
               </button>
             )}
@@ -929,7 +929,7 @@ export default function IssueManagementWorkspace({
             <button
               type="button"
               onClick={() => window.print()}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-[#E7E0CF] text-xs font-mono transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#D6D3CB] bg-[#F7F6F2] hover:bg-[#EAE8E1] text-xs font-mono transition-colors"
               title="Print municipal dossier"
             >
               <Printer size={13} />
@@ -952,7 +952,7 @@ export default function IssueManagementWorkspace({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg border border-[#CFC7B4] bg-[#FAF6ED] hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg border border-[#D6D3CB] bg-[#F7F6F2] hover:bg-[#141413] hover:text-white transition-colors cursor-pointer"
               title="Close workspace (Esc)"
               aria-label="Close workspace"
             >
@@ -963,7 +963,7 @@ export default function IssueManagementWorkspace({
 
         {/* Tier 2: Municipal Persona Switcher Sub-Bar */}
         {onSwitchPersona && (
-          <div className="px-3.5 sm:px-6 py-1.5 bg-[#EFE9DC] flex items-center justify-between gap-3 overflow-x-auto scrollbar-none">
+          <div className="px-3.5 sm:px-6 py-1.5 bg-[#F4F3EF] flex items-center justify-between gap-3 overflow-x-auto overflow-y-hidden scrollbar-none">
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#687567] font-bold">
                 Persona Perspective:
@@ -1010,14 +1010,14 @@ export default function IssueManagementWorkspace({
           {/* ============================================================== */}
           <section className="lg:col-span-4 space-y-6">
             {/* Primary Photographic Evidence Card */}
-            <div className="bg-gradient-to-b from-[#FCF9F2] to-[#F3EDE0] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#242522] overflow-hidden shadow-sm">
+            <div className="bg-[#FFFFFF] rounded-2xl border border-[#DFDDD6] border-t-[3px] border-t-[#141413] overflow-hidden shadow-xs">
               {/* Evidence Visualizer Selector Header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-[#E7E0CF] border-b border-[#CFC7B4]">
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#242522]">
-                  <Eye size={13} className="text-[#E65336]" />
+              <div className="flex items-center justify-between px-4 py-2.5 bg-[#F7F6F2] border-b border-[#E5E3DC]">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#141413]">
+                  <Eye size={13} className="text-[#141413]" />
                   <span>EVIDENCE VISUALIZER</span>
                 </div>
-                <div className="flex items-center bg-[#FAF6ED] p-0.5 rounded-lg border border-[#CFC7B4] text-[11px] font-mono">
+                <div className="flex items-center bg-[#FFFFFF] p-0.5 rounded-lg border border-[#D6D3CB] text-[11px] font-mono">
                   <button
                     type="button"
                     onClick={() => setViewMode("photo")}
@@ -1386,7 +1386,7 @@ export default function IssueManagementWorkspace({
               ))}
 
             {/* Visual Lifecycle Stepper Pipeline Card */}
-            <div className="bg-gradient-to-br from-[#F4F8FD] to-[#E6EFFA] rounded-2xl border border-[#C2D3E6] border-t-4 border-t-[#2563EB] p-5 shadow-sm font-mono space-y-4">
+            <div className="bg-[#FFFFFF] rounded-2xl border border-[#DFDDD6] border-t-[3px] border-t-[#141413] p-5 shadow-xs font-mono space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#D8D2C5]/70">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-[#E65336]" />
@@ -1431,7 +1431,7 @@ export default function IssueManagementWorkspace({
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-[#FAF7EF] to-[#F0EAD8] rounded-2xl border border-[#CFC7B4] border-t-4 border-t-[#E65336] p-5 md:p-6 shadow-sm font-mono space-y-4">
+            <div className="bg-[#FFFFFF] rounded-2xl border border-[#DFDDD6] border-t-[3px] border-t-[#141413] p-5 md:p-6 shadow-xs font-mono space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#D8D2C5]/70">
                 <div>
                   <div className="flex items-center gap-2">
@@ -1565,7 +1565,7 @@ export default function IssueManagementWorkspace({
 
                             {/* Remarks / Reason */}
                             {m.remarks && (
-                              <p className="text-xs text-[#242522] bg-[#FAF6EC] p-2.5 rounded-lg border border-[#D4CCB8] leading-relaxed">
+                              <p className="text-xs text-[#141413] bg-[#F7F6F2] p-2.5 rounded-lg border border-[#E2DFD7] leading-relaxed">
                                 {m.remarks}
                               </p>
                             )}
@@ -1659,7 +1659,7 @@ export default function IssueManagementWorkspace({
 
                             {/* Remarks / Reason */}
                             {evt.remarks && (
-                              <p className="text-xs text-[#242522] bg-[#FAF6EC] p-2.5 rounded-lg border border-[#D4CCB8] leading-relaxed">
+                              <p className="text-xs text-[#141413] bg-[#F7F6F2] p-2.5 rounded-lg border border-[#E2DFD7] leading-relaxed">
                                 {evt.remarks}
                               </p>
                             )}
@@ -1706,7 +1706,7 @@ export default function IssueManagementWorkspace({
             {isCitizen && (
               <div className="space-y-6">
                 {/* Civic Transparency Badge Card */}
-                <div className="bg-gradient-to-br from-[#FFF6F2] to-[#FCEBE4] rounded-2xl border border-[#E65336]/30 border-t-4 border-t-[#E65336] p-5 shadow-sm space-y-3 font-mono">
+                <div className="bg-[#FFFFFF] rounded-2xl border border-[#DFDDD6] border-t-[3px] border-t-[#141413] p-5 shadow-xs space-y-3 font-mono">
                   <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex items-center gap-2">
                       <Globe size={16} className="text-emerald-600" />
@@ -1814,7 +1814,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Assigned Inspection Officer
                       </span>
-                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
+                      <div className="flex items-center gap-2 bg-[#F7F6F2] px-2.5 py-1.5 rounded-lg border border-[#DFDDD6]">
                         <HardHat size={14} className="text-sky-600 shrink-0" />
                         <strong className="text-[#242522] truncate text-xs">
                           {issue.assignedInspectorName || "Senior Inspector Sarah Chen"}
@@ -1972,7 +1972,7 @@ export default function IssueManagementWorkspace({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#687567] block">
                         Assigned Maintenance Crew
                       </span>
-                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
+                      <div className="flex items-center gap-2 bg-[#F7F6F2] px-2.5 py-1.5 rounded-lg border border-[#DFDDD6]">
                         <HardHat size={14} className="text-amber-600 shrink-0" />
                         <strong className="text-[#242522] truncate text-xs">
                           {issue.repair?.assignedCrew || "Hot-Mix Quick Response Crew 1"}
@@ -2151,7 +2151,7 @@ export default function IssueManagementWorkspace({
                           <span>{issue.assignedInspectorName ? "Reassign" : "Assign"}</span>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
+                      <div className="flex items-center gap-2 bg-[#F7F6F2] px-2.5 py-1.5 rounded-lg border border-[#DFDDD6]">
                         <HardHat size={14} className="text-sky-600 shrink-0" />
                         <span className="font-bold text-[#242522] text-xs truncate" title={issue.assignedInspectorName || "Unassigned"}>
                           {issue.assignedInspectorName || "Unassigned"}
@@ -2174,7 +2174,7 @@ export default function IssueManagementWorkspace({
                           <span>Transfer</span>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 bg-[#FAF6EC] px-2.5 py-1.5 rounded-lg border border-[#CFC7B4]">
+                      <div className="flex items-center gap-2 bg-[#F7F6F2] px-2.5 py-1.5 rounded-lg border border-[#DFDDD6]">
                         <Building2 size={14} className="text-[#E65336] shrink-0" />
                         <span className="font-bold text-[#242522] text-xs truncate" title={issue.departmentName || "Highways & Road Infrastructure"}>
                           {issue.departmentName || "Highways & Road Infrastructure"}
