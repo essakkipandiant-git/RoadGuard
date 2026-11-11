@@ -744,6 +744,18 @@ export class RoadIssueService {
       this.save()
       return created
     } catch (err: any) {
+      const statusCode = err?.statusCode ?? err?.status
+      const isClientValidationOrAuthError =
+        typeof statusCode === "number" &&
+        statusCode >= 400 &&
+        statusCode < 500 &&
+        statusCode !== 408 &&
+        statusCode !== 429
+
+      if (isClientValidationOrAuthError) {
+        throw err
+      }
+
       console.warn("RoadGuard: Failed to create issue on backend, falling back to local storage:", err)
       const localIssue = this.createIssue(newIssueData)
       // Automatically queue offline report for migration when connection or session is restored

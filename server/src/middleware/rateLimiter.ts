@@ -1,10 +1,26 @@
-import rateLimit from "express-rate-limit"
+import rateLimit, { ipKeyGenerator } from "express-rate-limit"
 import { env } from "../config/env"
 import { Request, Response } from "express"
 
+function resolveClientIpKey(req: Request): string {
+  const cfIp = req.headers["cf-connecting-ip"]
+  if (typeof cfIp === "string" && cfIp.trim()) {
+    return `cf:${cfIp.trim()}`
+  }
+  return ipKeyGenerator(req.ip || "127.0.0.1")
+}
+
+function resolveUserOrIpKey(req: Request): string {
+  if (req.user?.id) {
+    return `user:${req.user.id}`
+  }
+  return resolveClientIpKey(req)
+}
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 1000 : 30, // Balanced production limit allowing persona switches
+  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 1000 : 100, // Balanced production limit allowing persona switches
+  keyGenerator: resolveClientIpKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -27,7 +43,8 @@ export const authLimiter = rateLimit({
 
 export const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 5000 : 300,
+  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 5000 : 600,
+  keyGenerator: resolveClientIpKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -41,7 +58,8 @@ export const apiLimiter = rateLimit({
 
 export const reportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 2000 : 20, // 20 reports per 15 minutes
+  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 2000 : 120, // Per-user bucket behind Render/Cloudflare proxies
+  keyGenerator: resolveUserOrIpKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -55,7 +73,8 @@ export const reportLimiter = rateLimit({
 
 export const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === "test" ? 1000 : 30, // 30 image uploads per 15 minutes
+  max: env.NODE_ENV === "test" ? 1000 : 120, // Per-user image upload bucket behind Render/Cloudflare proxies
+  keyGenerator: resolveUserOrIpKey,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

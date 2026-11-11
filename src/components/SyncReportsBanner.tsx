@@ -96,9 +96,16 @@ export default function SyncReportsBanner({
           }, 5000)
         }
       } else if (result.failedCount > 0) {
+        const rawErr = result.errors[0] || "Backend synchronization failed."
+        const isRateLimit = /rate limit/i.test(rawErr)
+        const isMissingPhoto = /photograph.*mandatory|ai verification/i.test(rawErr)
         setSyncStatus("error")
         setStatusMessage(
-          `Could not sync reports: ${result.errors[0] || "Backend synchronization failed."}`,
+          isRateLimit
+            ? `${rawErr} Your Render API and Postgres database are online — click "✓ Keep in Local DB" to clear this notice or wait a moment before retrying.`
+            : isMissingPhoto
+              ? `Legacy local draft cannot sync without a verified road photo (${rawErr}). Click "✓ Keep in Local DB" to dismiss it.`
+              : `Could not sync reports: ${rawErr}`,
         )
       }
     } catch (err: any) {

@@ -176,11 +176,22 @@ async function request<T>(
     headers["Content-Type"] = "application/json"
   }
 
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers,
     credentials: "include", // Include HTTP-only session cookies
   })
+
+  // Render free-tier instances occasionally return a transient 502/503/504 during cold start.
+  // Retry once automatically before surfacing an offline error.
+  if ([502, 503, 504].includes(response.status)) {
+    await new Promise((r) => setTimeout(r, 1500))
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    })
+  }
 
   let json: any
   try {

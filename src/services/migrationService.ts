@@ -26,6 +26,8 @@ export interface LocalPendingReport {
   address: string
   roadClass?: RoadClass
   originalPhotoUrl?: string
+  aiVerificationToken?: string | null
+  imageHash?: string | null
   createdAt: string
   attempts: number
   lastSyncError?: string
@@ -114,6 +116,8 @@ export class MigrationService {
       address: issue.address || "Location captured via GPS",
       roadClass: issue.risk?.roadUsageDetails?.roadClass,
       originalPhotoUrl: issue.originalPhotoUrl,
+      aiVerificationToken: issue.detection?.verificationToken ?? null,
+      imageHash: issue.detection?.imageHash ?? null,
       createdAt: issue.createdAt || new Date().toISOString(),
       attempts: errorReason ? 1 : 0,
       lastSyncError: errorReason,
@@ -233,6 +237,8 @@ export class MigrationService {
             address: issue.address || "Local coordinates",
             roadClass: issue.risk?.roadUsageDetails?.roadClass,
             originalPhotoUrl: issue.originalPhotoUrl,
+            aiVerificationToken: issue.detection?.verificationToken ?? null,
+            imageHash: issue.detection?.imageHash ?? null,
             createdAt: issue.createdAt || new Date().toISOString(),
             attempts: 0,
             syncStatus: "pending",
@@ -287,7 +293,37 @@ export class MigrationService {
     for (let i = 0; i < queue.length; i++) {
       const item = queue[i]
       try {
-        // Post defect to SQLite backend via API client
+        let syncPhotoUrl =
+          item.originalPhotoUrl &&
+          !item.originalPhotoUrl.startsWith("data:") &&
+          item.originalPhotoUrl.length <= 1000
+            ? item.originalPhotoUrl
+            : undefined
+
+        let syncToken = item.aiVerificationToken || undefined
+        let syncHash = item.imageHash || undefined
+
+        // If pending draft holds an inline data URL preview, upload it to cloud storage first
+        if (item.originalPhotoUrl?.startsWith("data:image/")) {
+          try {
+            const blob = await (await fetch(item.originalPhotoUrl)).blob()
+            const ext = blob.type.includes("png") ? "png" : "jpg"
+            const uploadFile = new File([blob], `${item.id}.${ext}`, {
+              type: blob.type || "image/jpeg",
+            })
+            const uploadRes = await apiClient.uploads.uploadImage(uploadFile)
+            if (uploadRes?.url) {
+              syncPhotoUrl = uploadRes.url
+            }
+            if (uploadRes?.imageHash && !syncHash) {
+              syncHash = uploadRes.imageHash
+            }
+          } catch {
+            // Fall through cleanly; server validation will report clear guidance if image required
+          }
+        }
+
+        // Post defect to backend database via API client
         const createdIssue = await apiClient.issues.create({
           title: item.title,
           description: item.notes,
@@ -298,6 +334,9 @@ export class MigrationService {
           longitude: item.coordinates.lng,
           address: item.address,
           roadClass: item.roadClass,
+          photoUrl: syncPhotoUrl,
+          aiVerificationToken: syncToken,
+          imageHash: syncHash,
           forceDuplicate: options?.forceDuplicate ?? true,
         })
 
