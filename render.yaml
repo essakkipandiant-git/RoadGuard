@@ -8,7 +8,7 @@ databases:
     databaseName: roadguard
     user: roadguard
     plan: free
-    region: oregon
+    region: singapore
 
 services:
   # 2. Express Backend & Genuine ONNX AI Inference Web Service
@@ -16,7 +16,7 @@ services:
     name: roadguard-api
     runtime: node
     plan: free
-    region: oregon
+    region: singapore
     branch: main
     rootDir: server
     buildCommand: npm install && npm run build
