@@ -4,7 +4,7 @@ import {
   inspectRoadImage,
   MAX_FILE_SIZE_BYTES,
 } from "../services/aiInspectionService"
-import { apiClient } from "../services/apiClient"
+import { apiClient, ApiError } from "../services/apiClient"
 
 describe("Frontend AI Inspection Service & Validation Tests", () => {
   beforeEach(() => {
@@ -120,5 +120,56 @@ describe("Frontend AI Inspection Service & Validation Tests", () => {
     expect(result.confidence).toBe(0)
     expect(result.depthEstimateMm).toBeNull()
     expect(result.message).toContain("AI inspection service is temporarily offline")
+  })
+
+  it("inspectRoadImage converts relative sample asset URLs into FormData multipart uploads", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(new Blob(["fake-jpg-bytes"], { type: "image/jpeg" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              status: "detected",
+              modelName: "YOLOv8n-Pothole-ONNX",
+              modelVersion: "v8.0.21-rdd",
+              detectedClasses: ["cavity"],
+              detections: [{ id: "det-1", category: "cavity", confidence: 0.782, x: 10, y: 20, width: 30, height: 25, label: "POTHOLE 78%" }],
+              highestConfidence: 0.782,
+              severity: "high",
+              depthEstimateMm: null,
+              depthNote: "Physical depth requires on-site verification.",
+              inferenceDurationMs: 120,
+              message: "Detected",
+              isSubmissionAllowed: true,
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+
+    const result = await inspectRoadImage("/images/detection_asphalt.jpg")
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe("/images/detection_asphalt.jpg")
+    const [, init] = fetchMock.mock.calls[1]
+    expect(init?.body).toBeInstanceOf(FormData)
+    expect(result.status).toBe("detected")
+    expect(result.confidence).toBe(0.782)
+  })
+
+  it("inspectRoadImage distinguishes explicit HTTP 400 validation failure from offline AI status", async () => {
+    vi.spyOn(apiClient.ai, "inspectImage").mockRejectedValueOnce(
+      new ApiError("Corrupted or unsupported image file.", "BAD_REQUEST", 400),
+    )
+
+    const testFile = new File(["bad-bytes"], "broken.jpg", { type: "image/jpeg" })
+    const result = await inspectRoadImage(testFile)
+
+    expect(result.status).toBe("blurry_image")
+    expect(result.status).not.toBe("ai_unavailable")
+    expect(result.message).toContain("Corrupted or unsupported image file.")
   })
 })

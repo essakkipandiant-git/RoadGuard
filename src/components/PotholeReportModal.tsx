@@ -284,7 +284,7 @@ export default function PotholeReportModal({
   }, [isOpen])
 
   // Run AI Inspection whenever photo changes
-  const runInspection = async (fileOrUrl: File | string) => {
+  const runInspection = async (fileOrUrl: File | string): Promise<AIDetectionResult | null> => {
     setIsAnalyzing(true)
     setUploadError(null)
     setDetectionResult(null)
@@ -295,17 +295,22 @@ export default function PotholeReportModal({
       setDetectionResult(result)
       setSelectedType(result.category)
       setSelectedSeverity(result.severity)
+      return result
     } catch (err: any) {
       setUploadError(err.message || "Failed to analyze road photograph.")
+      return null
     } finally {
       setIsAnalyzing(false)
     }
   }
 
-  // Run initial analysis when modal opens
+  // Wake backend & run initial analysis when modal opens
   useEffect(() => {
-    if (isOpen && !detectionResult) {
-      runInspection(selectedPhoto)
+    if (isOpen) {
+      apiClient.ai.getStatus().catch(() => {})
+      if (!detectionResult) {
+        runInspection(selectedPhoto)
+      }
     }
   }, [isOpen])
 
@@ -467,11 +472,20 @@ export default function PotholeReportModal({
 
   // Photo & Cloudinary Handlers
   const uploadPhotoToCloud = async (file: File) => {
+    if (!currentUser) {
+      setImageUploadStatus("completed")
+      setImageMetadata((prev) =>
+        prev ? { ...prev, storageProvider: "local_storage" } : null,
+      )
+      return
+    }
+
+    let timer: ReturnType<typeof setInterval> | undefined
     try {
       setImageUploadStatus("uploading")
       setUploadPercent(15)
 
-      const timer = setInterval(() => {
+      timer = setInterval(() => {
         setUploadPercent((prev) => (prev < 85 ? prev + 15 : prev))
       }, 200)
 
@@ -495,6 +509,14 @@ export default function PotholeReportModal({
         setImageUploadStatus("completed")
       }
     } catch (err: any) {
+      if (timer) clearInterval(timer)
+      if (err?.statusCode === 401) {
+        setImageUploadStatus("completed")
+        setImageMetadata((prev) =>
+          prev ? { ...prev, storageProvider: "local_storage" } : null,
+        )
+        return
+      }
       console.warn("Cloud image upload fell back to local storage:", err)
       setImageUploadStatus("error")
       setUploadError("Cloud storage sync pending. You may click 'Retry' or proceed with submission.")
@@ -504,6 +526,8 @@ export default function PotholeReportModal({
   const handlePhotoSelected = async (file: File, source: "camera" | "gallery") => {
     setImageUploadStatus("validating")
     setUploadError(null)
+    setStepError(null)
+    setRemoteImageUrl(null)
     setDetectionResult(null)
 
     const validation = validateImageFile(file)
@@ -525,16 +549,37 @@ export default function PotholeReportModal({
 
     const objectUrl = URL.createObjectURL(file)
     setSelectedPhoto(objectUrl)
-    runInspection(file)
 
-    // Upload to organized folder in Cloudinary
-    await uploadPhotoToCloud(file)
+    // Run AI inspection first so Render avoids concurrent large-image memory spikes
+    const aiRes = await runInspection(file)
+
+    // Upload verified road damage images to Cloudinary
+    if (aiRes && aiRes.status === "detected" && (aiRes.confidence || 0) >= 0.60) {
+      await uploadPhotoToCloud(file)
+    } else {
+      setImageUploadStatus("completed")
+      setImageMetadata((prev) =>
+        prev ? { ...prev, storageProvider: "local_storage" } : null,
+      )
+    }
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     handlePhotoSelected(file, "gallery")
+  }
+
+  const handleRetakePhoto = () => {
+    setUploadError(null)
+    setStepError(null)
+    if (cameraInputRef.current) cameraInputRef.current.value = ""
+    if (galleryInputRef.current) galleryInputRef.current.value = ""
+    if (galleryInputRef.current) {
+      galleryInputRef.current.click()
+    } else if (cameraInputRef.current) {
+      cameraInputRef.current.click()
+    }
   }
 
   const handleRemovePhoto = () => {
@@ -766,7 +811,7 @@ export default function PotholeReportModal({
         reportedBy: reporterName || "Citizen Reporter",
         reporterName: reporterName || "Citizen Reporter",
         notes: [notes, reporterContact ? `Contact: ${reporterContact}` : ""].filter(Boolean).join(" · "),
-        photoFile,
+        photoFile: remoteImageUrl ? null : photoFile,
         forceDuplicate: isDuplicateDismissed,
       })
 
@@ -1354,6 +1399,7 @@ export default function PotholeReportModal({
                           style={{ display: "none" }}
                           onChange={(e) => {
                             const file = e.target.files?.[0]
+                            e.target.value = ""
                             if (file) handlePhotoSelected(file, "camera")
                           }}
                           aria-label="Capture road defect photo using camera"
@@ -1365,6 +1411,7 @@ export default function PotholeReportModal({
                           style={{ display: "none" }}
                           onChange={(e) => {
                             const file = e.target.files?.[0]
+                            e.target.value = ""
                             if (file) handlePhotoSelected(file, "gallery")
                           }}
                           aria-label="Upload road defect photo from file manager"

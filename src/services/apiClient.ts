@@ -1062,7 +1062,26 @@ export const apiClient = {
       let isForm = false
 
       if (typeof fileOrDataUrl === "string") {
-        body = JSON.stringify({ image: fileOrDataUrl })
+        if (fileOrDataUrl.startsWith("data:")) {
+          body = JSON.stringify({ image: fileOrDataUrl })
+        } else {
+          // Fetch asset/blob URL (e.g. "/images/detection_asphalt.jpg") and send real image bytes
+          const fetched = await fetch(fileOrDataUrl)
+          if (!fetched.ok) {
+            throw new ApiError(
+              `Unable to load photograph asset (${fetched.status})`,
+              "IMAGE_FETCH_FAILED",
+              fetched.status,
+            )
+          }
+          const blob = await fetched.blob()
+          const fileName = fileOrDataUrl.split("/").pop()?.split("?")[0] || "road_image.jpg"
+          const fileObj = new File([blob], fileName, { type: blob.type || "image/jpeg" })
+          const formData = new FormData()
+          formData.append("photo", fileObj)
+          body = formData
+          isForm = true
+        }
       } else {
         const formData = new FormData()
         formData.append("photo", fileOrDataUrl)

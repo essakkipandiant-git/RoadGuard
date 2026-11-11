@@ -5,6 +5,10 @@ import sharp from "sharp"
 import { logger } from "../utils/logger"
 import { env } from "../config/env"
 
+// Bound Sharp libvips memory arena for 512MB cloud container safety
+sharp.cache({ memory: 24, files: 0, items: 10 })
+sharp.concurrency(1)
+
 // Safely import onnxruntime-node
 let ort: typeof import("onnxruntime-node") | null = null
 try {
@@ -440,6 +444,7 @@ export class AiDetectionService {
 
     try {
       const { data } = await sharp(imageBuffer)
+        .rotate()
         .resize(224, 224, { fit: "fill" })
         .removeAlpha()
         .raw()
@@ -520,8 +525,9 @@ export class AiDetectionService {
     if (!this.yoloSession || !ort) return []
 
     const origMeta = await sharp(imageBuffer).metadata()
-    const origW = origMeta.width || 640
-    const origH = origMeta.height || 640
+    const isRotated90 = (origMeta.orientation || 1) >= 5
+    const origW = (isRotated90 ? origMeta.height : origMeta.width) || 640
+    const origH = (isRotated90 ? origMeta.width : origMeta.height) || 640
 
     // Compute letterbox scaling & centering parameters (Ultralytics standard)
     const scale = Math.min(640 / origW, 640 / origH)
@@ -530,28 +536,40 @@ export class AiDetectionService {
     const padX = (640 - scaledW) / 2
     const padY = (640 - scaledH) / 2
 
-    // Dual-pass inference:
+    // Dual-pass inference executed sequentially to minimize peak RAM on 512MB cloud containers:
     // Pass 1: Standard aspect-ratio-preserving letterbox with 114 gray padding
     // Pass 2: High-frequency edge restored letterbox to recover asphalt fracture gradients from JPEG compression
-    const [rawStandard, rawRestored] = await Promise.all([
-      sharp(imageBuffer)
-        .resize(640, 640, {
-          fit: "contain",
-          background: { r: 114, g: 114, b: 114 },
-        })
-        .removeAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true }),
-      sharp(imageBuffer)
-        .sharpen({ sigma: 1.2, m1: 1.0, m2: 2.0 })
-        .resize(640, 640, {
-          fit: "contain",
-          background: { r: 114, g: 114, b: 114 },
-        })
-        .removeAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true }),
-    ])
+    const rawStandard = await sharp(imageBuffer)
+      .rotate()
+      .resize(640, 640, {
+        fit: "contain",
+        background: { r: 114, g: 114, b: 114 },
+      })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+
+    // Pre-downscale very large mobile/camera photos (>1280px) before sharpening to prevent memory spikes
+    const restoredPipeline = Math.max(origW, origH) > 1280
+      ? sharp(imageBuffer)
+          .rotate()
+          .resize(640, 640, {
+            fit: "contain",
+            background: { r: 114, g: 114, b: 114 },
+          })
+          .sharpen({ sigma: 1.2, m1: 1.0, m2: 2.0 })
+      : sharp(imageBuffer)
+          .rotate()
+          .sharpen({ sigma: 1.2, m1: 1.0, m2: 2.0 })
+          .resize(640, 640, {
+            fit: "contain",
+            background: { r: 114, g: 114, b: 114 },
+          })
+
+    const rawRestored = await restoredPipeline
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
 
     const candidateDetections: Array<{
       score: number

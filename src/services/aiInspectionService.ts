@@ -278,6 +278,35 @@ export async function inspectRoadImage(
       minimumConfidenceRequired: serverResult.minimumConfidenceRequired || 0.60,
     }
   } catch (err: any) {
+    // Distinguish explicit 400/413 image validation rejections from offline AI engine
+    const statusCode = typeof err?.statusCode === "number" ? err.statusCode : 0
+    if (statusCode === 400 || statusCode === 413) {
+      const inferenceTime = Math.round(performance.now() - startTime)
+      return {
+        engine: "yolov8_onnx",
+        status: "blurry_image",
+        category: "cavity",
+        confidence: 0,
+        confidenceScore: 0,
+        boxes: [],
+        surfaceLossRatio: 0,
+        depthEstimateMm: null,
+        depthNote: "Physical depth requires on-site measurement.",
+        severity: "low",
+        severityLevel: "low",
+        originalImageUrl: originalUrl,
+        annotatedImageUrl: originalUrl,
+        rawInferenceTimeMs: inferenceTime,
+        modelName: "YOLOv8n-Pothole-ONNX",
+        modelVersion: "v8.0.21-rdd",
+        message:
+          err?.message ||
+          "Image could not be processed. Please upload a valid JPEG, PNG, or WebP photograph under 10MB.",
+        isSubmissionAllowed: false,
+        minimumConfidenceRequired: 0.60,
+      }
+    }
+
     // If backend AI endpoint is unreachable, report honestly as ai_unavailable
     const inferenceTime = Math.round(performance.now() - startTime)
     onProgress?.("AI service offline; reporting status honestly...")
