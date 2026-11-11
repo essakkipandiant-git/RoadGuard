@@ -18,9 +18,21 @@ import {
   UserRole,
 } from "../types/roadguard"
 
-const BASE_URL =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-  "/api/v1"
+function resolveApiBaseUrl(): string {
+  const envUrl =
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_BACKEND_URL)) ||
+    ""
+
+  if (!envUrl) {
+    return "/api/v1"
+  }
+
+  const trimmed = envUrl.trim().replace(/\/+$/, "")
+  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`
+}
+
+const BASE_URL = resolveApiBaseUrl()
 
 export interface ApiUser {
   id: string

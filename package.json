@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "format": "oxfmt",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:server": "npm --prefix server install && npm --prefix server run build",
+    "start": "npm --prefix server run start"
   },
   "dependencies": {
     "cesium": "^1.146.0",

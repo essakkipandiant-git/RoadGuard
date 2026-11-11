@@ -6,10 +6,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "rimraf dist && tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/data', {recursive:true}); fs.copyFileSync('src/data/mumbai_bmc_wards.geojson', 'dist/data/mumbai_bmc_wards.geojson')\"",
+    "build": "npm run prisma:init && rimraf dist && tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/data', {recursive:true}); fs.copyFileSync('src/data/mumbai_bmc_wards.geojson', 'dist/data/mumbai_bmc_wards.geojson')\"",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "prisma:init": "tsx scripts/initDb.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",

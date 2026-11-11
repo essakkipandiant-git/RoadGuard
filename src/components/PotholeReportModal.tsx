@@ -1243,26 +1243,34 @@ export default function PotholeReportModal({
 
                       {/* AI Readout */}
                       {detectionResult && (
-                        <div className="ai-telemetry-metrics glass grid grid-cols-2 gap-2 text-xs">
-                          <div className="metric-box">
-                            <small>HAZARD TYPE</small>
-                            <strong>{detectionResult.category.toUpperCase()}</strong>
+                        <div className="space-y-1.5">
+                          <div className="ai-telemetry-metrics glass grid grid-cols-2 gap-2 text-xs">
+                            <div className="metric-box">
+                              <small>HAZARD TYPE</small>
+                              <strong>{detectionResult.category.toUpperCase()}</strong>
+                            </div>
+                            <div className="metric-box">
+                              <small>ALGORITHMIC CONFIDENCE</small>
+                              <strong className="text-[#E65336]">
+                                {((detectionResult.confidence || 0.94) * 100).toFixed(0)}%
+                              </strong>
+                            </div>
+                            <div className="metric-box">
+                              <small>EST. DEPTH (UNVERIFIED)</small>
+                              <strong>{detectionResult.depthEstimateMm}mm</strong>
+                            </div>
+                            <div className="metric-box">
+                              <small>SURFACE LOSS RATIO</small>
+                              <strong>
+                                {((detectionResult.surfaceLossRatio || 0.15) * 100).toFixed(0)}%
+                              </strong>
+                            </div>
                           </div>
-                          <div className="metric-box">
-                            <small>CONFIDENCE</small>
-                            <strong className="text-[#E65336]">
-                              {((detectionResult.confidence || 0.94) * 100).toFixed(0)}%
-                            </strong>
-                          </div>
-                          <div className="metric-box">
-                            <small>EST. DEPTH</small>
-                            <strong>{detectionResult.depthEstimateMm}mm</strong>
-                          </div>
-                          <div className="metric-box">
-                            <small>SURFACE LOSS</small>
-                            <strong>
-                              {((detectionResult.surfaceLossRatio || 0.15) * 100).toFixed(0)}%
-                            </strong>
+                          <div className="flex items-center gap-1.5 text-[10px] text-[#242522]/60 px-1">
+                            <Info size={11} className="text-[#E65336] shrink-0" />
+                            <span>
+                              Preliminary Edge Heuristic Analysis. Physical depth will be verified on-site by municipal field inspectors.
+                            </span>
                           </div>
                         </div>
                       )}

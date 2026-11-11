@@ -164,6 +164,12 @@ export class IssueService {
         status: IssueStatus.REPORTED,
         riskScore,
         confirmationsCount: 0,
+        officialDepartmentName:
+          (input as any).officialDepartmentName ||
+          MumbaiBoundaryService.resolveResponsibleAuthority(input.address, boundaryCheck.wardName).authorityName,
+        governmentReferenceId: `MCGM-${reportNumber}`,
+        officialContactInfo: "MCGM Central Toll-Free Control: 1916 / pwd.mumbai@gov.in",
+        externalStatus: "AWAITING_MUNICIPAL_INGESTION",
       },
       include: {
         ward: true,

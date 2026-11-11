@@ -284,6 +284,74 @@ export class MumbaiBoundaryService {
   }
 
   /**
+   * Identifies the primary government authority responsible for the road asset.
+   * Differentiates MCGM (BMC), MMRDA, Maharashtra PWD, and NHAI.
+   */
+  static resolveResponsibleAuthority(addressOrRoadName?: string, wardName?: string | null): {
+    authorityCode: "MCGM" | "MMRDA" | "PWD" | "NHAI"
+    authorityName: string
+    jurisdictionType: "MUNICIPAL" | "METROPOLITAN_HIGHWAY" | "STATE_HIGHWAY" | "NATIONAL_HIGHWAY"
+    isProvisional: boolean
+    notes: string
+  } {
+    const text = (addressOrRoadName || "").toLowerCase()
+
+    if (text.includes("national highway") || text.includes("nh 48") || text.includes("nh 66") || text.includes("nh-48") || text.includes("nh-66")) {
+      return {
+        authorityCode: "NHAI",
+        authorityName: "National Highways Authority of India (NHAI)",
+        jurisdictionType: "NATIONAL_HIGHWAY",
+        isProvisional: true,
+        notes: "National highway corridor; falls under NHAI Regional Office Mumbai.",
+      }
+    }
+
+    if (
+      text.includes("western express") ||
+      text.includes("eastern express") ||
+      text.includes("coastal road") ||
+      text.includes("mumbai trans harbour") ||
+      text.includes("atal setu") ||
+      text.includes("jvlr") ||
+      text.includes("jogeshwari-vikhroli") ||
+      text.includes("metro line")
+    ) {
+      return {
+        authorityCode: "MMRDA",
+        authorityName: "Mumbai Metropolitan Region Development Authority (MMRDA / MSRDC)",
+        jurisdictionType: "METROPOLITAN_HIGHWAY",
+        isProvisional: true,
+        notes: "Major arterial expressway / transit corridor under metropolitan jurisdiction.",
+      }
+    }
+
+    if (
+      text.includes("sion-panvel") ||
+      text.includes("sion panvel") ||
+      text.includes("santacruz-chembur") ||
+      text.includes("sclr") ||
+      text.includes("state highway")
+    ) {
+      return {
+        authorityCode: "PWD",
+        authorityName: "Maharashtra State Public Works Department (PWD)",
+        jurisdictionType: "STATE_HIGHWAY",
+        isProvisional: true,
+        notes: "State highway link under PWD Mumbai Metropolitan Circle.",
+      }
+    }
+
+    const wardLabel = wardName ? `Ward ${wardName}` : "Municipal Jurisdiction"
+    return {
+      authorityCode: "MCGM",
+      authorityName: `Municipal Corporation of Greater Mumbai (MCGM / BMC - ${wardLabel})`,
+      jurisdictionType: "MUNICIPAL",
+      isProvisional: false,
+      notes: "Internal urban street maintained by MCGM Road & Traffic Division.",
+    }
+  }
+
+  /**
    * Convenience helper returning boolean if point is inside Mumbai.
    */
   static isInsideMumbai(lat: number, lng: number): boolean {

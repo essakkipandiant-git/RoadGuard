@@ -22,6 +22,16 @@ export const corsMiddleware = cors({
       return callback(null, true)
     }
 
+    // Allow official RoadGuard Vercel production and preview deployment URLs
+    if (/^https:\/\/road-guard.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true)
+    }
+
+    // Allow localhost / 127.0.0.1 on any port during local development and testing
+    if (env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true)
+    }
+
     return callback(new Error(`CORS policy blocked access from origin: ${origin}`))
   },
   credentials: true,
