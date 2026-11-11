@@ -33,6 +33,7 @@ import { RoadIssue, SeverityLevel, IssueStatus, UserRole } from "../types/roadgu
 import { apiClient, ApiUser, mapBackendRole, MunicipalMetadata } from "../services/apiClient"
 import { RoadIssueService } from "../services/roadIssueService"
 import { MUNICIPAL_PERSONAS } from "../constants/personas"
+import { normalizeRole } from "../utils/roleUtils"
 
 export interface MunicipalAdminDashboardProps {
   isOpen: boolean
@@ -219,13 +220,20 @@ export default function MunicipalAdminDashboard({
     e.stopPropagation()
     setActionLoadingId(issue.id)
     try {
+      const canonicalRole = normalizeRole(currentUser?.role || activeRole) || "SUPER_ADMIN"
+
       try {
         await apiClient.issues.executeAction(issue.id, {
           actionType,
           remarks: remarks || `Municipal action executed from Admin Command Suite: ${actionType}`,
         })
-      } catch {
-        // Local simulation fallback
+      } catch (apiErr: any) {
+        // If the backend explicitly denied authorization (401 or 403), never bypass it!
+        if (apiErr?.statusCode === 401 || apiErr?.statusCode === 403) {
+          throw apiErr
+        }
+
+        // Offline / Network fallback with canonical role
         let targetStatus: IssueStatus = issue.status
         if (actionType === "VERIFY_REPORT") targetStatus = "under_review"
         else if (actionType === "DISPATCH_WORK_ORDER") targetStatus = "assigned"
@@ -236,7 +244,7 @@ export default function MunicipalAdminDashboard({
         RoadIssueService.updateStatus(issue.id, targetStatus, {
           notes: remarks || `Action: ${actionType}`,
           actorName: currentUser?.fullName || "System Administrator",
-          actorRole: (currentUser?.role || "SUPER_ADMIN").toLowerCase() as any,
+          actorRole: canonicalRole,
           afterPhotoUrl: actionType === "APPROVE_REPAIR" ? "/images/repaired_road.jpg" : undefined,
         })
       }
@@ -244,7 +252,7 @@ export default function MunicipalAdminDashboard({
       setTimeout(() => setSuccessToast(null), 3500)
       await handleManualRefresh()
     } catch (err: any) {
-      alert(err.message || "Action failed.")
+      alert(`Action failed: ${err.message || "Unauthorized or network failure."}`)
     } finally {
       setActionLoadingId(null)
     }
@@ -745,8 +753,8 @@ export default function MunicipalAdminDashboard({
 
                       {/* Right Action Block */}
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                        {/* Stage 1 Super Admin Quick Action */}
-                        {activeRole === "SUPER_ADMIN" && issue.status === "reported" && (
+                        {/* Stage 1 Admin Quick Action */}
+                        {(activeRole === "SUPER_ADMIN" || activeRole === "DEPARTMENT_ADMIN") && issue.status === "reported" && (
                           <button
                             type="button"
                             disabled={actionLoadingId === issue.id}
@@ -755,7 +763,7 @@ export default function MunicipalAdminDashboard({
                                 e,
                                 issue,
                                 "VERIFY_REPORT",
-                                "AI Computer Vision Detection Confirmed by Super Admin; triaged to Area Ward Department."
+                                "AI Computer Vision Detection Confirmed by Municipal Admin; triaged to Area Ward Department."
                               )
                             }
                             className="w-full sm:w-auto justify-center px-3 py-2 sm:py-1.5 min-h-[38px] rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"

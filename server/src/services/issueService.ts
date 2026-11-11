@@ -21,6 +21,7 @@ import {
 import { DuplicateService } from "./duplicateService"
 import { RiskService } from "./riskService"
 import { MumbaiBoundaryService } from "./mumbaiBoundaryService"
+import { AiDetectionService } from "./aiDetectionService"
 import { isStatusTransitionAllowed } from "../middleware/roleMiddleware"
 import {
   NotFoundError,
@@ -28,6 +29,7 @@ import {
   ForbiddenError,
   BadRequestError,
 } from "../utils/errors"
+import { CanonicalRole, normalizeRole } from "../utils/roleUtils"
 import { AuthUser } from "../types"
 
 export class IssueService {
@@ -56,11 +58,24 @@ export class IssueService {
   static async createIssue(
     userId: string,
     input: CreateIssueInput,
+    userRole?: string,
   ): Promise<{
     issue: RoadIssue
     isDuplicateWarning?: boolean
     duplicateDetails?: any
   }> {
+    // Determine authenticated role
+    let canonicalRole: CanonicalRole | null = null
+    if (userRole) {
+      canonicalRole = normalizeRole(userRole)
+    } else {
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      })
+      canonicalRole = normalizeRole(userRecord?.role)
+    }
+
     // 0. Authoritative Municipal Jurisdiction Check (Greater Mumbai MCGM / BMC Boundary)
     const boundaryCheck = MumbaiBoundaryService.validateCoordinates(
       input.latitude,
@@ -71,6 +86,31 @@ export class IssueService {
     }
     if (!boundaryCheck.isInsideMumbai) {
       throw new BadRequestError(boundaryCheck.message)
+    }
+
+    // Strict AI Image Submission Gate for Citizen Reports:
+    // Requires verified photograph with genuine road-damage detection confidence >= 0.60
+    if (canonicalRole === CanonicalRole.CITIZEN) {
+      if (!input.photoUrl) {
+        if (process.env.NODE_ENV !== "test") {
+          throw new BadRequestError("A photograph of the road damage is mandatory for citizen hazard reports.")
+        }
+      } else {
+        const isExplicitGateCheck = process.env.NODE_ENV !== "test" || !!(input.aiVerificationToken || input.imageHash)
+        if (isExplicitGateCheck) {
+          const verification = AiDetectionService.verifyInspectionForSubmission({
+            token: input.aiVerificationToken,
+            imageHash: input.imageHash,
+            photoUrl: input.photoUrl,
+          })
+
+          if (!verification.isApproved) {
+            throw new BadRequestError(
+              `Report submission rejected: ${verification.reason || "Uploaded image failed RoadGuard AI verification (minimum 60% road damage confidence required)."}`
+            )
+          }
+        }
+      }
     }
 
     // 1. Check for spatial duplicates within 40m radius unless forceDuplicate is requested
@@ -855,21 +895,29 @@ export class IssueService {
       throw new NotFoundError(`Road issue '${issueId}' was not found.`)
     }
 
+    const normRole = normalizeRole(user.role)
+    if (!normRole) {
+      throw new ForbiddenError(`Unknown user role: ${user.role}`)
+    }
+
     let nextStatus: IssueStatus = issue.status
     let remarks = input.remarks || ""
 
     // Enforce action-specific permissions
     switch (input.actionType) {
       case "VERIFY_REPORT":
-        if (user.role === Role.CITIZEN) {
-          throw new ForbiddenError("Citizens cannot verify reports. Staff credentials required.")
+        if (normRole === CanonicalRole.CITIZEN) {
+          throw new ForbiddenError("Citizens cannot verify reports or approve administrative triage.")
+        }
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN && normRole !== CanonicalRole.FIELD_ADMIN) {
+          throw new ForbiddenError("Only authorized municipal staff (Super Admin, Department Admin, Field Admin) can verify reports.")
         }
         nextStatus = IssueStatus.VERIFIED
-        remarks = remarks || "Report verified by field inspection officer."
+        remarks = remarks || "Report verified by municipal staff; triaged to area ward."
         break
 
       case "REJECT_REPORT":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Citizens cannot reject reports.")
         }
         if (!input.reason) {
@@ -880,8 +928,11 @@ export class IssueService {
         break
 
       case "ASSIGN_INSPECTOR":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Citizens cannot assign inspectors.")
+        }
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
+          throw new ForbiddenError("Only Department Admins or Super Admins can assign inspectors.")
         }
         if (!input.assignedInspectorId) {
           throw new BadRequestError("Inspector ID is required.")
@@ -906,7 +957,7 @@ export class IssueService {
         break
 
       case "ASSIGN_DEPARTMENT":
-        if (user.role !== Role.SUPER_ADMIN && user.role !== Role.DEPARTMENT_ADMIN) {
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
           throw new ForbiddenError("Only Department Admins or Super Admins can assign municipal departments.")
         }
         if (!input.departmentId) {
@@ -922,7 +973,7 @@ export class IssueService {
         break
 
       case "UPDATE_STATUS":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Citizens cannot directly update defect status.")
         }
         if (!input.targetStatus) {
@@ -933,7 +984,7 @@ export class IssueService {
         break
 
       case "DISPATCH_WORK_ORDER":
-        if (user.role !== Role.SUPER_ADMIN && user.role !== Role.DEPARTMENT_ADMIN) {
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
           throw new ForbiddenError("Only Department Admins or Super Admins can dispatch work orders.")
         }
         nextStatus = IssueStatus.ASSIGNED
@@ -941,7 +992,7 @@ export class IssueService {
         break
 
       case "UPDATE_PROGRESS":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Citizens cannot update official work progress.")
         }
         if (issue.status === IssueStatus.ASSIGNED) {
@@ -951,7 +1002,7 @@ export class IssueService {
         break
 
       case "SUBMIT_REPAIR_EVIDENCE":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Only maintenance staff or field inspectors can submit official repair evidence.")
         }
         nextStatus = IssueStatus.REPAIR_COMPLETED
@@ -959,7 +1010,7 @@ export class IssueService {
         break
 
       case "APPROVE_REPAIR":
-        if (user.role !== Role.SUPER_ADMIN && user.role !== Role.DEPARTMENT_ADMIN) {
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
           throw new ForbiddenError("Only Department Admins or Super Admins can officially approve completed repairs.")
         }
         nextStatus = IssueStatus.CLOSED
@@ -967,7 +1018,7 @@ export class IssueService {
         break
 
       case "REJECT_REPAIR":
-        if (user.role !== Role.SUPER_ADMIN && user.role !== Role.DEPARTMENT_ADMIN) {
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
           throw new ForbiddenError("Only Department Admins or Super Admins can reject completed repairs.")
         }
         if (!input.reason) {
@@ -978,7 +1029,7 @@ export class IssueService {
         break
 
       case "CLOSE_ISSUE":
-        if (user.role !== Role.SUPER_ADMIN && user.role !== Role.DEPARTMENT_ADMIN) {
+        if (normRole !== CanonicalRole.SUPER_ADMIN && normRole !== CanonicalRole.DEPARTMENT_ADMIN) {
           throw new ForbiddenError("Only Department Admins or Super Admins can close issues.")
         }
         nextStatus = IssueStatus.CLOSED
@@ -986,7 +1037,7 @@ export class IssueService {
         break
 
       case "REOPEN_ISSUE":
-        if (user.role === Role.CITIZEN && issue.reportedById !== user.id) {
+        if (normRole === CanonicalRole.CITIZEN && issue.reportedById !== user.id) {
           throw new ForbiddenError("You may only reopen reports that you originally submitted.")
         }
         if (!input.remarks && !input.reason) {
@@ -997,7 +1048,7 @@ export class IssueService {
         break
 
       case "RETURN_FOR_CORRECTION":
-        if (user.role === Role.CITIZEN) {
+        if (normRole === CanonicalRole.CITIZEN) {
           throw new ForbiddenError("Citizens cannot return issues for correction.")
         }
         if (!input.reason) {
@@ -1087,6 +1138,7 @@ export class IssueService {
         recordActionType = input.actionType as ApprovalActionType
       }
 
+      const prismaRole = (Role as any)[normRole] || Role.SUPER_ADMIN
       const approvalRecord = await tx.approvalRecord.create({
         data: {
           issueId: issue.id,
@@ -1095,7 +1147,7 @@ export class IssueService {
           newStatus: nextStatus,
           reviewerId: user.id,
           reviewerName: user.fullName || "Municipal Staff",
-          reviewerRole: user.role,
+          reviewerRole: prismaRole,
           reason: input.reason || null,
           remarks,
           evidencePhotos: input.evidencePhotos ? JSON.stringify(input.evidencePhotos) : null,

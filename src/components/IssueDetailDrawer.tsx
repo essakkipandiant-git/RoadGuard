@@ -302,8 +302,10 @@ export default function IssueDetailDrawer({
                     className="drawer-main-photo"
                   />
                   <div className="photo-corner-tag">
-                    {issue.detection?.boxes && issue.detection.boxes.length > 0
-                      ? "AI DETECTED"
+                    {issue.detection?.boxes && issue.detection.boxes.length > 0 && (issue.detection.confidence || 0) >= 0.60
+                      ? "AI DETECTED (≥60%)"
+                      : issue.detection?.boxes && issue.detection.boxes.length > 0
+                      ? "LOW CONFIDENCE (<60%)"
                       : issue.detection?.status === "no_damage_found"
                       ? "NO ROAD DAMAGE DETECTED"
                       : "MANUAL CITIZEN REPORT"}

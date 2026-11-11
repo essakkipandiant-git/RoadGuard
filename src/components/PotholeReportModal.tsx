@@ -616,30 +616,60 @@ export default function PotholeReportModal({
       }
     }
 
-    // Step 3 Validation: Photo must be present and valid
+    // Step 3 Validation: Photo must pass genuine AI inspection with >= 60% confidence
     if (currentStep === 3 && nextStep > 3) {
       if (!selectedPhoto) {
-        setStepError("Please provide road evidence photography or select a quick sample.")
+        setStepError("Please provide road evidence photography.")
         return
       }
-      if (detectionResult?.status === "unrelated_image") {
+      if (isAnalyzing) {
+        setStepError("AI computer vision analysis is in progress. Please wait for inference to complete.")
+        return
+      }
+      if (!detectionResult) {
+        setStepError("Photograph has not been analyzed by RoadGuard AI. Please wait or upload a photograph.")
+        return
+      }
+      if (detectionResult.status === "low_confidence" || (detectionResult.confidence || 0) < 0.60) {
+        const confPercent = Math.round((detectionResult.confidence || 0) * 100)
         setStepError(
-          detectionResult.message ||
-            "This image does not appear to show road damage. Please upload a photograph of a pothole, road crack or damaged road surface.",
+          `Road damage was detected, but the confidence score (${confPercent}%) is below the required 60% threshold. Please upload a clearer photograph of the road damage.`
         )
         return
       }
-      if (detectionResult?.status === "blurry_image") {
+      if (detectionResult.status === "unrelated_image") {
         setStepError(
-          detectionResult.message ||
-            "The uploaded photograph appears blurry or lacks sufficient focus. Please upload a clearer photograph of the road damage.",
+          "This photograph does not appear to show road damage. Please upload a pothole or damaged road photograph."
         )
         return
       }
-      if (detectionResult?.status === "underexposed") {
+      if (detectionResult.status === "no_damage_found") {
         setStepError(
-          detectionResult.message ||
-            "The photograph is underexposed or too dark to assess road surface defects. Please capture the road damage in adequate lighting.",
+          "No supported road damage detected in this photograph. Please retake the photo ensuring the defect is centered and clearly visible."
+        )
+        return
+      }
+      if (detectionResult.status === "blurry_image") {
+        setStepError(
+          "The uploaded photograph appears blurry or lacks sufficient focus. Please upload a clearer photograph of the road damage."
+        )
+        return
+      }
+      if (detectionResult.status === "underexposed") {
+        setStepError(
+          "The photograph is underexposed or too dark to assess road surface defects. Please capture the road damage in adequate lighting."
+        )
+        return
+      }
+      if (detectionResult.status === "ai_unavailable") {
+        setStepError(
+          "AI inspection service is temporarily unavailable. Please retry verification before submitting."
+        )
+        return
+      }
+      if (detectionResult.status !== "detected") {
+        setStepError(
+          "Photograph failed automated AI inspection. Please upload a clear pothole photograph."
         )
         return
       }
@@ -661,6 +691,20 @@ export default function PotholeReportModal({
     if (!boundaryCheck.isInsideMumbai) {
       setStepError(boundaryCheck.message)
       setCurrentStep(2)
+      return
+    }
+
+    // Strict AI Image Submission Gate:
+    // Every citizen hazard report must have genuine AI defect detection with >= 0.60 confidence
+    if (
+      !detectionResult ||
+      detectionResult.status !== "detected" ||
+      (detectionResult.confidence || 0) < 0.60
+    ) {
+      setStepError(
+        "Report submission blocked: Uploaded photograph must pass genuine AI inspection with at least 60% road damage confidence. Please retake or upload a clear pothole photograph."
+      )
+      setCurrentStep(3)
       return
     }
 
@@ -1253,6 +1297,8 @@ export default function PotholeReportModal({
                           className={`live-dot ${
                             detectionResult?.status === "detected"
                               ? "bg-emerald-500"
+                              : detectionResult?.status === "low_confidence"
+                              ? "bg-amber-500"
                               : detectionResult?.status === "no_damage_found"
                               ? "bg-blue-500"
                               : detectionResult?.status === "unrelated_image"
@@ -1265,14 +1311,16 @@ export default function PotholeReportModal({
                         />
                         <span>
                           {detectionResult?.status === "detected"
-                            ? "AI DETECTED"
+                            ? "AI DETECTED (≥60%)"
+                            : detectionResult?.status === "low_confidence"
+                            ? `LOW CONFIDENCE (${Math.round((detectionResult.confidence || 0) * 100)}%)`
                             : detectionResult?.status === "no_damage_found"
                             ? "NO ROAD DAMAGE DETECTED"
                             : detectionResult?.status === "unrelated_image"
                             ? "UNRELATED IMAGE"
                             : detectionResult?.status === "blurry_image" ||
                               detectionResult?.status === "underexposed"
-                            ? "MANUAL VERIFICATION REQUIRED"
+                            ? "POOR IMAGE QUALITY"
                             : "AI INSPECTION UNAVAILABLE"}
                         </span>
                       </div>
@@ -1485,7 +1533,7 @@ export default function PotholeReportModal({
                               </div>
                               <p className="text-rose-700 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
-                                  "This image does not appear to show road damage. Please upload a photograph of a pothole, road crack or damaged road surface."}
+                                  "This photograph does not appear to show road damage. Please upload a pothole or damaged road photograph."}
                               </p>
                               {detectionResult.topPredictedClass && (
                                 <div className="text-[10px] font-mono text-rose-600 pt-0.5">
@@ -1495,6 +1543,19 @@ export default function PotholeReportModal({
                                   </span>
                                 </div>
                               )}
+                            </div>
+                          ) : detectionResult.status === "low_confidence" ? (
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                <span>
+                                  LOW CONFIDENCE ({(detectionResult.confidence * 100).toFixed(0)}%) · MINIMUM 60% REQUIRED
+                                </span>
+                              </div>
+                              <p className="text-amber-700 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "Road damage was detected, but the confidence score is below the 60% threshold required for automated submission. Please upload a clearer photograph."}
+                              </p>
                             </div>
                           ) : detectionResult.status === "blurry_image" ? (
                             <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
@@ -1522,22 +1583,31 @@ export default function PotholeReportModal({
                             <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1">
                               <div className="flex items-center gap-2 text-blue-900 font-bold">
                                 <Info size={15} className="shrink-0 text-blue-600" />
-                                <span>NO ROAD DAMAGE CONFIDENTLY IDENTIFIED</span>
+                                <span>NO ROAD DAMAGE DETECTED</span>
                               </div>
                               <p className="text-blue-800 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
-                                  "Road damage could not be confidently identified by the AI model. You may continue with manual verification and classification."}
+                                  "No supported road damage detected in this photograph. Please retake the photo ensuring the defect is centered and clearly visible."}
                               </p>
                             </div>
                           ) : detectionResult.status === "ai_unavailable" ? (
                             <div className="p-3 bg-stone-100 border border-stone-300 rounded-xl text-xs space-y-1">
-                              <div className="flex items-center gap-2 text-stone-800 font-bold">
-                                <Info size={15} className="shrink-0 text-stone-600" />
-                                <span>AI INSPECTION SERVICE OFFLINE</span>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-stone-800 font-bold">
+                                  <Info size={15} className="shrink-0 text-stone-600" />
+                                  <span>AI INSPECTION SERVICE OFFLINE</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => runInspection(selectedPhoto)}
+                                  className="px-2 py-1 text-[10px] font-bold font-mono text-stone-900 bg-stone-200 rounded hover:bg-stone-300 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  Retry
+                                </button>
                               </div>
                               <p className="text-stone-600 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
-                                  "AI inspection service is temporarily unavailable. Manual classification is enabled."}
+                                  "AI inspection service is temporarily unavailable. Please retry verification before submitting."}
                               </p>
                             </div>
                           ) : (
@@ -1588,14 +1658,29 @@ export default function PotholeReportModal({
                       <ArrowLeft size={14} />
                       <span>Back to Location</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => validateAndProceed(4)}
-                      className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px]"
-                    >
-                      <span>Continue to Damage Category</span>
-                      <ArrowRight size={14} />
-                    </button>
+                    <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        disabled={
+                          isAnalyzing ||
+                          !detectionResult ||
+                          detectionResult.status !== "detected" ||
+                          (detectionResult.confidence || 0) < 0.60
+                        }
+                        onClick={() => validateAndProceed(4)}
+                        className="button button--primary text-xs flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <span>Continue to Damage Category</span>
+                        <ArrowRight size={14} />
+                      </button>
+                      {(!detectionResult ||
+                        detectionResult.status !== "detected" ||
+                        (detectionResult.confidence || 0) < 0.60) && (
+                        <span className="text-[10px] text-[#687567] font-mono">
+                          Requires road damage detection with ≥ 60% AI confidence to proceed
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

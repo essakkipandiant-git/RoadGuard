@@ -46,6 +46,8 @@ export const createIssueSchema = z.object({
   wardId: z.string().uuid("Invalid Ward ID").optional().nullable(),
   departmentId: z.string().uuid("Invalid Department ID").optional().nullable(),
   photoUrl: z.string().max(1000, "Photo URL cannot exceed 1000 characters").optional().nullable(),
+  aiVerificationToken: z.string().max(4096, "AI verification token is too long").optional().nullable(),
+  imageHash: z.string().max(128, "Invalid image hash").optional().nullable(),
   forceDuplicate: z.boolean().optional().default(false),
 })
 

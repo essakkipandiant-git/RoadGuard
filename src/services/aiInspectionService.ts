@@ -270,11 +270,17 @@ export async function inspectRoadImage(
       topPredictedClass: serverResult.topPredictedClass,
       unrelatedClass: serverResult.unrelatedClass,
       message: serverResult.message,
+      verificationToken: serverResult.verificationToken,
+      imageHash: serverResult.imageHash,
+      isSubmissionAllowed:
+        serverResult.isSubmissionAllowed ??
+        (serverResult.status === "detected" && (serverResult.highestConfidence || 0) >= 0.60),
+      minimumConfidenceRequired: serverResult.minimumConfidenceRequired || 0.60,
     }
   } catch (err: any) {
     // If backend AI endpoint is unreachable, report honestly as ai_unavailable
     const inferenceTime = Math.round(performance.now() - startTime)
-    onProgress?.("AI service offline; enabling manual reporting...")
+    onProgress?.("AI service offline; reporting status honestly...")
 
     return {
       engine: "demo_fallback",
@@ -294,7 +300,9 @@ export async function inspectRoadImage(
       modelName: "RoadGuard-OfflineFallback",
       modelVersion: "v3.0",
       message:
-        "AI inspection service is temporarily offline. You may proceed with manual road defect classification for municipal review.",
+        "AI inspection service is temporarily offline. Automatic verification cannot proceed without genuine model inference.",
+      isSubmissionAllowed: false,
+      minimumConfidenceRequired: 0.60,
     }
   }
 }

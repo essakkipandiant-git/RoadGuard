@@ -55,6 +55,7 @@ import {
 import { apiClient, ApiUser, mapBackendRole, MunicipalMetadata } from "../services/apiClient"
 import { RoadIssueService } from "../services/roadIssueService"
 import { MUNICIPAL_PERSONAS } from "../constants/personas"
+import { normalizeRole } from "../utils/roleUtils"
 
 interface IssueManagementWorkspaceProps {
   isOpen: boolean
@@ -489,7 +490,7 @@ export default function IssueManagementWorkspace({
   const applyLocalAction = (currentIssue: RoadIssue, payload: any): RoadIssue => {
     const now = new Date().toISOString()
     const actorName = currentUser?.fullName || "System Administrator"
-    const actorRole = (currentUser?.role || "SUPER_ADMIN").toLowerCase() as any
+    const actorRole = normalizeRole(currentUser?.role || currentUserRole) || "SUPER_ADMIN"
     let targetStatus: IssueStatus = currentIssue.status
     let assignedInspectorId = currentIssue.assignedInspectorId
     let assignedInspectorName = currentIssue.assignedInspectorName

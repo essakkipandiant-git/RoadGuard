@@ -23,7 +23,11 @@ export class IssueController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const result = await IssueService.createIssue(req.user!.id, req.body as CreateIssueInput)
+      const result = await IssueService.createIssue(
+        req.user!.id,
+        req.body as CreateIssueInput,
+        req.user?.role,
+      )
 
       await AuditService.logAction({
         userId: req.user!.id,

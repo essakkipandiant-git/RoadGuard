@@ -653,13 +653,15 @@ export const apiClient = {
       description?: string
       damageCategory: string
       damageSeverity: string
-      depth?: number
+      depth?: number | null
       latitude: number
       longitude: number
       address: string
       roadClass?: string
       forceDuplicate?: boolean
-      photoUrl?: string
+      photoUrl?: string | null
+      aiVerificationToken?: string | null
+      imageHash?: string | null
     }) {
       const res = await request<{ issue: any }>("/issues", {
         method: "POST",
@@ -868,6 +870,7 @@ export const apiClient = {
         format: string
         storageProvider?: string
         folder?: string
+        imageHash?: string
       }>("/uploads/image", {
         method: "POST",
         body: formData,
@@ -947,7 +950,14 @@ export const apiClient = {
   // Real Computer Vision Defect Inference
   ai: {
     async inspectImage(fileOrDataUrl: File | Blob | string): Promise<{
-      status: "detected" | "no_damage_found" | "unrelated_image" | "blurry_image" | "underexposed" | "ai_unavailable"
+      status:
+        | "detected"
+        | "low_confidence"
+        | "no_damage_found"
+        | "unrelated_image"
+        | "blurry_image"
+        | "underexposed"
+        | "ai_unavailable"
       modelName: string
       modelVersion: string
       detectedClasses: string[]
@@ -970,6 +980,10 @@ export const apiClient = {
       unrelatedClass?: string
       inferenceDurationMs: number
       message: string
+      imageHash?: string
+      verificationToken?: string
+      isSubmissionAllowed?: boolean
+      minimumConfidenceRequired?: number
     }> {
       let body: any
       let isForm = false

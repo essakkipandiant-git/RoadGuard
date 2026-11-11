@@ -18,6 +18,7 @@ export interface UploadResult {
   height?: number
   storageProvider: "cloudinary" | "local_storage"
   folder: string
+  imageHash?: string
 }
 
 export type UploadCategory = "pothole-reports" | "repair-evidence" | "inspection-evidence"
@@ -47,6 +48,7 @@ export class ImageService {
     const targetFolder = options?.folder || `roadguard/${folderCategory}`
     const uniqueSuffix = crypto.randomUUID().slice(0, 10)
     const assetId = options?.publicId || `rg_${folderCategory.replace(/[^a-z0-9]/gi, "_")}_${Date.now()}_${uniqueSuffix}`
+    const imageHash = crypto.createHash("sha256").update(file.buffer).digest("hex")
 
     // 1. Cloudinary upload if configured
     if (isCloudinaryConfigured) {
@@ -75,6 +77,7 @@ export class ImageService {
               height: result.height,
               storageProvider: "cloudinary",
               folder: targetFolder,
+              imageHash,
             })
           },
         )
@@ -104,6 +107,7 @@ export class ImageService {
       bytes: file.size,
       storageProvider: "local_storage",
       folder: targetFolder,
+      imageHash,
     }
   }
 

@@ -24,7 +24,22 @@ export type IssueStatus =
   | "reopened"
   | "rejected"
 
-export type UserRole = "citizen" | "authority" | "crew" | "inspector"
+export type CanonicalRole = "SUPER_ADMIN" | "DEPARTMENT_ADMIN" | "FIELD_ADMIN" | "CITIZEN"
+
+export type UserRole =
+  | "citizen"
+  | "authority"
+  | "crew"
+  | "inspector"
+  | "SUPER_ADMIN"
+  | "DEPARTMENT_ADMIN"
+  | "FIELD_ADMIN"
+  | "CITIZEN"
+  | "super_admin"
+  | "dept_admin"
+  | "department_admin"
+  | "field_inspector"
+  | "field_admin"
 
 export interface DetectionBox {
   id: string
@@ -57,12 +72,23 @@ export interface AIDetectionResult {
   rawInferenceTimeMs: number
   isUserAdjusted?: boolean
   notes?: string
-  status?: "detected" | "no_damage_found" | "unrelated_image" | "blurry_image" | "underexposed" | "ai_unavailable"
+  status?:
+    | "detected"
+    | "low_confidence"
+    | "no_damage_found"
+    | "unrelated_image"
+    | "blurry_image"
+    | "underexposed"
+    | "ai_unavailable"
   message?: string
   modelName?: string
   modelVersion?: string
   topPredictedClass?: string
   unrelatedClass?: string
+  verificationToken?: string
+  imageHash?: string
+  isSubmissionAllowed?: boolean
+  minimumConfidenceRequired?: number
 }
 
 export interface RiskFactors {

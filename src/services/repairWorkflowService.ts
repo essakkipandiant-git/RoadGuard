@@ -1,10 +1,12 @@
 import {
+  CanonicalRole,
   IssueStatus,
   RepairVerificationRecord,
   RoadIssue,
   StatusHistoryItem,
   UserRole,
 } from "../types/roadguard"
+import { normalizeRole } from "../utils/roleUtils"
 
 /**
  * Valid state transitions mapping: fromStatus -> array of allowed toStatuses.
@@ -29,14 +31,107 @@ export const ALLOWED_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
 
 /**
  * Role permissions matrix for initiating transitions.
+ * Supports both canonical roles and backwards-compatible legacy aliases.
  */
-export const ROLE_TRANSITION_PERMISSIONS: Record<UserRole, {
+export const ROLE_TRANSITION_PERMISSIONS: Record<string, {
   allowedFrom: IssueStatus[]
   allowedTo: IssueStatus[]
 }> = {
-  citizen: {
-    allowedFrom: ["verified_repaired"],
+  // Canonical Roles
+  SUPER_ADMIN: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+    allowedTo: [
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+  },
+  DEPARTMENT_ADMIN: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "reopened",
+      "rejected",
+    ],
+    allowedTo: [
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+  },
+  FIELD_ADMIN: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+    ],
+    allowedTo: [
+      "under_review",
+      "in_progress",
+      "awaiting_verification",
+      "verified_repaired",
+      "reopened",
+      "rejected",
+    ],
+  },
+  CITIZEN: {
+    allowedFrom: ["verified_repaired", "repair_completed", "closed", "rejected"],
     allowedTo: ["reopened"],
+  },
+
+  // Backward-compatible Legacy Aliases
+  super_admin: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+    allowedTo: [
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
   },
   authority: {
     allowedFrom: [
@@ -55,13 +150,65 @@ export const ROLE_TRANSITION_PERMISSIONS: Record<UserRole, {
       "reopened",
     ],
   },
+  dept_admin: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "reopened",
+      "rejected",
+    ],
+    allowedTo: [
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+  },
+  department_admin: {
+    allowedFrom: [
+      "reported",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "repair_completed",
+      "reopened",
+      "rejected",
+    ],
+    allowedTo: [
+      "under_review",
+      "assigned",
+      "in_progress",
+      "awaiting_verification",
+      "verified_repaired",
+      "closed",
+      "reopened",
+      "rejected",
+    ],
+  },
   crew: {
     allowedFrom: ["assigned", "in_progress"],
     allowedTo: ["in_progress", "awaiting_verification"],
   },
+  field_inspector: {
+    allowedFrom: ["reported", "under_review", "awaiting_verification"],
+    allowedTo: ["under_review", "verified_repaired", "reopened", "rejected"],
+  },
   inspector: {
     allowedFrom: ["reported", "under_review", "awaiting_verification"],
     allowedTo: ["under_review", "verified_repaired", "reopened", "rejected"],
+  },
+  citizen: {
+    allowedFrom: ["verified_repaired"],
+    allowedTo: ["reopened"],
   },
 }
 
@@ -71,7 +218,7 @@ export const ROLE_TRANSITION_PERMISSIONS: Record<UserRole, {
 export function validateStatusTransition(
   currentStatus: IssueStatus,
   targetStatus: IssueStatus,
-  role: UserRole,
+  role: UserRole | string,
 ): { isValid: boolean; error?: string } {
   // Check state machine transitions
   const allowedTargets = ALLOWED_TRANSITIONS[currentStatus] || []
@@ -84,8 +231,16 @@ export function validateStatusTransition(
     }
   }
 
-  // Check role authorization
-  const rolePermissions = ROLE_TRANSITION_PERMISSIONS[role]
+  // Canonical role normalization
+  const canonical = normalizeRole(role)
+  if (!canonical) {
+    return { isValid: false, error: `Unknown user role: ${role}` }
+  }
+
+  // Check role authorization via canonical or alias entry
+  const rolePermissions =
+    ROLE_TRANSITION_PERMISSIONS[canonical] ||
+    ROLE_TRANSITION_PERMISSIONS[role as string]
   if (!rolePermissions) {
     return { isValid: false, error: `Unknown user role: ${role}` }
   }
@@ -96,7 +251,7 @@ export function validateStatusTransition(
   if (!canActFromCurrent || !canActToTarget) {
     return {
       isValid: false,
-      error: `Role "${role}" is not authorized to transition an issue from "${currentStatus}" to "${targetStatus}".`,
+      error: `Role "${canonical}" is not authorized to transition an issue from "${currentStatus}" to "${targetStatus}".`,
     }
   }
 

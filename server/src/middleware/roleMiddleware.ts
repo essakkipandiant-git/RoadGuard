@@ -3,45 +3,56 @@ import { Role, IssueStatus } from "@prisma/client"
 import { ForbiddenError, UnauthorizedError, BadRequestError } from "../utils/errors"
 import { authenticate } from "./authMiddleware"
 import { prisma } from "../config/prisma"
+import { CanonicalRole, normalizeRole } from "../utils/roleUtils"
 
 /**
  * Role numeric hierarchy for rank comparison:
  * CITIZEN (1) < FIELD_ADMIN / INSPECTOR (2) < DEPARTMENT_ADMIN (3) < SUPER_ADMIN (4)
  */
-export const ROLE_HIERARCHY: Record<Role, number> = {
-  [Role.CITIZEN]: 1,
-  [Role.FIELD_ADMIN]: 2,
+export const ROLE_HIERARCHY: Record<string, number> = {
+  [CanonicalRole.CITIZEN]: 1,
+  [CanonicalRole.FIELD_ADMIN]: 2,
   [Role.INSPECTOR]: 2, // Legacy alias mapped to FIELD_ADMIN
-  [Role.DEPARTMENT_ADMIN]: 3,
-  [Role.SUPER_ADMIN]: 4,
+  [CanonicalRole.DEPARTMENT_ADMIN]: 3,
+  [CanonicalRole.SUPER_ADMIN]: 4,
 }
 
 /**
  * Helper to check if a user possesses one of the allowed roles.
  */
-export function hasRole(userRole: Role, ...allowedRoles: Role[]): boolean {
-  return allowedRoles.includes(userRole)
+export function hasRole(userRole: unknown, ...allowedRoles: (Role | CanonicalRole | string)[]): boolean {
+  const normUser = normalizeRole(userRole)
+  if (!normUser) return false
+  const allowed = allowedRoles.map((r) => normalizeRole(r)).filter(Boolean)
+  return allowed.includes(normUser)
 }
 
 /**
  * Helper to check if a user role meets or exceeds a minimum hierarchical rank.
  */
-export function hasMinRole(userRole: Role, minRole: Role): boolean {
-  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[minRole]
+export function hasMinRole(userRole: unknown, minRole: Role | CanonicalRole | string): boolean {
+  const normUser = normalizeRole(userRole)
+  const normMin = normalizeRole(minRole)
+  if (!normUser || !normMin) return false
+  return ROLE_HIERARCHY[normUser] >= ROLE_HIERARCHY[normMin]
 }
 
 /**
- * Helper to check if a user has municipal staff privileges (Inspector or above).
+ * Helper to check if a user has municipal staff privileges (Inspector/Field Admin or above).
  */
-export function isStaffRole(role: Role): boolean {
-  return role === Role.FIELD_ADMIN || role === Role.INSPECTOR || role === Role.DEPARTMENT_ADMIN || role === Role.SUPER_ADMIN
+export function isStaffRole(role: unknown): boolean {
+  const norm = normalizeRole(role)
+  if (!norm) return false
+  return norm === CanonicalRole.FIELD_ADMIN || norm === CanonicalRole.DEPARTMENT_ADMIN || norm === CanonicalRole.SUPER_ADMIN
 }
 
 /**
  * Helper to check if a user has administrative privileges (Department Admin or Super Admin).
  */
-export function isAdminRole(role: Role): boolean {
-  return role === Role.DEPARTMENT_ADMIN || role === Role.SUPER_ADMIN
+export function isAdminRole(role: unknown): boolean {
+  const norm = normalizeRole(role)
+  if (!norm) return false
+  return norm === CanonicalRole.DEPARTMENT_ADMIN || norm === CanonicalRole.SUPER_ADMIN
 }
 
 /**
@@ -62,46 +73,49 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
  * Validates whether a specific role is authorized to transition an issue from currentStatus to targetStatus.
  */
 export function isStatusTransitionAllowed(
-  role: Role,
+  role: unknown,
   currentStatus: IssueStatus,
   targetStatus: IssueStatus,
 ): boolean {
+  const normRole = normalizeRole(role)
+  if (!normRole) return false
+
   const allowedNext = ALLOWED_STATUS_TRANSITIONS[currentStatus] || []
   if (!allowedNext.includes(targetStatus)) {
     return false
   }
 
   // SUPER_ADMIN has master override for any valid lifecycle transition
-  if (role === Role.SUPER_ADMIN) {
+  if (normRole === CanonicalRole.SUPER_ADMIN) {
     return true
   }
 
   switch (targetStatus) {
     case IssueStatus.UNDER_REVIEW:
       // Inspectors & Dept Admins can start triage; Citizens can request reopen on completed/closed/rejected
-      if (role === Role.CITIZEN) {
+      if (normRole === CanonicalRole.CITIZEN) {
         return (
           currentStatus === IssueStatus.REPAIR_COMPLETED ||
           currentStatus === IssueStatus.CLOSED ||
           currentStatus === IssueStatus.REJECTED
         )
       }
-      return role === Role.FIELD_ADMIN || role === Role.INSPECTOR || role === Role.DEPARTMENT_ADMIN
+      return normRole === CanonicalRole.FIELD_ADMIN || normRole === CanonicalRole.DEPARTMENT_ADMIN
 
     case IssueStatus.VERIFIED:
     case IssueStatus.REJECTED:
-      // Only trained inspectors, field admins or department admins can verify defects or reject false reports
-      return role === Role.FIELD_ADMIN || role === Role.INSPECTOR || role === Role.DEPARTMENT_ADMIN
+      // Only trained field admins, inspectors or department admins can verify defects or reject false reports
+      return normRole === CanonicalRole.FIELD_ADMIN || normRole === CanonicalRole.DEPARTMENT_ADMIN
 
     case IssueStatus.ASSIGNED:
       // Only Department Admins can assign work orders & contractors
-      return role === Role.DEPARTMENT_ADMIN
+      return normRole === CanonicalRole.DEPARTMENT_ADMIN
 
     case IssueStatus.IN_PROGRESS:
     case IssueStatus.REPAIR_COMPLETED:
     case IssueStatus.CLOSED:
       // Field admins, Inspectors and Department Admins can progress and close repairs
-      return role === Role.DEPARTMENT_ADMIN || role === Role.FIELD_ADMIN || role === Role.INSPECTOR
+      return normRole === CanonicalRole.DEPARTMENT_ADMIN || normRole === CanonicalRole.FIELD_ADMIN
 
     default:
       return false
@@ -132,7 +146,10 @@ export function requireRole(...allowedRoles: Role[]) {
         return nxt(new UnauthorizedError("Authentication required. Please log in."))
       }
 
-      if (!allowedRoles.includes(request.user.role)) {
+      const normUser = normalizeRole(request.user.role)
+      const allowedNorm = allowedRoles.map((r) => normalizeRole(r) || r)
+
+      if (!normUser || !allowedNorm.includes(normUser as any)) {
         return nxt(
           new ForbiddenError(
             `Access denied. Role '${request.user.role}' is not authorized to perform this action.`,
@@ -167,7 +184,7 @@ export function requireMinRole(minRole: Role) {
         return nxt(new UnauthorizedError("Authentication required. Please log in."))
       }
 
-      if (ROLE_HIERARCHY[request.user.role] < ROLE_HIERARCHY[minRole]) {
+      if (!hasMinRole(request.user.role, minRole)) {
         return nxt(
           new ForbiddenError(
             `Access denied. Requires at least '${minRole}' role rank.`,

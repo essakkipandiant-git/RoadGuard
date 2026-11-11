@@ -1,7 +1,9 @@
 import fs from "fs"
 import path from "path"
+import crypto from "crypto"
 import sharp from "sharp"
 import { logger } from "../utils/logger"
+import { env } from "../config/env"
 
 // Safely import onnxruntime-node
 let ort: typeof import("onnxruntime-node") | null = null
@@ -15,11 +17,19 @@ try {
 
 export type AIDetectionStatus =
   | "detected"
+  | "low_confidence"
   | "no_damage_found"
   | "unrelated_image"
   | "blurry_image"
   | "underexposed"
   | "ai_unavailable"
+
+/**
+ * Centrally configurable minimum defect detection confidence required for automated submission.
+ */
+export const MIN_DEFECT_CONFIDENCE_THRESHOLD = Number(
+  process.env.ROADGUARD_MIN_DEFECT_CONFIDENCE || 0.60
+)
 
 export interface DetectionBoxResult {
   id: string
@@ -50,6 +60,16 @@ export interface SceneClassificationResult {
   unrelatedLabel: string
 }
 
+export interface InspectionVerificationPayload {
+  imageHash: string
+  status: AIDetectionStatus
+  highestConfidence: number
+  detectedClasses: string[]
+  detectionsCount: number
+  timestamp: number
+  expiresAt: number
+}
+
 export interface AIDetectionResponse {
   status: AIDetectionStatus
   modelName: string
@@ -65,6 +85,10 @@ export interface AIDetectionResponse {
   unrelatedClass?: string
   inferenceDurationMs: number
   message: string
+  imageHash: string
+  verificationToken?: string
+  isSubmissionAllowed: boolean
+  minimumConfidenceRequired: number
 }
 
 /**
@@ -102,6 +126,183 @@ export class AiDetectionService {
   private static initError: Error | null = null
   private static activeInferences = 0
   private static readonly MAX_CONCURRENT = 2
+  private static consumedTokens = new Set<string>()
+  private static analysisRegistry = new Map<string, {
+    imageHash: string
+    status: AIDetectionStatus
+    highestConfidence: number
+    detectedClasses: string[]
+    detections: DetectionBoxResult[]
+    severity: "critical" | "high" | "moderate" | "low"
+    timestamp: number
+    expiresAt: number
+    isConsumed: boolean
+  }>()
+
+  /**
+   * Cryptographically signs an AI inspection verification token using HMAC-SHA256.
+   * Binds the inference result to the SHA-256 hash of the analyzed image bytes.
+   */
+  public static generateVerificationToken(payload: InspectionVerificationPayload): string {
+    const dataString = Buffer.from(JSON.stringify(payload)).toString("base64url")
+    const secret = env.JWT_SECRET || "roadguard-ai-secret-key-32chars-min!!"
+    const signature = crypto
+      .createHmac("sha256", secret)
+      .update(dataString)
+      .digest("base64url")
+    return `${dataString}.${signature}`
+  }
+
+  /**
+   * Cryptographically verifies an AI inspection token.
+   * Enforces HMAC signature integrity, expiration, and image hash binding.
+   */
+  public static verifyInspectionToken(
+    token: string,
+    expectedImageHash?: string,
+  ): { isValid: boolean; payload?: InspectionVerificationPayload; error?: string } {
+    if (!token || typeof token !== "string" || !token.includes(".")) {
+      return { isValid: false, error: "Invalid or missing AI verification token." }
+    }
+
+    const [dataString, signature] = token.split(".")
+    if (!dataString || !signature) {
+      return { isValid: false, error: "Malformed AI verification token format." }
+    }
+
+    const secret = env.JWT_SECRET || "roadguard-ai-secret-key-32chars-min!!"
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(dataString)
+      .digest("base64url")
+
+    const sigBuf = Buffer.from(signature)
+    const expBuf = Buffer.from(expectedSignature)
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return { isValid: false, error: "AI verification signature mismatch. Client token tampering detected." }
+    }
+
+    let payload: InspectionVerificationPayload
+    try {
+      payload = JSON.parse(Buffer.from(dataString, "base64url").toString("utf8"))
+    } catch {
+      return { isValid: false, error: "Corrupted AI verification token payload." }
+    }
+
+    if (Date.now() > payload.expiresAt) {
+      return { isValid: false, error: "AI verification token has expired. Please re-inspect the road photograph." }
+    }
+
+    if (expectedImageHash && payload.imageHash !== expectedImageHash) {
+      return { isValid: false, error: "AI verification token does not match the submitted photograph (token reuse blocked)." }
+    }
+
+    if (this.consumedTokens.has(token)) {
+      return { isValid: false, error: "AI verification token has already been consumed for another report." }
+    }
+
+    return { isValid: true, payload }
+  }
+
+  /**
+   * Authoritative gate check: Verifies that a report submission meets all genuine AI requirements.
+   * Enforces:
+   * 1. Token cryptographic authenticity & non-expired state
+   * 2. Single-use consumption
+   * 3. Detected status
+   * 4. Highest confidence >= MIN_DEFECT_CONFIDENCE_THRESHOLD (0.60)
+   */
+  public static verifyInspectionForSubmission(params: {
+    token?: string | null
+    imageHash?: string | null
+    photoUrl?: string | null
+  }): { isApproved: boolean; reason?: string; highestConfidence?: number; detectedClasses?: string[] } {
+    // 1. If cryptographically signed token is provided:
+    if (params.token) {
+      const verified = this.verifyInspectionToken(params.token, params.imageHash || undefined)
+      if (!verified.isValid || !verified.payload) {
+        return { isApproved: false, reason: verified.error }
+      }
+
+      if (verified.payload.status !== "detected") {
+        return {
+          isApproved: false,
+          reason: `Photograph failed automated inspection (status: ${verified.payload.status}).`,
+        }
+      }
+
+      if (verified.payload.highestConfidence < MIN_DEFECT_CONFIDENCE_THRESHOLD) {
+        return {
+          isApproved: false,
+          reason: `Defect confidence (${(verified.payload.highestConfidence * 100).toFixed(1)}%) is below the required ${(MIN_DEFECT_CONFIDENCE_THRESHOLD * 100).toFixed(0)}% threshold.`,
+        }
+      }
+
+      // Mark token as consumed
+      this.consumedTokens.add(params.token)
+      return {
+        isApproved: true,
+        highestConfidence: verified.payload.highestConfidence,
+        detectedClasses: verified.payload.detectedClasses,
+      }
+    }
+
+    // 2. If imageHash is provided, query internal server analysis registry:
+    if (params.imageHash) {
+      const record = this.analysisRegistry.get(params.imageHash)
+      if (!record) {
+        return {
+          isApproved: false,
+          reason: "No server-side AI inspection record found for this photograph.",
+        }
+      }
+
+      if (Date.now() > record.expiresAt) {
+        return { isApproved: false, reason: "Inspection record has expired." }
+      }
+
+      if (record.isConsumed) {
+        return {
+          isApproved: false,
+          reason: "This inspection record was already consumed for another report.",
+        }
+      }
+
+      if (record.status !== "detected") {
+        return {
+          isApproved: false,
+          reason: `Photograph failed automated inspection (status: ${record.status}).`,
+        }
+      }
+
+      if (record.highestConfidence < MIN_DEFECT_CONFIDENCE_THRESHOLD) {
+        return {
+          isApproved: false,
+          reason: `Defect confidence (${(record.highestConfidence * 100).toFixed(1)}%) is below the required ${(MIN_DEFECT_CONFIDENCE_THRESHOLD * 100).toFixed(0)}% threshold.`,
+        }
+      }
+
+      record.isConsumed = true
+      return {
+        isApproved: true,
+        highestConfidence: record.highestConfidence,
+        detectedClasses: record.detectedClasses,
+      }
+    }
+
+    return {
+      isApproved: false,
+      reason: "Missing AI verification token or image analysis record. Genuine road photograph inspection required.",
+    }
+  }
+
+  /**
+   * Resets internal analysis registry and consumed tokens (used for test isolation).
+   */
+  public static resetAnalysisRegistryForTests(): void {
+    this.consumedTokens.clear()
+    this.analysisRegistry.clear()
+  }
 
   public static getSubsystemStatus() {
     const mem = process.memoryUsage()
@@ -490,11 +691,21 @@ export class AiDetectionService {
    */
   public static async inspectRoadPhotograph(imageBuffer: Buffer): Promise<AIDetectionResponse> {
     const startTime = Date.now()
+    const imageHash = crypto.createHash("sha256").update(imageBuffer).digest("hex")
     this.activeInferences++
 
     try {
       const initialized = await this.initialize()
       if (!initialized) {
+        const token = this.generateVerificationToken({
+          imageHash,
+          status: "ai_unavailable",
+          highestConfidence: 0,
+          detectedClasses: [],
+          detectionsCount: 0,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        })
         return {
           status: "ai_unavailable",
           modelName: "RoadGuard-FallbackEngine",
@@ -507,7 +718,11 @@ export class AiDetectionService {
           depthNote: "Physical depth requires manual measurement.",
           inferenceDurationMs: Date.now() - startTime,
           message:
-            "AI inspection service is not configured or currently offline. You may proceed with manual road damage classification for municipal review.",
+            "AI inspection service is temporarily unavailable. Please retry verification before submitting.",
+          imageHash,
+          verificationToken: token,
+          isSubmissionAllowed: false,
+          minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
         }
       }
 
@@ -515,6 +730,15 @@ export class AiDetectionService {
       const quality = await this.computeQualityMetrics(imageBuffer)
 
       if (quality.meanLuminance < 16 && quality.maxLuminance < 40) {
+        const token = this.generateVerificationToken({
+          imageHash,
+          status: "underexposed",
+          highestConfidence: 0,
+          detectedClasses: [],
+          detectionsCount: 0,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        })
         return {
           status: "underexposed",
           modelName: "RoadGuard-ImageQualityValidator",
@@ -528,10 +752,23 @@ export class AiDetectionService {
           inferenceDurationMs: Date.now() - startTime,
           message:
             "The photograph is underexposed or too dark to assess road surface defects. Please capture the road damage in adequate lighting.",
+          imageHash,
+          verificationToken: token,
+          isSubmissionAllowed: false,
+          minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
         }
       }
 
       if (quality.laplacianVariance < 18) {
+        const token = this.generateVerificationToken({
+          imageHash,
+          status: "blurry_image",
+          highestConfidence: 0,
+          detectedClasses: [],
+          detectionsCount: 0,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        })
         return {
           status: "blurry_image",
           modelName: "RoadGuard-ImageQualityValidator",
@@ -545,6 +782,10 @@ export class AiDetectionService {
           inferenceDurationMs: Date.now() - startTime,
           message:
             "The uploaded photograph appears blurry or lacks sufficient focus. Please upload a clearer photograph of the road damage.",
+          imageHash,
+          verificationToken: token,
+          isSubmissionAllowed: false,
+          minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
         }
       }
 
@@ -564,6 +805,15 @@ export class AiDetectionService {
           scene.isUnrelatedManufactured ||
           scene.unrelatedScore > 0.16)
       ) {
+        const token = this.generateVerificationToken({
+          imageHash,
+          status: "unrelated_image",
+          highestConfidence: 0,
+          detectedClasses: [],
+          detectionsCount: 0,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        })
         return {
           status: "unrelated_image",
           modelName: "MobileNetV4-SceneValidator",
@@ -578,13 +828,20 @@ export class AiDetectionService {
           depthNote: "Non-road photograph contains no asphalt defects.",
           inferenceDurationMs: duration,
           message:
-            "This image does not appear to show road damage. Please upload a photograph of a pothole, road crack or damaged road surface.",
+            "This photograph does not appear to show road damage. Please upload a pothole or damaged road photograph.",
+          imageHash,
+          verificationToken: token,
+          isSubmissionAllowed: false,
+          minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
         }
       }
 
       // Step 4: Evaluate genuine detections
       if (detections.length > 0) {
         const topConfidence = Math.max(...detections.map((d) => d.confidence))
+        const isApprovedConfidence = topConfidence >= MIN_DEFECT_CONFIDENCE_THRESHOLD
+        const status: AIDetectionStatus = isApprovedConfidence ? "detected" : "low_confidence"
+
         const severity =
           topConfidence >= 0.7 ? "critical" : topConfidence >= 0.55 ? "high" : "moderate"
 
@@ -597,26 +854,82 @@ export class AiDetectionService {
           logger.warn("Could not composite annotated image overlay", { error: annotErr?.message })
         }
 
+        const message = isApprovedConfidence
+          ? `Successfully identified ${detections.length} road cavity region${
+              detections.length > 1 ? "s" : ""
+            } with ${(topConfidence * 100).toFixed(0)}% genuine model confidence.`
+          : `Road damage was detected, but the confidence score (${(topConfidence * 100).toFixed(
+              0,
+            )}%) is below the required ${(MIN_DEFECT_CONFIDENCE_THRESHOLD * 100).toFixed(
+              0,
+            )}% threshold. Please upload a clearer photograph.`
+
+        const verificationToken = this.generateVerificationToken({
+          imageHash,
+          status,
+          highestConfidence: topConfidence,
+          detectedClasses: ["cavity"],
+          detectionsCount: detections.length,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+        })
+
+        this.analysisRegistry.set(imageHash, {
+          imageHash,
+          status,
+          highestConfidence: topConfidence,
+          detectedClasses: ["cavity"],
+          detections,
+          severity,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000,
+          isConsumed: false,
+        })
+
         return {
-          status: "detected",
+          status,
           modelName: "YOLOv8n-Pothole-ONNX",
           modelVersion: "v8.0.21-rdd",
           detectedClasses: ["cavity"],
           detections,
           highestConfidence: topConfidence,
           severity,
-          depthEstimateMm: null, // Monocular 2D images cannot determine physical depth
+          depthEstimateMm: null,
           depthNote:
             "Physical depth cannot be determined from 2D imagery. Requires on-site depth gauge measurement by municipal field crew.",
           annotatedImageBase64,
           inferenceDurationMs: duration,
-          message: `Successfully identified ${detections.length} road cavity region${
-            detections.length > 1 ? "s" : ""
-          } via genuine model inference.`,
+          message,
+          imageHash,
+          verificationToken,
+          isSubmissionAllowed: isApprovedConfidence,
+          minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
         }
       }
 
       // Step 5: Road surface detected, but no confident pothole defects found
+      const cleanRoadToken = this.generateVerificationToken({
+        imageHash,
+        status: "no_damage_found",
+        highestConfidence: 0,
+        detectedClasses: [],
+        detectionsCount: 0,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 30 * 60 * 1000,
+      })
+
+      this.analysisRegistry.set(imageHash, {
+        imageHash,
+        status: "no_damage_found",
+        highestConfidence: 0,
+        detectedClasses: [],
+        detections: [],
+        severity: "low",
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 30 * 60 * 1000,
+        isConsumed: false,
+      })
+
       return {
         status: "no_damage_found",
         modelName: "YOLOv8n-Pothole-ONNX",
@@ -629,10 +942,23 @@ export class AiDetectionService {
         depthNote: "No road damage detected for physical depth measurement.",
         inferenceDurationMs: duration,
         message:
-          "Road damage could not be confidently identified by the AI model. Please review the image or continue with manual verification if permitted.",
+          "Road damage could not be confidently identified in this photograph. Please retake the photo ensuring the defect is centered and clearly visible, or request manual municipal review.",
+        imageHash,
+        verificationToken: cleanRoadToken,
+        isSubmissionAllowed: false,
+        minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
       }
     } catch (err: any) {
       logger.error("Error during AI road image inspection", { error: err?.message, stack: err?.stack })
+      const errorToken = this.generateVerificationToken({
+        imageHash,
+        status: "ai_unavailable",
+        highestConfidence: 0,
+        detectedClasses: [],
+        detectionsCount: 0,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + 30 * 60 * 1000,
+      })
       return {
         status: "ai_unavailable",
         modelName: "RoadGuard-FallbackEngine",
@@ -645,7 +971,11 @@ export class AiDetectionService {
         depthNote: "Physical depth requires manual measurement.",
         inferenceDurationMs: Date.now() - startTime,
         message:
-          "AI inspection service is not configured or currently offline. You may proceed with manual road damage classification for municipal review.",
+          "AI inspection service is temporarily unavailable. Please retry verification before submitting.",
+        imageHash,
+        verificationToken: errorToken,
+        isSubmissionAllowed: false,
+        minimumConfidenceRequired: MIN_DEFECT_CONFIDENCE_THRESHOLD,
       }
     } finally {
       this.activeInferences = Math.max(0, this.activeInferences - 1)
