@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from "react"
 import {
   Activity,
+  AlertCircle,
   AlertOctagon,
   AlertTriangle,
   ArrowDownRight,
@@ -14,9 +15,11 @@ import {
   Edit2,
   Eye,
   FileText,
+  FolderOpen,
   Globe,
   HardHat,
   HelpCircle,
+  ImageIcon,
   Info,
   Layers,
   Loader2,
@@ -29,6 +32,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   ThumbsUp,
+  Trash2,
   Upload,
   Waves,
   X,
@@ -244,7 +248,23 @@ export default function PotholeReportModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedReport, setSubmittedReport] = useState<RoadIssue | null>(null)
 
+  // Camera & File Picker Refs
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+
+  // Cloudinary & Storage State Machine
+  type ImageUploadState = "idle" | "validating" | "uploading" | "completed" | "error"
+  const [imageUploadStatus, setImageUploadStatus] = useState<ImageUploadState>("idle")
+  const [uploadPercent, setUploadPercent] = useState<number>(0)
+  const [remoteImageUrl, setRemoteImageUrl] = useState<string | null>(null)
+  const [imageMetadata, setImageMetadata] = useState<{
+    name: string
+    sizeKb: number
+    format: string
+    storageProvider?: "cloudinary" | "local_storage"
+  } | null>(null)
+
   const dialogRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
@@ -444,26 +464,84 @@ export default function PotholeReportModal({
     setStepError(null)
   }
 
-  // Photo handlers
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Photo & Cloudinary Handlers
+  const uploadPhotoToCloud = async (file: File) => {
+    try {
+      setImageUploadStatus("uploading")
+      setUploadPercent(15)
+
+      const timer = setInterval(() => {
+        setUploadPercent((prev) => (prev < 85 ? prev + 15 : prev))
+      }, 200)
+
+      const res = await apiClient.uploads.uploadImage(file, "pothole-reports")
+      clearInterval(timer)
+      setUploadPercent(100)
+
+      if (res && (res.imageUrl || res.url)) {
+        const finalUrl = res.imageUrl || res.url
+        setRemoteImageUrl(finalUrl)
+        setImageUploadStatus("completed")
+        setImageMetadata((prev) =>
+          prev
+            ? {
+                ...prev,
+                storageProvider: res.storageProvider === "cloudinary" ? "cloudinary" : "local_storage",
+              }
+            : null,
+        )
+      } else {
+        setImageUploadStatus("completed")
+      }
+    } catch (err: any) {
+      console.warn("Cloud image upload fell back to local storage:", err)
+      setImageUploadStatus("error")
+      setUploadError("Image preserved locally on device. Will upload to city database upon transmission.")
+    }
+  }
+
+  const handlePhotoSelected = async (file: File, source: "camera" | "gallery") => {
+    setImageUploadStatus("validating")
+    setUploadError(null)
 
     const validation = validateImageFile(file)
     if (!validation.isValid) {
-      setUploadError(validation.error || "Invalid file format or size.")
+      setImageUploadStatus("error")
+      setUploadError(
+        validation.error ||
+          "Invalid file format or size. Only JPG, PNG, and WebP up to 10MB are permitted.",
+      )
       return
     }
 
     setPhotoFile(file)
+    setImageMetadata({
+      name: source === "camera" ? `camera_capture_${Date.now()}.jpg` : file.name,
+      sizeKb: Math.round(file.size / 1024),
+      format: file.type.split("/")[1]?.toUpperCase() || "JPG",
+    })
+
     const objectUrl = URL.createObjectURL(file)
     setSelectedPhoto(objectUrl)
     runInspection(file)
+
+    // Upload to organized folder in Cloudinary
+    await uploadPhotoToCloud(file)
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handlePhotoSelected(file, "gallery")
   }
 
   const handleRemovePhoto = () => {
     setSelectedPhoto("/images/detection_asphalt.jpg")
     setPhotoFile(null)
+    setRemoteImageUrl(null)
+    setImageMetadata(null)
+    setImageUploadStatus("idle")
+    setUploadPercent(0)
     setDetectionResult(null)
     runInspection("/images/detection_asphalt.jpg")
   }
@@ -616,8 +694,8 @@ export default function PotholeReportModal({
         address: activeLocation.address,
         roadName: activeLocation.road || activeLocation.address.split(",")[0],
         city: activeLocation.city || "Mumbai",
-        originalPhotoUrl: selectedPhoto,
-        annotatedPhotoUrl: effectiveDetection.annotatedImageUrl || selectedPhoto,
+        originalPhotoUrl: remoteImageUrl || selectedPhoto,
+        annotatedPhotoUrl: effectiveDetection.annotatedImageUrl || remoteImageUrl || selectedPhoto,
         detection: effectiveDetection,
         risk: calculatedRisk,
         reportedBy: reporterName || "Citizen Reporter",
@@ -1177,40 +1255,154 @@ export default function PotholeReportModal({
                         )}
                       </div>
 
-                      <div className="upload-buttons-row">
+                      <div className="upload-controls-container space-y-2.5">
+                        {/* Hidden Native File and Camera Inputs */}
                         <input
                           type="file"
-                          ref={fileInputRef}
+                          ref={cameraInputRef}
                           accept="image/jpeg,image/png,image/webp"
-                          onChange={handleFileUpload}
+                          capture="environment"
                           style={{ display: "none" }}
-                          aria-label="Upload pothole photograph"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handlePhotoSelected(file, "camera")
+                          }}
+                          aria-label="Capture road defect photo using camera"
                         />
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="button button--secondary upload-photo-btn text-xs w-full justify-center min-h-[42px]"
-                        >
-                          <Camera size={14} />
-                          <span>Upload Photo (Max 10MB)<span className="hidden sm:inline"> · JPG/PNG/WEBP</span></span>
-                        </button>
+                        <input
+                          type="file"
+                          ref={galleryInputRef}
+                          accept="image/jpeg,image/png,image/webp"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handlePhotoSelected(file, "gallery")
+                          }}
+                          aria-label="Upload road defect photo from file manager"
+                        />
 
-                        {photoFile && (
+                        {/* Dual Action Buttons */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <button
                             type="button"
-                            onClick={handleRemovePhoto}
-                            className="text-xs text-rose-600 hover:underline cursor-pointer"
+                            onClick={() => cameraInputRef.current?.click()}
+                            className="button button--primary text-xs w-full justify-center min-h-[42px] gap-2 font-mono font-bold cursor-pointer"
                           >
-                            Reset to Default Sample
+                            <Camera size={15} />
+                            <span>Take Photo</span>
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => galleryInputRef.current?.click()}
+                            className="px-4 py-2.5 rounded-xl border border-[#D8D2C5] bg-white hover:bg-[#FAF8F5] text-[#242522] text-xs font-mono font-bold flex items-center justify-center gap-2 transition-colors min-h-[42px] shadow-2xs cursor-pointer"
+                          >
+                            <FolderOpen size={15} className="text-[#E65336]" />
+                            <span>Choose from Gallery</span>
+                          </button>
+                        </div>
+
+                        {/* Active Image Metadata & Upload Progress Card */}
+                        {photoFile && imageMetadata && (
+                          <div className="p-3 bg-white rounded-xl border border-[#D8D2C5] shadow-2xs space-y-2">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <div className="flex items-center gap-2 truncate min-w-0">
+                                <ImageIcon size={14} className="text-[#E65336] shrink-0" />
+                                <span className="font-bold text-[#242522] truncate">{imageMetadata.name}</span>
+                                <span className="text-[#687567] shrink-0 text-[11px]">
+                                  ({imageMetadata.sizeKb} KB · {imageMetadata.format})
+                                </span>
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1.5">
+                                {imageUploadStatus === "validating" && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700 border border-neutral-200">
+                                    Validating...
+                                  </span>
+                                )}
+                                {imageUploadStatus === "uploading" && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-1">
+                                    <RefreshCw size={10} className="animate-spin" />
+                                    <span>Cloud Sync {uploadPercent}%</span>
+                                  </span>
+                                )}
+                                {imageUploadStatus === "completed" && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1">
+                                    <CheckCircle2 size={10} />
+                                    <span>
+                                      {imageMetadata.storageProvider === "cloudinary"
+                                        ? "Cloudinary Stored"
+                                        : "Device Saved"}
+                                    </span>
+                                  </span>
+                                )}
+                                {imageUploadStatus === "error" && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-700 border border-rose-500/20 flex items-center gap-1">
+                                    <AlertCircle size={10} />
+                                    <span>Saved Locally</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            {imageUploadStatus === "uploading" && (
+                              <div className="w-full bg-[#FAF8F5] rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className="bg-[#E65336] h-1.5 transition-all duration-300"
+                                  style={{ width: `${uploadPercent}%` }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Retake / Replace / Remove Actions */}
+                            <div className="flex items-center justify-between pt-1 text-[11px] font-mono border-t border-[#D8D2C5]/50">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => cameraInputRef.current?.click()}
+                                  className="text-[#687567] hover:text-[#242522] flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <Camera size={11} />
+                                  <span>Retake</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => galleryInputRef.current?.click()}
+                                  className="text-[#687567] hover:text-[#242522] flex items-center gap-1 cursor-pointer transition-colors"
+                                >
+                                  <FolderOpen size={11} />
+                                  <span>Replace</span>
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleRemovePhoto}
+                                className="text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer font-bold transition-colors"
+                              >
+                                <Trash2 size={11} />
+                                <span>Remove Photo</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {uploadError && (
+                          <div className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle size={14} className="shrink-0 text-amber-600" />
+                              <span>{uploadError}</span>
+                            </div>
+                            {photoFile && imageUploadStatus === "error" && (
+                              <button
+                                type="button"
+                                onClick={() => uploadPhotoToCloud(photoFile)}
+                                className="px-2 py-1 text-[10px] font-bold font-mono text-amber-900 bg-amber-200/60 rounded hover:bg-amber-200 transition-colors shrink-0 cursor-pointer"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-
-                      {uploadError && (
-                        <p className="text-xs text-rose-600 bg-rose-50 p-2 rounded border border-rose-200">
-                          {uploadError}
-                        </p>
-                      )}
 
                       {/* Sample Photos for Testing */}
                       <div className="sample-selector-row">

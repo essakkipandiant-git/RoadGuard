@@ -49,7 +49,14 @@ const aerialGridImage = "/images/aerial_grid.jpg"
 const repairedRoadImage = "/images/repaired_road.jpg"
 const cityPanoramaImage = "/images/city_panorama.jpg"
 
-const navItems = [
+const primaryNavItems = [
+  ["Home", "home"],
+  ["How It Works", "detection"],
+  ["Risk Map", "risk-map"],
+  ["Resolution", "repair"],
+]
+
+const allNavItems = [
   ["Home", "home"],
   ["How It Works", "detection"],
   ["Risk Map", "risk-map"],
@@ -176,19 +183,15 @@ function Header({
         </span>
       </a>
       <nav className="desktop-nav" aria-label="Main navigation">
-        {navItems.map(([label, id]) => {
-          // Hide secondary links on medium desktop to prevent any clustering
-          const isSecondary = id === "impact" || id === "about"
-          return (
-            <a
-              className={`${active === id ? "active" : ""} ${isSecondary ? "hidden 2xl:inline-block" : ""}`}
-              href={`#${id}`}
-              key={id}
-            >
-              {label}
-            </a>
-          )
-        })}
+        {primaryNavItems.map(([label, id]) => (
+          <a
+            className={active === id ? "active" : ""}
+            href={`#${id}`}
+            key={id}
+          >
+            {label}
+          </a>
+        ))}
       </nav>
       <div className="nav-actions-group">
         <button
@@ -206,15 +209,17 @@ function Header({
               <span className="nav-avatar-circle shrink-0">
                 {currentUser.fullName.charAt(0).toUpperCase()}
               </span>
-              <span className="nav-user-name hidden 2xl:inline truncate max-w-[80px]">
+              <span className="nav-user-name hidden xl:inline truncate max-w-[75px]">
                 {currentUser.fullName.split(" ")[0]}
               </span>
-              <span className={`role-badge role-${currentUser.role.toLowerCase()} shrink-0`}>
+              <span className={`role-badge role-${currentUser.role.toLowerCase()} shrink-0 whitespace-nowrap`}>
                 {currentUser.role === "SUPER_ADMIN"
                   ? "ADMIN"
                   : currentUser.role === "DEPARTMENT_ADMIN"
                   ? "DEPT"
-                  : currentUser.role.replace("_", " ")}
+                  : currentUser.role === "FIELD_ADMIN" || currentUser.role === "INSPECTOR"
+                  ? "FIELD"
+                  : "CITIZEN"}
               </span>
             </>
           ) : (
@@ -234,8 +239,8 @@ function Header({
               title="Open Municipal Admin Command Suite"
             >
               <ShieldAlert size={13} className="text-[#E65336] shrink-0" />
-              <span className="hidden 2xl:inline whitespace-nowrap">Command Suite</span>
-              <span className="2xl:hidden whitespace-nowrap">Suite</span>
+              <span className="hidden xl:inline whitespace-nowrap">Command Suite</span>
+              <span className="xl:hidden whitespace-nowrap">Suite</span>
               <span className="nav-count-badge shrink-0">{issuesCount}</span>
             </button>
             <button
@@ -245,8 +250,8 @@ function Header({
               title="Preview Public Citizen Road Tracker"
             >
               <Activity size={12} className="shrink-0" />
-              <span className="hidden 2xl:inline whitespace-nowrap">Public Portal</span>
-              <span className="2xl:hidden whitespace-nowrap">Public</span>
+              <span className="hidden xl:inline whitespace-nowrap">Public Portal</span>
+              <span className="xl:hidden whitespace-nowrap">Public</span>
             </button>
           </div>
         ) : (
@@ -269,8 +274,7 @@ function Header({
           }}
           className="nav-report-btn shrink-0 whitespace-nowrap"
         >
-          <span className="hidden 2xl:inline">Report a pothole</span>
-          <span className="2xl:hidden hidden sm:inline">Report Hazard</span>
+          <span className="hidden sm:inline">Report a Pothole</span>
           <span className="sm:hidden">Report</span>
         </ButtonLink>
       </div>
@@ -370,7 +374,7 @@ function Header({
 
             {/* Vertical Navigation Links */}
             <div className="space-y-1 py-1">
-              {navItems.map(([label, id]) => (
+              {allNavItems.map(([label, id]) => (
                 <a
                   href={`#${id}`}
                   key={id}

@@ -1,12 +1,35 @@
 import { Request, Response, NextFunction } from "express"
 import { ImageService } from "../services/imageService"
-import { BadRequestError } from "../utils/errors"
-import { ImageType } from "@prisma/client"
+import { BadRequestError, ForbiddenError } from "../utils/errors"
+import { ImageType, Role } from "@prisma/client"
+import { getCloudinaryStatus } from "../config/cloudinary"
 
 export class UploadController {
   /**
+   * GET /api/v1/uploads/status
+   * Reports current storage engine status (Cloudinary vs Local disk fallback).
+   */
+  static async getStorageStatus(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const status = getCloudinaryStatus()
+      res.status(200).json({
+        success: true,
+        data: status,
+        message: status.message,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
    * POST /api/v1/uploads/image
-   * Standalone image upload (returns secure URL and publicId).
+   * Standalone image upload (returns secure URL, publicId, and folder info).
+   * Supports category routing: pothole-reports, repair-evidence, inspection-evidence.
    */
   static async uploadImage(
     req: Request,
@@ -18,7 +41,20 @@ export class UploadController {
         throw new BadRequestError("Please select an image file to upload.")
       }
 
-      const result = await ImageService.uploadImage(req.file)
+      const category = (req.body?.category || req.query?.category || "pothole-reports") as string
+      const folderCategory = ["pothole-reports", "repair-evidence", "inspection-evidence"].includes(category)
+        ? category
+        : "pothole-reports"
+
+      // Staff-only check for official repair and inspection evidence
+      if (
+        (folderCategory === "repair-evidence" || folderCategory === "inspection-evidence") &&
+        (!req.user || req.user.role === Role.CITIZEN)
+      ) {
+        throw new ForbiddenError("Only municipal department staff and field inspectors can upload repair/inspection verification evidence.")
+      }
+
+      const result = await ImageService.uploadImage(req.file, { folderCategory })
       res.status(201).json({
         success: true,
         data: result,
@@ -93,4 +129,5 @@ export class UploadController {
     }
   }
 }
+
 

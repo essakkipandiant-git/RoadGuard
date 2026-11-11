@@ -35,6 +35,7 @@ PRODUCTION_DEPLOYMENT_GUIDE.md
 ROADGUARD_*.md
 
 # Server runtime, local uploads, environments & SQLite databases
+uploads/
 server/node_modules/
 server/dist/
 server/uploads/

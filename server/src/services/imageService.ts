@@ -16,28 +16,46 @@ export interface UploadResult {
   bytes: number
   width?: number
   height?: number
+  storageProvider: "cloudinary" | "local_storage"
+  folder: string
+}
+
+export type UploadCategory = "pothole-reports" | "repair-evidence" | "inspection-evidence"
+
+export interface UploadOptions {
+  folderCategory?: UploadCategory | string
+  folder?: string
+  tags?: string[]
+  publicId?: string
 }
 
 export class ImageService {
   /**
    * Uploads an image buffer to Cloudinary if credentials exist,
-   * or falls back to local disk storage during development/testing.
+   * organized into dedicated folders (roadguard/pothole-reports, repair-evidence, inspection-evidence).
+   * Falls back gracefully to local disk storage if Cloudinary is not configured.
    */
   static async uploadImage(
     file: Express.Multer.File,
-    options?: { folder?: string; tags?: string[] },
+    options?: UploadOptions,
   ): Promise<UploadResult> {
     if (!file || !file.buffer) {
       throw new BadRequestError("No image file provided for upload.")
     }
+
+    const folderCategory = (options?.folderCategory || "pothole-reports") as string
+    const targetFolder = options?.folder || `roadguard/${folderCategory}`
+    const uniqueSuffix = crypto.randomUUID().slice(0, 10)
+    const assetId = options?.publicId || `rg_${folderCategory.replace(/[^a-z0-9]/gi, "_")}_${Date.now()}_${uniqueSuffix}`
 
     // 1. Cloudinary upload if configured
     if (isCloudinaryConfigured) {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder: options?.folder || env.CLOUDINARY_FOLDER,
-            tags: options?.tags,
+            folder: targetFolder,
+            public_id: assetId,
+            tags: Array.from(new Set(["roadguard", folderCategory, ...(options?.tags || [])])),
             resource_type: "image",
           },
           (error, result) => {
@@ -55,6 +73,8 @@ export class ImageService {
               bytes: result.bytes,
               width: result.width,
               height: result.height,
+              storageProvider: "cloudinary",
+              folder: targetFolder,
             })
           },
         )
@@ -63,26 +83,27 @@ export class ImageService {
     }
 
     // 2. Safe Local Storage Fallback (offline dev & pilot testing)
-    const uploadDir = path.resolve(env.UPLOAD_DIR)
+    const uploadDir = path.resolve(env.UPLOAD_DIR, folderCategory)
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
     }
 
     const extension = file.mimetype.split("/")[1] || "jpg"
-    const uniqueId = crypto.randomUUID()
-    const fileName = `img_${Date.now()}_${uniqueId}.${extension}`
+    const fileName = `${assetId}.${extension}`
     const filePath = path.join(uploadDir, fileName)
 
     await fs.promises.writeFile(filePath, file.buffer)
 
-    const publicId = `local_${uniqueId}`
-    const imageUrl = `/uploads/${fileName}`
+    const publicId = `local_${assetId}`
+    const imageUrl = `/uploads/${folderCategory}/${fileName}`
 
     return {
       imageUrl,
       publicId,
       format: extension,
       bytes: file.size,
+      storageProvider: "local_storage",
+      folder: targetFolder,
     }
   }
 
@@ -94,12 +115,21 @@ export class ImageService {
 
     if (publicId.startsWith("local_")) {
       const uploadDir = path.resolve(env.UPLOAD_DIR)
+      const cleanId = publicId.replace("local_", "")
       try {
-        const files = await fs.promises.readdir(uploadDir)
-        const match = files.find((f) => f.includes(publicId.replace("local_", "")))
-        if (match) {
-          await fs.promises.unlink(path.join(uploadDir, match))
+        const findAndUnlink = (dir: string) => {
+          if (!fs.existsSync(dir)) return
+          const entries = fs.readdirSync(dir, { withFileTypes: true })
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name)
+            if (entry.isDirectory()) {
+              findAndUnlink(fullPath)
+            } else if (entry.name.includes(cleanId)) {
+              fs.unlinkSync(fullPath)
+            }
+          }
         }
+        findAndUnlink(uploadDir)
       } catch {}
       return
     }
@@ -133,9 +163,17 @@ export class ImageService {
       throw new ForbiddenError("You cannot attach images to another citizen's report.")
     }
 
-    // Upload image
+    let folderCategory: UploadCategory = "pothole-reports"
+    if (imageType === ImageType.REPAIR_AFTER) {
+      folderCategory = "repair-evidence"
+    } else if (imageType === ImageType.INSPECTION_EVIDENCE) {
+      folderCategory = "inspection-evidence"
+    }
+
+    // Upload image into organized Cloudinary folder
     const uploadResult = await this.uploadImage(file, {
-      folder: `${env.CLOUDINARY_FOLDER}/issues/${issue.reportNumber}`,
+      folderCategory,
+      folder: `roadguard/${folderCategory}`,
       tags: [issue.reportNumber, imageType],
     })
 

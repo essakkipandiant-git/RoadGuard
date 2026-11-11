@@ -725,6 +725,7 @@ export class RoadIssueService {
         address: newIssueData.address,
         roadClass: newIssueData.risk?.roadUsageDetails?.roadClass,
         forceDuplicate: newIssueData.forceDuplicate,
+        photoUrl: uploadedPhotoUrl,
       })
 
       // Maintain uploaded image in created issue

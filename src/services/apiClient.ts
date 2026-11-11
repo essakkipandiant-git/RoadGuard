@@ -659,6 +659,7 @@ export const apiClient = {
       address: string
       roadClass?: string
       forceDuplicate?: boolean
+      photoUrl?: string
     }) {
       const res = await request<{ issue: any }>("/issues", {
         method: "POST",
@@ -852,19 +853,41 @@ export const apiClient = {
 
   // File Uploads
   uploads: {
-    async uploadImage(file: File) {
+    async uploadImage(file: File, category: string = "pothole-reports") {
       const formData = new FormData()
       formData.append("photo", file)
+      formData.append("category", category)
 
       const res = await request<{
-        url: string
+        imageUrl?: string
+        url?: string
         publicId?: string
-        fileName: string
-        size: number
+        fileName?: string
+        size?: number
+        bytes?: number
         format: string
+        storageProvider?: string
+        folder?: string
       }>("/uploads/image", {
         method: "POST",
         body: formData,
+      })
+      const finalUrl = res.data.imageUrl || res.data.url || ""
+      return {
+        ...res.data,
+        url: finalUrl,
+        imageUrl: finalUrl,
+      }
+    },
+
+    async getStatus() {
+      const res = await request<{
+        isConfigured: boolean
+        cloudName: string
+        storageProvider: string
+        message: string
+      }>("/uploads/status", {
+        method: "GET",
       })
       return res.data
     },

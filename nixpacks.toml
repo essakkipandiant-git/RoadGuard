@@ -3,10 +3,12 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm --prefix server install"]
+cmds = ["npm --prefix server install --include=dev"]
 
 [phases.build]
 cmds = ["npm --prefix server run build"]
 
 [start]
 cmd = "npm --prefix server run prisma:init && npm --prefix server run start"
+
+

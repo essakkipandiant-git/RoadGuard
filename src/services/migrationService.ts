@@ -314,12 +314,20 @@ export class MigrationService {
       } catch (err: any) {
         result.failedCount++
         let errorMsg = err?.message || "Network or validation error"
+        const lower = errorMsg.toLowerCase()
         if (
           err?.status === 404 ||
-          errorMsg.toLowerCase().includes("not be found") ||
-          errorMsg.toLowerCase().includes("failed to fetch")
+          err?.statusCode === 404 ||
+          err?.status === 405 ||
+          err?.statusCode === 405 ||
+          lower.includes("not be found") ||
+          lower.includes("page could not") ||
+          lower.includes("not found") ||
+          lower.includes("failed to fetch") ||
+          lower.includes("networkerror") ||
+          lower.includes("invalid json")
         ) {
-          errorMsg = "Central municipal server is offline (no remote API connected). Report remains safely preserved in local device storage."
+          errorMsg = "Backend server is offline or connecting. Report remains safely preserved in local device storage."
         }
         result.errors.push(`Report "${item.title}" (${item.id}): ${errorMsg}`)
 
