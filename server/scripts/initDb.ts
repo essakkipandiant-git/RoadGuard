@@ -55,27 +55,37 @@ async function runDatabaseSync() {
     console.log("[DB-INIT] Generating Prisma Client...")
     execSync("npx prisma generate", { stdio: "inherit", cwd: serverDir, env: execEnv })
 
-    console.log("[DB-INIT] Synchronizing database schema...")
-    // db push ensures all tables, enums, indexes, and relations are created safely without losing data
-    execSync("npx prisma db push --skip-generate", { stdio: "inherit", cwd: serverDir, env: execEnv })
-
-    // Dynamically require PrismaClient to verify database connectivity & seed if needed
-    const { PrismaClient } = await import("@prisma/client")
-    const prisma = new PrismaClient()
-
     try {
-      const departmentCount = await prisma.department.count()
-      console.log(`[DB-INIT] Connected successfully. Found ${departmentCount} municipal departments in database.`)
+      console.log("[DB-INIT] Synchronizing database schema...")
+      // db push ensures all tables, enums, indexes, and relations are created safely without losing data
+      execSync("npx prisma db push --skip-generate", { stdio: "inherit", cwd: serverDir, env: execEnv })
 
-      if (departmentCount === 0) {
-        console.log("[DB-INIT] Fresh database detected. Executing initial municipal seed...")
-        execSync("npx tsx prisma/seed.ts", { stdio: "inherit", cwd: serverDir, env: execEnv })
-        console.log("[DB-INIT] Initial seed completed successfully.")
-      } else {
-        console.log("[DB-INIT] Municipal data verified. Skipping duplicate seed.")
+      // Dynamically require PrismaClient to verify database connectivity & seed if needed
+      const { PrismaClient } = await import("@prisma/client")
+      const prisma = new PrismaClient()
+
+      try {
+        const departmentCount = await prisma.department.count()
+        console.log(`[DB-INIT] Connected successfully. Found ${departmentCount} municipal departments in database.`)
+
+        if (departmentCount === 0) {
+          console.log("[DB-INIT] Fresh database detected. Executing initial municipal seed...")
+          execSync("npx tsx prisma/seed.ts", { stdio: "inherit", cwd: serverDir, env: execEnv })
+          console.log("[DB-INIT] Initial seed completed successfully.")
+        } else {
+          console.log("[DB-INIT] Municipal data verified. Skipping duplicate seed.")
+        }
+      } finally {
+        await prisma.$disconnect()
       }
-    } finally {
-      await prisma.$disconnect()
+    } catch (syncErr: any) {
+      if (isPostgres) {
+        console.warn("[DB-INIT] ⚠️ Notice: Remote database connection is not reachable during build phase.")
+        console.warn(`         Prisma client was generated successfully. Schema sync will complete upon server startup.`)
+        console.warn(`         Details: ${syncErr.message || syncErr}`)
+      } else {
+        throw syncErr
+      }
     }
 
     console.log("---------------------------------------------------------------")

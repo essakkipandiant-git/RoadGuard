@@ -98,6 +98,8 @@ function resolveModelFile(fileName: string): string | null {
   const candidates = [
     path.resolve(process.cwd(), "models", fileName),
     path.resolve(process.cwd(), "server/models", fileName),
+    path.resolve(process.cwd(), "dist/models", fileName),
+    path.resolve(process.cwd(), "server/dist/models", fileName),
     path.resolve(__dirname, "../../models", fileName),
     path.resolve(__dirname, "../../../models", fileName),
     path.resolve(__dirname, "../models", fileName),

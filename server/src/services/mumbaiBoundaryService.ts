@@ -64,6 +64,15 @@ export class MumbaiBoundaryService {
       geoJsonPath = path.resolve(process.cwd(), "src/data/mumbai_bmc_wards.geojson")
     }
     if (!fs.existsSync(geoJsonPath)) {
+      geoJsonPath = path.resolve(process.cwd(), "server/src/data/mumbai_bmc_wards.geojson")
+    }
+    if (!fs.existsSync(geoJsonPath)) {
+      geoJsonPath = path.resolve(process.cwd(), "server/dist/data/mumbai_bmc_wards.geojson")
+    }
+    if (!fs.existsSync(geoJsonPath)) {
+      geoJsonPath = path.resolve(process.cwd(), "dist/data/mumbai_bmc_wards.geojson")
+    }
+    if (!fs.existsSync(geoJsonPath)) {
       throw new Error(`Authoritative Mumbai boundary dataset not found at ${geoJsonPath}`)
     }
 

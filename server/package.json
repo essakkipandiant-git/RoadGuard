@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npm run prisma:init && rimraf dist && tsc && node -e \"const fs=require('fs'); fs.mkdirSync('dist/data', {recursive:true}); fs.copyFileSync('src/data/mumbai_bmc_wards.geojson', 'dist/data/mumbai_bmc_wards.geojson'); if(fs.existsSync('models')){ fs.cpSync('models', 'dist/models', {recursive:true}); }\"",
+    "build": "npm run prisma:init && rimraf dist && tsc && node scripts/copyAssets.js",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
