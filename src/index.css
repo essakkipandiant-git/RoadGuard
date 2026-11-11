@@ -1393,14 +1393,14 @@
   gap: 10px;
 }
 
-.metric-box {
+.telemetry-grid-metrics .metric-box {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
   padding: 10px 12px;
 }
 
-.metric-box label {
+.telemetry-grid-metrics .metric-box label {
   display: block;
   font-family: "DM Mono", monospace;
   font-size: 7px;
@@ -1409,15 +1409,15 @@
   margin-bottom: 4px;
 }
 
-.metric-box strong,
+.telemetry-grid-metrics .metric-box strong,
 .terminal-telemetry-panel .metric-box strong {
   display: block;
   font-family: "DM Mono", monospace;
   font-size: 11px;
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
-.metric-box small {
+.telemetry-grid-metrics .metric-box small {
   display: block;
   font-size: 7.5px;
   color: rgba(255, 255, 255, 0.45);
@@ -4260,20 +4260,36 @@ footer {
   gap: 8px;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid rgba(36, 37, 34, 0.08);
-  background: rgba(245, 241, 232, 0.6);
+  border: 1px solid rgba(36, 37, 34, 0.12);
+  background: rgba(255, 255, 255, 0.7);
 }
 
-.metric-box small {
+.ai-telemetry-metrics .metric-box {
+  background: #ffffff;
+  border: 1px solid rgba(36, 37, 34, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.ai-telemetry-metrics .metric-box small {
   display: block;
   font: 9px "DM Mono", monospace;
-  color: #8c8d87;
+  font-weight: 700;
+  color: #687567;
+  letter-spacing: 0.03em;
 }
 
-.metric-box strong {
+.ai-telemetry-metrics .metric-box strong {
   display: block;
+  font-family: "DM Mono", monospace;
   font-size: 13px;
-  color: var(--ink);
+  font-weight: 800;
+  color: #242522 !important;
+}
+
+.ai-telemetry-metrics .metric-box strong.text-vermilion,
+.ai-telemetry-metrics .metric-box strong[class*="text-[#E65336]"] {
+  color: #E65336 !important;
 }
 
 .toggle-annotation-btn {
