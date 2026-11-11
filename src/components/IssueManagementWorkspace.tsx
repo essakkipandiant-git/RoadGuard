@@ -1038,7 +1038,7 @@ export default function IssueManagementWorkspace({
                     }`}
                   >
                     <Sparkles size={11} />
-                    <span>AI Cavity Mask</span>
+                    <span>AI Detection Overlay</span>
                   </button>
                 </div>
               </div>
@@ -1054,34 +1054,45 @@ export default function IssueManagementWorkspace({
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
 
-                {/* AI Mask SVG Overlay */}
+                {/* Genuine AI Detection Overlay */}
                 {viewMode === "mask" && (
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <svg className="w-full h-full absolute inset-0" viewBox="0 0 100 100" preserveAspectRatio="none">
-                      <rect
-                        x="24"
-                        y="28"
-                        width="52"
-                        height="44"
-                        fill="rgba(230, 83, 54, 0.22)"
-                        stroke="#E65336"
-                        strokeWidth="1.2"
-                        strokeDasharray="2,2"
-                        className="animate-pulse"
-                      />
-                      <circle cx="50" cy="50" r="2.5" fill="#E65336" />
-                      <line x1="44" y1="50" x2="56" y2="50" stroke="#E65336" strokeWidth="0.8" />
-                      <line x1="50" y1="44" x2="50" y2="56" stroke="#E65336" strokeWidth="0.8" />
-                    </svg>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-7 bg-black/85 text-white text-[10px] font-mono px-2 py-0.5 rounded shadow border border-red-500/40">
-                      DEPTH: {issue.detection?.depthEstimateMm || 70}mm · CONF: 95%
-                    </div>
+                  <div className="absolute inset-0 pointer-events-none">
+                    {issue.detection?.boxes && issue.detection.boxes.length > 0 ? (
+                      issue.detection.boxes.map((box, bIdx) => (
+                        <div
+                          key={box.id || bIdx}
+                          className="absolute border-2 border-[#E65336] bg-[#E65336]/15 rounded"
+                          style={{
+                            left: `${box.x}%`,
+                            top: `${box.y}%`,
+                            width: `${box.width}%`,
+                            height: `${box.height}%`,
+                          }}
+                        >
+                          <div className="absolute -top-5 left-0 bg-[#242522] text-[#F5F1E8] text-[9px] font-mono font-bold px-1.5 py-0.5 rounded shadow border border-[#E65336] whitespace-nowrap">
+                            {box.label || `POTHOLE ${(box.confidence * 100).toFixed(0)}%`}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/85 text-white text-[10px] font-mono px-3 py-1.5 rounded-lg border border-neutral-700">
+                        {issue.detection?.status === "no_damage_found"
+                          ? "Manual Report · No Defect Confidently Identified by AI"
+                          : "Manual Citizen Report (Unverified by AI)"}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="absolute top-3 left-3 bg-[#242522]/85 text-white text-[11px] font-mono px-2.5 py-1 rounded-md backdrop-blur-sm flex items-center gap-1.5">
                   <Activity size={12} className="text-[#E65336]" />
-                  <span>{viewMode === "mask" ? "AI CAVITY CONTOUR MASK" : "AI EDGE DETECTED"}</span>
+                  <span>
+                    {viewMode === "mask"
+                      ? (issue.detection?.boxes && issue.detection.boxes.length > 0
+                          ? `YOLOv8 AI DETECTED (${issue.detection.boxes.length} CAVITY)`
+                          : "MANUAL CITIZEN REPORT")
+                      : "ORIGINAL CITIZEN PHOTOGRAPH"}
+                  </span>
                 </div>
 
                 <div className="absolute bottom-3 right-3 bg-black/75 text-white text-[11px] font-mono px-2 py-0.5 rounded backdrop-blur-sm">
@@ -1129,7 +1140,7 @@ export default function IssueManagementWorkspace({
                   <div className="bg-[#F5F1E8] p-2.5 rounded-xl border border-[#D8D2C5]/70">
                     <span className="text-[10px] uppercase text-[#687567] block">Depth Est.</span>
                     <strong className="text-[#242522] font-bold">
-                      {issue.detection?.depthEstimateMm || 60} mm
+                      {issue.detection?.depthEstimateMm != null ? `${issue.detection.depthEstimateMm} mm` : "Unmeasured"}
                     </strong>
                   </div>
                   <div className="bg-[#F5F1E8] p-2.5 rounded-xl border border-[#D8D2C5]/70">

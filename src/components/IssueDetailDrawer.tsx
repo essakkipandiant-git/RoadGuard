@@ -315,7 +315,11 @@ export default function IssueDetailDrawer({
                   </div>
                   <div>
                     <small>EST. DEPTH</small>
-                    <strong>{issue.detection.depthEstimateMm}mm</strong>
+                    <strong>
+                      {issue.detection.depthEstimateMm != null
+                        ? `${issue.detection.depthEstimateMm}mm`
+                        : "Unmeasured"}
+                    </strong>
                   </div>
                   <div>
                     <small>SURFACE LOSS</small>
@@ -329,7 +333,9 @@ export default function IssueDetailDrawer({
                   <div>
                     <small>CONFIDENCE</small>
                     <strong className="text-vermilion">
-                      {((issue.detection.confidence || 0.94) * 100).toFixed(0)}%
+                      {issue.detection.confidence
+                        ? `${(issue.detection.confidence * 100).toFixed(0)}%`
+                        : "Manual"}
                     </strong>
                   </div>
                 </div>

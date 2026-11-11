@@ -614,10 +614,31 @@ export default function PotholeReportModal({
       }
     }
 
-    // Step 3 Validation: Photo must be present
+    // Step 3 Validation: Photo must be present and valid
     if (currentStep === 3 && nextStep > 3) {
       if (!selectedPhoto) {
         setStepError("Please provide road evidence photography or select a quick sample.")
+        return
+      }
+      if (detectionResult?.status === "unrelated_image") {
+        setStepError(
+          detectionResult.message ||
+            "This image does not appear to show road damage. Please upload a photograph of a pothole, road crack or damaged road surface.",
+        )
+        return
+      }
+      if (detectionResult?.status === "blurry_image") {
+        setStepError(
+          detectionResult.message ||
+            "The uploaded photograph appears blurry or lacks sufficient focus. Please upload a clearer photograph of the road damage.",
+        )
+        return
+      }
+      if (detectionResult?.status === "underexposed") {
+        setStepError(
+          detectionResult.message ||
+            "The photograph is underexposed or too dark to assess road surface defects. Please capture the road damage in adequate lighting.",
+        )
         return
       }
     }
@@ -645,9 +666,7 @@ export default function PotholeReportModal({
     setStepError(null)
 
     try {
-      const depthMm =
-        detectionResult?.depthEstimateMm ||
-        (selectedType === "cavity" ? 65 : selectedType === "collapse" ? 110 : 25)
+      const depthMm = detectionResult?.depthEstimateMm ?? null
 
       const damageFactor = calculateDamageSeverityFactor({
         category: selectedType,
@@ -673,16 +692,16 @@ export default function PotholeReportModal({
       })
 
       const effectiveDetection: AIDetectionResult = detectionResult || {
-        engine: "edge_cv",
+        engine: "demo_fallback",
         category: selectedType,
-        confidence: 0.94,
+        confidence: 0,
         boxes: [],
-        surfaceLossRatio: 0.15,
-        depthEstimateMm: depthMm,
+        surfaceLossRatio: 0,
+        depthEstimateMm: null,
         severity: selectedSeverity,
         originalImageUrl: selectedPhoto,
         annotatedImageUrl: selectedPhoto,
-        rawInferenceTimeMs: 18,
+        rawInferenceTimeMs: 0,
       }
 
       const newIssue = await RoadIssueService.createIssueLive({
@@ -1436,34 +1455,103 @@ export default function PotholeReportModal({
                       {/* AI Readout */}
                       {detectionResult && (
                         <div className="space-y-1.5">
-                          <div className="ai-telemetry-metrics glass grid grid-cols-2 gap-2 text-xs">
-                            <div className="metric-box">
-                              <small>HAZARD TYPE</small>
-                              <strong>{detectionResult.category.toUpperCase()}</strong>
+                          {detectionResult.status === "unrelated_image" ? (
+                            <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-rose-800 font-bold">
+                                <AlertCircle size={15} className="shrink-0 text-rose-600" />
+                                <span>UNRELATED IMAGE REJECTED</span>
+                              </div>
+                              <p className="text-rose-700 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "This image does not appear to show road damage. Please upload a photograph of a pothole, road crack or damaged road surface."}
+                              </p>
+                              {detectionResult.topPredictedClass && (
+                                <div className="text-[10px] font-mono text-rose-600 pt-0.5">
+                                  Detected non-road subject:{" "}
+                                  <span className="font-bold underline">
+                                    {detectionResult.topPredictedClass}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            <div className="metric-box">
-                              <small>ALGORITHMIC CONFIDENCE</small>
-                              <strong className="text-[#E65336]">
-                                {((detectionResult.confidence || 0.94) * 100).toFixed(0)}%
-                              </strong>
+                          ) : detectionResult.status === "blurry_image" ? (
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                <span>BLURRY PHOTOGRAPH DETECTED</span>
+                              </div>
+                              <p className="text-amber-700 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "The uploaded photograph appears blurry or lacks sufficient focus. Please upload a clearer photograph of the road damage."}
+                              </p>
                             </div>
-                            <div className="metric-box">
-                              <small>EST. DEPTH (UNVERIFIED)</small>
-                              <strong>{detectionResult.depthEstimateMm}mm</strong>
+                          ) : detectionResult.status === "underexposed" ? (
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                <span>UNDEREXPOSED / DARK PHOTOGRAPH</span>
+                              </div>
+                              <p className="text-amber-700 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "The photograph is underexposed or too dark to assess road surface defects. Please capture the road damage in adequate lighting."}
+                              </p>
                             </div>
-                            <div className="metric-box">
-                              <small>SURFACE LOSS RATIO</small>
-                              <strong>
-                                {((detectionResult.surfaceLossRatio || 0.15) * 100).toFixed(0)}%
-                              </strong>
+                          ) : detectionResult.status === "no_damage_found" ? (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-blue-900 font-bold">
+                                <Info size={15} className="shrink-0 text-blue-600" />
+                                <span>NO ROAD DAMAGE CONFIDENTLY IDENTIFIED</span>
+                              </div>
+                              <p className="text-blue-800 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "Road damage could not be confidently identified by the AI model. You may continue with manual verification and classification."}
+                              </p>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-[#242522]/60 px-1">
-                            <Info size={11} className="text-[#E65336] shrink-0" />
-                            <span>
-                              Preliminary Edge Heuristic Analysis. Physical depth will be verified on-site by municipal field inspectors.
-                            </span>
-                          </div>
+                          ) : detectionResult.status === "ai_unavailable" ? (
+                            <div className="p-3 bg-stone-100 border border-stone-300 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center gap-2 text-stone-800 font-bold">
+                                <Info size={15} className="shrink-0 text-stone-600" />
+                                <span>AI INSPECTION SERVICE OFFLINE</span>
+                              </div>
+                              <p className="text-stone-600 text-[11px] leading-relaxed">
+                                {detectionResult.message ||
+                                  "AI inspection service is temporarily unavailable. Manual classification is enabled."}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <div className="ai-telemetry-metrics glass grid grid-cols-2 gap-2 text-xs">
+                                <div className="metric-box">
+                                  <small>VERIFIED DEFECT</small>
+                                  <strong>{detectionResult.category.toUpperCase()}</strong>
+                                </div>
+                                <div className="metric-box">
+                                  <small>GENUINE AI CONFIDENCE</small>
+                                  <strong className="text-[#E65336]">
+                                    {(detectionResult.confidence * 100).toFixed(1)}%
+                                  </strong>
+                                </div>
+                                <div className="metric-box">
+                                  <small>PHYSICAL DEPTH</small>
+                                  <strong className="text-xs text-[#242522]">
+                                    {detectionResult.depthEstimateMm != null
+                                      ? `${detectionResult.depthEstimateMm}mm`
+                                      : "Unmeasured (2D Imagery)"}
+                                  </strong>
+                                </div>
+                                <div className="metric-box">
+                                  <small>CAVITIES LOCALIZED</small>
+                                  <strong>{detectionResult.boxes.length}</strong>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[10px] text-[#242522]/60 px-1">
+                                <Info size={11} className="text-[#E65336] shrink-0" />
+                                <span>
+                                  YOLOv8n Genuine Computer Vision Inference. Depth must be verified on-site by municipal field crew.
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1860,10 +1948,12 @@ export default function PotholeReportModal({
                           </button>
                         </div>
                         <strong className="text-xs text-[#242522] block">
-                          Depth: {detectionResult?.depthEstimateMm || 65}mm
+                          Depth: {detectionResult?.depthEstimateMm != null ? `${detectionResult.depthEstimateMm}mm` : "Unmeasured (Field gauge required)"}
                         </strong>
                         <span className="text-[11px] text-[#687567] block">
-                          Edge CV confidence: {((detectionResult?.confidence || 0.94) * 100).toFixed(0)}%
+                          {detectionResult?.status === "detected"
+                            ? `YOLOv8 AI confidence: ${(detectionResult.confidence * 100).toFixed(1)}%`
+                            : "Manual Citizen Report (Unverified by AI)"}
                         </span>
                       </div>
                     </div>

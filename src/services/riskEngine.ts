@@ -35,16 +35,18 @@ export function clampFactor(val: number): number {
  */
 export function calculateDamageSeverityFactor(params: {
   category: DamageCategory
-  depthMm?: number
+  depthMm?: number | null
   surfaceLossRatio?: number
   detectionCount?: number
 }): number {
   const {
     category,
-    depthMm = 35,
+    depthMm: rawDepth,
     surfaceLossRatio = 0.1,
     detectionCount = 1,
   } = params
+
+  const depthMm = typeof rawDepth === "number" ? rawDepth : 35
 
   let baseScore = 40
   switch (category) {
@@ -197,7 +199,7 @@ export function generateRiskExplanation(
   weightedContribs: Record<keyof RiskFactors, number>,
   details?: {
     category?: DamageCategory
-    depthMm?: number
+    depthMm?: number | null
     roadClass?: RoadClass
     supportingCount?: number
     nearestSensitiveType?: string
@@ -277,7 +279,7 @@ export function calculateRiskAssessment(params: {
   factors: Partial<RiskFactors>
   weights?: Partial<RiskWeights>
   category?: DamageCategory
-  depthMm?: number
+  depthMm?: number | null
   roadClass?: RoadClass
   supportingCount?: number
   nearestSensitiveType?: "hospital" | "school" | "transit" | "crossing" | "none"

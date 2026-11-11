@@ -863,7 +863,7 @@ export default function MunicipalAdminDashboard({
                     <div className="pt-2 border-t border-[#D8D2C5]/60 flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#687567]">
                       <div className="flex items-center gap-3">
                         <span>Risk Score: <strong className="text-[#242522]">{issue.risk.score}/100</strong></span>
-                        <span>Estimated Depth: <strong className="text-[#242522]">{issue.detection?.depthEstimateMm || 60}mm</strong></span>
+                        <span>Estimated Depth: <strong className="text-[#242522]">{issue.detection?.depthEstimateMm != null ? `${issue.detection.depthEstimateMm}mm` : "Unmeasured"}</strong></span>
                         <span>Assigned Crew: <strong className="text-[#242522]">{issue.repair?.assignedCrew || "Hot-Mix Asphalt Crew 1"}</strong></span>
                       </div>
                       <div className="flex items-center gap-2">

@@ -38,7 +38,7 @@ export interface DetectionBox {
 }
 
 export interface AIDetectionResult {
-  engine: "edge_cv" | "external_api" | "demo_fallback"
+  engine: "edge_cv" | "external_api" | "demo_fallback" | "yolov8_onnx"
   category: DamageCategory
   confidence: number // 0 to 1
   confidenceScore?: number // optional alias for tests
@@ -48,7 +48,8 @@ export interface AIDetectionResult {
   boundingBox?: any
   crackPattern?: string
   visualFeatures?: any
-  depthEstimateMm: number
+  depthEstimateMm: number | null // Nullable: Monocular 2D images cannot determine physical depth
+  depthNote?: string
   severity: SeverityLevel
   severityLevel?: SeverityLevel
   originalImageUrl: string
@@ -56,6 +57,12 @@ export interface AIDetectionResult {
   rawInferenceTimeMs: number
   isUserAdjusted?: boolean
   notes?: string
+  status?: "detected" | "no_damage_found" | "unrelated_image" | "blurry_image" | "underexposed" | "ai_unavailable"
+  message?: string
+  modelName?: string
+  modelVersion?: string
+  topPredictedClass?: string
+  unrelatedClass?: string
 }
 
 export interface RiskFactors {

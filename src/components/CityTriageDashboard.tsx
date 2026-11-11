@@ -1484,7 +1484,9 @@ export default function CityTriageDashboard({
                                 </div>
                                 <div>
                                   <span className="text-[#8B9185] block">DEPTH ESTIMATE:</span>
-                                  <strong>{issue.detection.depthEstimateMm} mm</strong>
+                                  <strong>
+                                    {issue.detection.depthEstimateMm != null ? `${issue.detection.depthEstimateMm} mm` : "Unmeasured"}
+                                  </strong>
                                 </div>
                                 <div>
                                   <span className="text-[#8B9185] block">SURFACE LOSS:</span>
@@ -1507,7 +1509,9 @@ export default function CityTriageDashboard({
                               </span>
                               <span>•</span>
                               <span>
-                                <strong>{issue.detection.depthEstimateMm}mm</strong>
+                                <strong>
+                                  {issue.detection.depthEstimateMm != null ? `${issue.detection.depthEstimateMm}mm` : "Unmeasured"}
+                                </strong>
                               </span>
                               {/* Progressive disclosure toggle */}
                               <button

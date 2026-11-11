@@ -943,5 +943,60 @@ export const apiClient = {
       return res.data
     },
   },
+
+  // Real Computer Vision Defect Inference
+  ai: {
+    async inspectImage(fileOrDataUrl: File | Blob | string): Promise<{
+      status: "detected" | "no_damage_found" | "unrelated_image" | "blurry_image" | "underexposed" | "ai_unavailable"
+      modelName: string
+      modelVersion: string
+      detectedClasses: string[]
+      detections: Array<{
+        id: string
+        category: DamageCategory
+        confidence: number
+        x: number
+        y: number
+        width: number
+        height: number
+        label: string
+      }>
+      highestConfidence: number
+      severity: SeverityLevel
+      depthEstimateMm: null
+      depthNote: string
+      annotatedImageBase64?: string
+      topPredictedClass?: string
+      unrelatedClass?: string
+      inferenceDurationMs: number
+      message: string
+    }> {
+      let body: any
+      let isForm = false
+
+      if (typeof fileOrDataUrl === "string") {
+        body = JSON.stringify({ image: fileOrDataUrl })
+      } else {
+        const formData = new FormData()
+        formData.append("photo", fileOrDataUrl)
+        body = formData
+        isForm = true
+      }
+
+      const res = await request<any>("/ai/inspect", {
+        method: "POST",
+        body,
+        headers: isForm ? undefined : { "Content-Type": "application/json" },
+      })
+      return res.data
+    },
+
+    async getStatus() {
+      const res = await request<{ model: string; validator: string; status: string }>("/ai/status", {
+        method: "GET",
+      })
+      return res.data
+    },
+  },
 }
 

@@ -8,6 +8,7 @@ import { workOrderRouter } from "./workOrderRoutes"
 import { analyticsRouter } from "./analyticsRoutes"
 import { auditRouter } from "./auditRoutes"
 import geoRouter from "./geoRoutes"
+import { aiRouter } from "./aiRoutes"
 
 export const rootRouter = Router()
 
@@ -45,3 +46,7 @@ rootRouter.use("/audit-logs", auditRouter)
 // Geographic boundary validation endpoints mounted at /api/v1/geo and /api/geo
 rootRouter.use("/v1/geo", geoRouter)
 rootRouter.use("/geo", geoRouter)
+
+// AI road defect inspection endpoints mounted at /api/v1/ai and /api/ai
+rootRouter.use("/v1/ai", aiRouter)
+rootRouter.use("/ai", aiRouter)
