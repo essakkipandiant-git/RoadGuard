@@ -6,10 +6,13 @@ import { env } from "../config/env"
 import { prisma } from "../config/prisma"
 
 export function getCookieOptions() {
+  const isProd = env.NODE_ENV === "production"
   return {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: (env.NODE_ENV === "production" ? "strict" : "lax") as "strict" | "lax",
+    secure: isProd,
+    // Cross-origin HTTPS deployments (e.g. Render Static Site -> Render Web Service)
+    // require SameSite=None; Secure for browser cookie transmission.
+    sameSite: (isProd ? "none" : "lax") as "none" | "lax" | "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: "/",
   }

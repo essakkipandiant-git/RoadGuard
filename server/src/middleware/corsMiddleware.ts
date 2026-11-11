@@ -1,10 +1,17 @@
 import cors from "cors"
 import { env } from "../config/env"
 
+// Parse optional comma-separated origins from CORS_ORIGINS env var
+const extraOrigins = (env.CORS_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim().replace(/\/+$/, ""))
+  .filter(Boolean)
+
 // Build explicit allowlist from environment configuration
 const allowedOrigins = Array.from(
   new Set([
-    env.FRONTEND_URL,
+    env.FRONTEND_URL.replace(/\/+$/, ""),
+    ...extraOrigins,
     "http://localhost:8443",
     "http://127.0.0.1:8443",
     "https://road-guard-liard.vercel.app",
@@ -18,17 +25,24 @@ export const corsMiddleware = cors({
       return callback(null, true)
     }
 
-    if (allowedOrigins.includes(origin)) {
+    const normalizedOrigin = origin.replace(/\/+$/, "")
+
+    if (allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true)
     }
 
-    // Allow official RoadGuard Vercel production and preview deployment URLs
-    if (/^https:\/\/road-guard.*\.vercel\.app$/.test(origin)) {
+    // Allow official RoadGuard Render static site and preview deployment URLs
+    if (/^https:\/\/road[-_]?guard.*\.onrender\.com$/.test(normalizedOrigin)) {
+      return callback(null, true)
+    }
+
+    // Allow official RoadGuard Vercel production and preview deployment URLs during cutover
+    if (/^https:\/\/road[-_]?guard.*\.vercel\.app$/.test(normalizedOrigin)) {
       return callback(null, true)
     }
 
     // Allow localhost / 127.0.0.1 on any port during local development and testing
-    if (env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    if (env.NODE_ENV !== "production" && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
       return callback(null, true)
     }
 

@@ -28,11 +28,33 @@ function resolveApiBaseUrl(): string {
     return "/api/v1"
   }
 
-  const trimmed = envUrl.trim().replace(/\/+$/, "")
+  let trimmed = envUrl.trim().replace(/\/+$/, "")
+  if (trimmed && !trimmed.startsWith("/") && !/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`
+  }
   return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`
 }
 
 const BASE_URL = resolveApiBaseUrl()
+
+const BACKEND_ORIGIN = (() => {
+  if (/^https?:\/\//i.test(BASE_URL)) {
+    try {
+      return new URL(BASE_URL).origin
+    } catch {
+      return ""
+    }
+  }
+  return ""
+})()
+
+export function resolveBackendAssetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined
+  if (url.startsWith("/uploads/") && BACKEND_ORIGIN) {
+    return `${BACKEND_ORIGIN}${url}`
+  }
+  return url
+}
 
 export interface ApiUser {
   id: string
@@ -108,6 +130,28 @@ export class ApiError extends Error {
   }
 }
 
+const AUTH_TOKEN_STORAGE_KEY = "roadguard_auth_token"
+
+export function getStoredAuthToken(): string | null {
+  if (typeof window === "undefined") return null
+  try {
+    return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setStoredAuthToken(token: string | null) {
+  if (typeof window === "undefined") return
+  try {
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token)
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
+    }
+  } catch {}
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -117,6 +161,14 @@ async function request<T>(
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(options.headers as Record<string, string>),
+  }
+
+  // Attach JWT Bearer token alongside HTTP-only session cookie so cross-origin
+  // deployments (e.g. Render Static Site -> Render Web Service) work even when
+  // browsers restrict third-party cookies.
+  const token = getStoredAuthToken()
+  if (token && !headers["Authorization"]) {
+    headers["Authorization"] = `Bearer ${token}`
   }
 
   // If body is not FormData, ensure Content-Type is application/json
@@ -247,7 +299,8 @@ export function mapBackendIssueToRoadIssue(raw: any): RoadIssue {
   const depthMm = typeof raw.depth === "number" ? raw.depth : category === "cavity" ? 60 : 25
 
   // Primary original & annotated photo resolution
-  const resolveImgUrl = (img: any): string | undefined => img?.imageUrl || img?.url
+  const resolveImgUrl = (img: any): string | undefined =>
+    resolveBackendAssetUrl(img?.imageUrl || img?.url)
 
   const originalImg =
     resolveImgUrl(raw.images?.find((img: any) => img.imageType === "ORIGINAL_REPORT" || img.type === "ORIGINAL" || img.imageType === "EVIDENCE")) ||
@@ -510,14 +563,20 @@ export const apiClient = {
   auth: {
     async register(data: { fullName: string; email: string; password: string; phoneNumber?: string }) {
       try {
-        const res = await request<{ user: ApiUser }>("/auth/register", {
+        const res = await request<{ user: ApiUser; token?: string }>("/auth/register", {
           method: "POST",
           body: JSON.stringify(data),
         })
+        if (res.data.token) {
+          setStoredAuthToken(res.data.token)
+        }
         setLocalStoredUser(res.data.user)
         return res.data.user
-      } catch {
-        // Robust fallback for static cloud deployments (e.g. Vercel)
+      } catch (err: any) {
+        if (err instanceof ApiError && err.statusCode >= 400 && err.statusCode < 500 && err.statusCode !== 404) {
+          throw err
+        }
+        // Robust offline fallback when API is unreachable
         const mockUser: ApiUser = {
           id: `citizen-${Date.now()}`,
           email: data.email,
@@ -538,10 +597,16 @@ export const apiClient = {
           method: "POST",
           body: JSON.stringify(credentials),
         })
+        if (res.data.token) {
+          setStoredAuthToken(res.data.token)
+        }
         setLocalStoredUser(res.data.user)
         return res.data.user
-      } catch {
-        // Match seeded municipal accounts or registered citizen accounts
+      } catch (err: any) {
+        if (err instanceof ApiError && err.statusCode === 401) {
+          throw err
+        }
+        // Match seeded municipal accounts or registered citizen accounts when backend unreachable
         const normEmail = credentials.email.trim().toLowerCase()
         const found =
           SEEDED_FALLBACK_USERS.find((u) => u.email.toLowerCase() === normEmail) ||
@@ -582,6 +647,7 @@ export const apiClient = {
       } catch {
         // Ignore static host 404
       } finally {
+        setStoredAuthToken(null)
         setLocalStoredUser(null)
       }
     },
@@ -595,8 +661,11 @@ export const apiClient = {
           setLocalStoredUser(res.data.user)
           return res.data.user
         }
-      } catch {
-        // Fallback to local stored session on Vercel
+      } catch (err: any) {
+        if (err instanceof ApiError && err.statusCode === 401) {
+          setStoredAuthToken(null)
+        }
+        // Fallback to local stored session when API unreachable
       }
       return getLocalStoredUser()
     },
@@ -875,7 +944,7 @@ export const apiClient = {
         method: "POST",
         body: formData,
       })
-      const finalUrl = res.data.imageUrl || res.data.url || ""
+      const finalUrl = resolveBackendAssetUrl(res.data.imageUrl || res.data.url || "") || ""
       return {
         ...res.data,
         url: finalUrl,
@@ -904,7 +973,11 @@ export const apiClient = {
         method: "POST",
         body: formData,
       })
-      return res.data.image
+      const img = res.data.image
+      if (img && img.imageUrl) {
+        return { ...img, imageUrl: resolveBackendAssetUrl(img.imageUrl) }
+      }
+      return img
     },
   },
 

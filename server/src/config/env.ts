@@ -30,6 +30,7 @@ const envSchema = z.object({
     .string()
     .url({ message: "FRONTEND_URL must be a valid URL" })
     .default("http://localhost:8443"),
+  CORS_ORIGINS: z.string().optional().default(""),
   LOG_LEVEL: z
     .enum(["debug", "info", "warn", "error"])
     .default("info"),

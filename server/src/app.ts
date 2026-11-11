@@ -13,6 +13,9 @@ import { env } from "./config/env"
 export function createApp(): Express {
   const app: Express = express()
 
+  // Trust Render / reverse-proxy X-Forwarded-For headers for accurate rate limiting & client IPs
+  app.set("trust proxy", 1)
+
   // 1. Security Headers via Helmet
   app.use(
     helmet({
@@ -25,6 +28,7 @@ export function createApp(): Express {
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   )
 

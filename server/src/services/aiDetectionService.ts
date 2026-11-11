@@ -348,19 +348,20 @@ export class AiDetectionService {
         return false
       }
 
+      const sessionOptions = {
+        executionProviders: ["cpu"] as string[],
+        graphOptimizationLevel: "all" as const,
+        intraOpNumThreads: process.env.NODE_ENV === "production" ? 2 : 0,
+        interOpNumThreads: 1,
+      }
+
       if (!this.yoloSession) {
-        this.yoloSession = await ort.InferenceSession.create(yoloPath, {
-          executionProviders: ["cpu"],
-          graphOptimizationLevel: "all",
-        })
+        this.yoloSession = await ort.InferenceSession.create(yoloPath, sessionOptions)
         logger.info("Loaded YOLOv8 pothole model successfully", { path: yoloPath })
       }
 
       if (mobilenetPath && configPath && !this.mobilenetSession) {
-        this.mobilenetSession = await ort.InferenceSession.create(mobilenetPath, {
-          executionProviders: ["cpu"],
-          graphOptimizationLevel: "all",
-        })
+        this.mobilenetSession = await ort.InferenceSession.create(mobilenetPath, sessionOptions)
         this.mobilenetConfig = JSON.parse(fs.readFileSync(configPath, "utf8"))
         logger.info("Loaded MobileNet scene validation model successfully", { path: mobilenetPath })
       }

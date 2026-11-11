@@ -1,12 +1,23 @@
-# Render Blueprint for RoadGuard AI Backend
+# Render Blueprint Specification — Complete RoadGuard Migration Architecture
+# Repository: https://github.com/essakkipandiant-git/RoadGuard (Branch: main)
 # Documentation: https://render.com/docs/blueprint-spec
 
+databases:
+  # 1. Persistent PostgreSQL Database
+  - name: roadguard-db
+    databaseName: roadguard
+    user: roadguard
+    plan: free
+    region: oregon
+
 services:
+  # 2. Express Backend & Genuine ONNX AI Inference Web Service
   - type: web
-    name: roadguard-backend
+    name: roadguard-api
     runtime: node
     plan: free
     region: oregon
+    branch: main
     rootDir: server
     buildCommand: npm install && npm run build
     startCommand: node dist/index.js
@@ -16,15 +27,45 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: FRONTEND_URL
-        value: https://road-guard-liard.vercel.app
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: roadguard-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://roadguard-web.onrender.com
+      - key: CORS_ORIGINS
+        value: https://road-guard-liard.vercel.app
       - key: CLOUDINARY_CLOUD_NAME
-        sync: false
+        value: xkvdkmry
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      - key: CLOUDINARY_FOLDER
+        value: roadguard
+
+  # 3. React 19 + Vite Frontend Static Site
+  - type: web
+    name: roadguard-web
+    runtime: static
+    branch: main
+    buildCommand: pnpm install && pnpm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /cesium/*
+        name: Cache-Control
+        value: public, max-age=86400
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

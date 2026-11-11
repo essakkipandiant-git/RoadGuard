@@ -4,7 +4,7 @@ import { Request, Response } from "express"
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 1000 : 5, // Relaxed in test & dev for persona switching
+  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 1000 : 30, // Balanced production limit allowing persona switches
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -27,7 +27,7 @@ export const authLimiter = rateLimit({
 
 export const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 5000 : 100,
+  max: env.NODE_ENV === "test" || env.NODE_ENV === "development" ? 5000 : 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
