@@ -55,6 +55,19 @@ export function createApp(): Express {
   // Serve uploaded images statically in development/fallback mode
   app.use("/uploads", express.static(path.resolve(env.UPLOAD_DIR)))
 
+  // Top-level root endpoint for health checks and service discovery
+  app.get("/", (_req, res) => {
+    res.status(200).json({
+      service: "RoadGuard AI — Municipal Road Infrastructure & Defect Triage REST API",
+      status: "operational",
+      version: "1.0.0",
+      environment: env.NODE_ENV,
+      healthEndpoint: "/api/health",
+      apiBase: "/api/v1",
+      timestamp: new Date().toISOString(),
+    })
+  })
+
   // Top-level /health alias for container health checks
   app.get("/health", (_req, res) => {
     res.redirect("/api/health")

@@ -4,6 +4,14 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/v1/:path*",
+      "destination": "https://roadguard-production-d8d2206c.up.railway.app/api/v1/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://roadguard-production-d8d2206c.up.railway.app/api/:path*"
+    },
+    {
       "source": "/((?!assets/|cesium/|images/|api/|favicon\\.svg|robots\\.txt|.*\\..*).*)",
       "destination": "/index.html"
     }

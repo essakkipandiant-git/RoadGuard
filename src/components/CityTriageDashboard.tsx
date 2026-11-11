@@ -45,7 +45,7 @@ import {
   SeverityLevel,
   UserRole,
 } from "../types/roadguard"
-import { RoadIssueService } from "../services/roadIssueService"
+import { RoadIssueService, getMySubmittedReportIds } from "../services/roadIssueService"
 import {
   apiClient,
   ApiUser,
@@ -222,10 +222,17 @@ export default function CityTriageDashboard({
   }
 
   const isReportedByCitizen = (issue: RoadIssue) => {
-    if (!currentUser) return false
-    if (currentUser.id && issue.reportedById === currentUser.id) return true
-    if (currentUser.fullName && issue.reportedBy && issue.reportedBy.toLowerCase().includes(currentUser.fullName.toLowerCase())) return true
-    if (currentUser.email.includes("citizen") && (issue.reportedBy?.toLowerCase().includes("elena") || issue.reportedBy?.toLowerCase().includes("citizen"))) return true
+    // 1. Check device persistent submission tracking (tracks reports submitted on this device)
+    const myDeviceIds = getMySubmittedReportIds()
+    if (myDeviceIds.includes(issue.id) || (issue.trackingCode && myDeviceIds.includes(issue.trackingCode))) {
+      return true
+    }
+    // 2. Check authenticated user profile match
+    if (currentUser) {
+      if (currentUser.id && issue.reportedById === currentUser.id) return true
+      if (currentUser.fullName && issue.reportedBy && issue.reportedBy.toLowerCase().includes(currentUser.fullName.toLowerCase())) return true
+      if (currentUser.email.includes("citizen") && (issue.reportedBy?.toLowerCase().includes("elena") || issue.reportedBy?.toLowerCase().includes("citizen"))) return true
+    }
     return false
   }
 

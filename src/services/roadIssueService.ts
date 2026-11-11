@@ -13,6 +13,29 @@ import { apiClient } from "./apiClient"
 import { MigrationService } from "./migrationService"
 
 const STORAGE_KEY = "roadguard_issues_v2"
+const MY_REPORTS_STORAGE_KEY = "roadguard_my_reports"
+
+export function getMySubmittedReportIds(): string[] {
+  if (typeof window === "undefined" || !window.localStorage) return []
+  try {
+    const raw = localStorage.getItem(MY_REPORTS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+export function trackMySubmittedReport(idOrCode: string): void {
+  if (typeof window === "undefined" || !window.localStorage || !idOrCode) return
+  try {
+    const existing = getMySubmittedReportIds()
+    if (!existing.includes(idOrCode)) {
+      localStorage.setItem(MY_REPORTS_STORAGE_KEY, JSON.stringify([idOrCode, ...existing]))
+    }
+  } catch (e) {
+    console.warn("Could not save submitted report tracking code:", e)
+  }
+}
 
 // High-fidelity seed issues demonstrating all 4 features:
 // Critical cavities, longitudinal cracks, repair workflows, and multi-report issues.
@@ -710,6 +733,10 @@ export class RoadIssueService {
         created.annotatedPhotoUrl = uploadedPhotoUrl
       }
 
+      // Track report ID on device for Citizen "My Submissions" tab
+      if (created.id) trackMySubmittedReport(created.id)
+      if (created.trackingCode) trackMySubmittedReport(created.trackingCode)
+
       this.issues = [created, ...this.getAllIssues().filter((i) => i.id !== created.id)]
       this.save()
       return created
@@ -841,6 +868,11 @@ export class RoadIssueService {
 
     this.issues = [newIssue, ...all]
     this.save()
+
+    // Track report ID on device for Citizen "My Submissions" tab
+    if (newIssue.id) trackMySubmittedReport(newIssue.id)
+    if (newIssue.trackingCode) trackMySubmittedReport(newIssue.trackingCode)
+
     return newIssue
   }
 
