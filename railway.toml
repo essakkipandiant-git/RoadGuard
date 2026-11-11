@@ -1,10 +1,10 @@
 # Railway Deployment Configuration for RoadGuard AI
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm --prefix server install --include=dev && npm --prefix server run build"
+buildCommand = "npm --prefix server install && npm --prefix server run build"
 
 [deploy]
-startCommand = "npm --prefix server run prisma:init && npm --prefix server run start"
+startCommand = "node server/dist/index.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

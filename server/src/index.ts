@@ -2,11 +2,20 @@ import { app } from "./app"
 import { env } from "./config/env"
 import { logger } from "./utils/logger"
 import { MumbaiBoundaryService } from "./services/mumbaiBoundaryService"
+import { AiDetectionService } from "./services/aiDetectionService"
 
 const server = app.listen(env.PORT, "0.0.0.0", () => {
   logger.info(`🚀 RoadGuard API server running on port ${env.PORT} [${env.NODE_ENV}]`)
   logger.info(`   Health endpoint: http://localhost:${env.PORT}/api/health`)
   logger.info(`   Allowed origin:  ${env.FRONTEND_URL}`)
+
+  // Pre-load neural network models for zero-latency inference
+  AiDetectionService.initialize()
+    .then((loaded) => {
+      if (loaded) logger.info("🧠 RoadGuard AI models (YOLOv8 + MobileNetV4) pre-warmed & ready in memory")
+      else logger.warn("AI models could not be pre-warmed; will attempt lazy loading on demand")
+    })
+    .catch((err) => logger.warn("AI model pre-warm non-fatal error:", { error: err.message }))
 
   // Initialize and synchronize official Greater Mumbai municipal boundaries
   MumbaiBoundaryService.syncBoundaryToDatabase()

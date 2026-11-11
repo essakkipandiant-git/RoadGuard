@@ -287,6 +287,7 @@ export default function PotholeReportModal({
   const runInspection = async (fileOrUrl: File | string) => {
     setIsAnalyzing(true)
     setUploadError(null)
+    setDetectionResult(null)
     try {
       const result = await inspectRoadImage(fileOrUrl, (stage) =>
         setAnalysisProgress(stage),
@@ -496,13 +497,14 @@ export default function PotholeReportModal({
     } catch (err: any) {
       console.warn("Cloud image upload fell back to local storage:", err)
       setImageUploadStatus("error")
-      setUploadError("Image preserved locally on device. Will upload to city database upon transmission.")
+      setUploadError("Cloud storage sync pending. You may click 'Retry' or proceed with submission.")
     }
   }
 
   const handlePhotoSelected = async (file: File, source: "camera" | "gallery") => {
     setImageUploadStatus("validating")
     setUploadError(null)
+    setDetectionResult(null)
 
     const validation = validateImageFile(file)
     if (!validation.isValid) {
@@ -1247,11 +1249,31 @@ export default function PotholeReportModal({
                       )}
 
                       <div className="ai-engine-chip">
-                        <span className="live-dot" />
+                        <span
+                          className={`live-dot ${
+                            detectionResult?.status === "detected"
+                              ? "bg-emerald-500"
+                              : detectionResult?.status === "no_damage_found"
+                              ? "bg-blue-500"
+                              : detectionResult?.status === "unrelated_image"
+                              ? "bg-rose-500"
+                              : detectionResult?.status === "blurry_image" ||
+                                detectionResult?.status === "underexposed"
+                              ? "bg-amber-500"
+                              : "bg-stone-400"
+                          }`}
+                        />
                         <span>
-                          {detectionResult?.engine === "edge_cv"
-                            ? "EDGE COMPUTER VISION"
-                            : "AI DETECTED"}
+                          {detectionResult?.status === "detected"
+                            ? "AI DETECTED"
+                            : detectionResult?.status === "no_damage_found"
+                            ? "NO ROAD DAMAGE DETECTED"
+                            : detectionResult?.status === "unrelated_image"
+                            ? "UNRELATED IMAGE"
+                            : detectionResult?.status === "blurry_image" ||
+                              detectionResult?.status === "underexposed"
+                            ? "MANUAL VERIFICATION REQUIRED"
+                            : "AI INSPECTION UNAVAILABLE"}
                         </span>
                       </div>
                     </div>
@@ -1354,9 +1376,9 @@ export default function PotholeReportModal({
                                   </span>
                                 )}
                                 {imageUploadStatus === "error" && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-700 border border-rose-500/20 flex items-center gap-1">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-1">
                                     <AlertCircle size={10} />
-                                    <span>Saved Locally</span>
+                                    <span>Cloud Sync Pending</span>
                                   </span>
                                 )}
                               </div>

@@ -302,9 +302,11 @@ export default function IssueDetailDrawer({
                     className="drawer-main-photo"
                   />
                   <div className="photo-corner-tag">
-                    {issue.detection.engine === "edge_cv"
-                      ? "EDGE VISION ANALYZED"
-                      : "AI DETECTED"}
+                    {issue.detection?.boxes && issue.detection.boxes.length > 0
+                      ? "AI DETECTED"
+                      : issue.detection?.status === "no_damage_found"
+                      ? "NO ROAD DAMAGE DETECTED"
+                      : "MANUAL CITIZEN REPORT"}
                   </div>
                 </div>
 

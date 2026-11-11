@@ -100,6 +100,32 @@ export class AiDetectionService {
   private static mobilenetConfig: { id2label?: Record<string, string> } | null = null
   private static isInitialized = false
   private static initError: Error | null = null
+  private static activeInferences = 0
+  private static readonly MAX_CONCURRENT = 2
+
+  public static getSubsystemStatus() {
+    const mem = process.memoryUsage()
+    return {
+      status: this.isInitialized ? "operational" : this.initError ? "error" : "uninitialized",
+      isInitialized: this.isInitialized,
+      yolo: {
+        loaded: !!this.yoloSession,
+        name: "YOLOv8n-Pothole-ONNX",
+        version: "v8.0.21-rdd",
+      },
+      sceneValidator: {
+        loaded: !!this.mobilenetSession,
+        name: "MobileNetV4-SceneValidator",
+        version: "v4.0-fp32",
+      },
+      memory: {
+        rssMb: Math.round(mem.rss / (1024 * 1024)),
+        heapUsedMb: Math.round(mem.heapUsed / (1024 * 1024)),
+      },
+      activeInferences: this.activeInferences,
+      initError: this.initError ? this.initError.message : null,
+    }
+  }
 
   /**
    * Initializes both ONNX inference engines lazily.
@@ -464,6 +490,7 @@ export class AiDetectionService {
    */
   public static async inspectRoadPhotograph(imageBuffer: Buffer): Promise<AIDetectionResponse> {
     const startTime = Date.now()
+    this.activeInferences++
 
     try {
       const initialized = await this.initialize()
@@ -620,6 +647,9 @@ export class AiDetectionService {
         message:
           "AI inspection service is not configured or currently offline. You may proceed with manual road damage classification for municipal review.",
       }
+    } finally {
+      this.activeInferences = Math.max(0, this.activeInferences - 1)
     }
   }
 }
+

@@ -1,14 +1,16 @@
 # Nixpacks configuration for RoadGuard AI backend service on Railway
+providers = ["node"]
+
 [phases.setup]
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm --prefix server install --include=dev"]
+cmds = ["npm --prefix server install"]
 
 [phases.build]
 cmds = ["npm --prefix server run build"]
 
 [start]
-cmd = "npm --prefix server run prisma:init && npm --prefix server run start"
+cmd = "node server/dist/index.js"
 
 

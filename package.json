@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm --prefix server install && npm --prefix server run build",
     "preview": "vite preview",
     "format": "oxfmt",
     "test": "vitest run",
     "build:server": "npm --prefix server install && npm --prefix server run build",
-    "start": "npm --prefix server run start"
+    "start": "node server/dist/index.js"
   },
   "dependencies": {
     "cesium": "^1.146.0",
