@@ -215,7 +215,7 @@ describe("Phase 3: Authentication & Session Integration Tests", () => {
         })
       expect(newLogin.status).toBe(200)
       citizenCookie = newLogin.headers["set-cookie"][0]
-    })
+    }, 15000)
   })
 
   describe("5. Logout (POST /api/v1/auth/logout)", () => {

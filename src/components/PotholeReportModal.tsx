@@ -1410,23 +1410,23 @@ export default function PotholeReportModal({
                                 {imageUploadStatus === "uploading" && (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-1">
                                     <RefreshCw size={10} className="animate-spin" />
-                                    <span>Cloud Sync {uploadPercent}%</span>
+                                    <span>Uploading to Cloudinary ({uploadPercent}%)</span>
                                   </span>
                                 )}
                                 {imageUploadStatus === "completed" && (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1">
                                     <CheckCircle2 size={10} />
                                     <span>
-                                      {imageMetadata.storageProvider === "cloudinary"
-                                        ? "Cloudinary Stored"
-                                        : "Device Saved"}
+                                      {imageMetadata?.storageProvider === "cloudinary"
+                                        ? "Uploaded to Cloudinary"
+                                        : "Saved on device"}
                                     </span>
                                   </span>
                                 )}
                                 {imageUploadStatus === "error" && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center gap-1">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-700 border border-rose-500/20 flex items-center gap-1">
                                     <AlertCircle size={10} />
-                                    <span>Cloud Sync Pending</span>
+                                    <span>Upload failed</span>
                                   </span>
                                 )}
                               </div>
@@ -1545,23 +1545,44 @@ export default function PotholeReportModal({
                               )}
                             </div>
                           ) : detectionResult.status === "low_confidence" ? (
-                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
-                              <div className="flex items-center gap-2 text-amber-800 font-bold">
-                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
-                                <span>
-                                  LOW CONFIDENCE ({(detectionResult.confidence * 100).toFixed(0)}%) · MINIMUM 60% REQUIRED
-                                </span>
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                  <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                  <span>
+                                    LOW CONFIDENCE ({(detectionResult.confidence * 100).toFixed(0)}%) · MINIMUM 60% REQUIRED
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleRetakePhoto}
+                                  className="px-2 py-0.5 text-[10px] font-bold font-mono text-amber-900 bg-amber-200/80 rounded hover:bg-amber-300 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  Retake Photo
+                                </button>
                               </div>
-                              <p className="text-amber-700 text-[11px] leading-relaxed">
+                              <p className="text-amber-800 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
-                                  "Road damage was detected, but the confidence score is below the 60% threshold required for automated submission. Please upload a clearer photograph."}
+                                  "Road damage was detected, but the confidence score is below the 60% threshold required for automated submission."}
                               </p>
+                              <div className="text-[10px] text-amber-700 bg-amber-100/60 p-2 rounded-lg border border-amber-200/60">
+                                <strong>Tip:</strong> Move closer to the defect, ensure good natural lighting, and keep the damaged area centered without extreme shadows or reflections.
+                              </div>
                             </div>
                           ) : detectionResult.status === "blurry_image" ? (
-                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
-                              <div className="flex items-center gap-2 text-amber-800 font-bold">
-                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
-                                <span>BLURRY PHOTOGRAPH DETECTED</span>
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                  <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                  <span>BLURRY PHOTOGRAPH DETECTED</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleRetakePhoto}
+                                  className="px-2 py-0.5 text-[10px] font-bold font-mono text-amber-900 bg-amber-200/80 rounded hover:bg-amber-300 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  Retake Photo
+                                </button>
                               </div>
                               <p className="text-amber-700 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
@@ -1569,10 +1590,19 @@ export default function PotholeReportModal({
                               </p>
                             </div>
                           ) : detectionResult.status === "underexposed" ? (
-                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-1">
-                              <div className="flex items-center gap-2 text-amber-800 font-bold">
-                                <AlertCircle size={15} className="shrink-0 text-amber-600" />
-                                <span>UNDEREXPOSED / DARK PHOTOGRAPH</span>
+                            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-bold">
+                                  <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                                  <span>UNDEREXPOSED / DARK PHOTOGRAPH</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleRetakePhoto}
+                                  className="px-2 py-0.5 text-[10px] font-bold font-mono text-amber-900 bg-amber-200/80 rounded hover:bg-amber-300 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  Retake Photo
+                                </button>
                               </div>
                               <p className="text-amber-700 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
@@ -1580,15 +1610,27 @@ export default function PotholeReportModal({
                               </p>
                             </div>
                           ) : detectionResult.status === "no_damage_found" ? (
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1">
-                              <div className="flex items-center gap-2 text-blue-900 font-bold">
-                                <Info size={15} className="shrink-0 text-blue-600" />
-                                <span>NO ROAD DAMAGE DETECTED</span>
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 text-blue-900 font-bold">
+                                  <Info size={15} className="shrink-0 text-blue-600" />
+                                  <span>NO ROAD DAMAGE DETECTED</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleRetakePhoto}
+                                  className="px-2 py-0.5 text-[10px] font-bold font-mono text-blue-900 bg-blue-200/80 rounded hover:bg-blue-300 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  Retake / Replace
+                                </button>
                               </div>
                               <p className="text-blue-800 text-[11px] leading-relaxed">
                                 {detectionResult.message ||
-                                  "No supported road damage detected in this photograph. Please retake the photo ensuring the defect is centered and clearly visible."}
+                                  "The automated computer vision model could not confidently detect road damage in this image. Please retake the photo ensuring the defect is centered and clearly visible."}
                               </p>
+                              <div className="text-[10px] text-blue-700 bg-blue-100/60 p-2 rounded-lg border border-blue-200/60 leading-normal">
+                                <strong>Municipal Policy Note:</strong> Direct citizen automated report submission requires $\ge 60\%$ AI confidence to prevent queue congestion. If damage is present but undetectable due to conditions (e.g. standing water, glare), please take a closer angled photo or report directly to the Ward Helpdesk for manual field crew dispatch.
+                              </div>
                             </div>
                           ) : detectionResult.status === "ai_unavailable" ? (
                             <div className="p-3 bg-stone-100 border border-stone-300 rounded-xl text-xs space-y-1">

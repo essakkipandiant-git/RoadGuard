@@ -516,109 +516,145 @@ export class AiDetectionService {
   public static async detectPotholes(imageBuffer: Buffer): Promise<DetectionBoxResult[]> {
     if (!this.yoloSession || !ort) return []
 
-    const { data } = await sharp(imageBuffer)
-      .resize(640, 640, { fit: "fill" })
-      .removeAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true })
+    const origMeta = await sharp(imageBuffer).metadata()
+    const origW = origMeta.width || 640
+    const origH = origMeta.height || 640
 
-    const float32Data = new Float32Array(3 * 640 * 640)
-    const channelSize = 640 * 640
+    // Compute letterbox scaling & centering parameters (Ultralytics standard)
+    const scale = Math.min(640 / origW, 640 / origH)
+    const scaledW = origW * scale
+    const scaledH = origH * scale
+    const padX = (640 - scaledW) / 2
+    const padY = (640 - scaledH) / 2
 
-    for (let i = 0; i < channelSize; i++) {
-      float32Data[i] = data[i * 3] / 255.0
-      float32Data[channelSize + i] = data[i * 3 + 1] / 255.0
-      float32Data[channelSize * 2 + i] = data[i * 3 + 2] / 255.0
-    }
-
-    const tensor = new ort.Tensor("float32", float32Data, [1, 3, 640, 640])
-    const results = await this.yoloSession.run({ images: tensor })
-    const outData = results["output0"].data as Float32Array
-    const numAnchors = results["output0"].dims[2]
+    // Dual-pass inference:
+    // Pass 1: Standard aspect-ratio-preserving letterbox with 114 gray padding
+    // Pass 2: High-frequency edge restored letterbox to recover asphalt fracture gradients from JPEG compression
+    const [rawStandard, rawRestored] = await Promise.all([
+      sharp(imageBuffer)
+        .resize(640, 640, {
+          fit: "contain",
+          background: { r: 114, g: 114, b: 114 },
+        })
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true }),
+      sharp(imageBuffer)
+        .sharpen({ sigma: 1.2, m1: 1.0, m2: 2.0 })
+        .resize(640, 640, {
+          fit: "contain",
+          background: { r: 114, g: 114, b: 114 },
+        })
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true }),
+    ])
 
     const candidateDetections: Array<{
       score: number
-      x1: number
-      y1: number
-      x2: number
-      y2: number
+      cx: number
+      cy: number
       w: number
       h: number
     }> = []
 
-    // Calibrated genuine pothole confidence threshold
-    const confThreshold = 0.52
+    const confThreshold = MIN_DEFECT_CONFIDENCE_THRESHOLD
 
-    for (let a = 0; a < numAnchors; a++) {
-      const cx = outData[0 * numAnchors + a]
-      const cy = outData[1 * numAnchors + a]
-      const w = outData[2 * numAnchors + a]
-      const h = outData[3 * numAnchors + a]
-      const score = outData[4 * numAnchors + a]
+    for (const raw of [rawStandard, rawRestored]) {
+      const float32Data = new Float32Array(3 * 640 * 640)
+      const channelSize = 640 * 640
 
-      if (score >= confThreshold) {
-        candidateDetections.push({
-          score: Number(score.toFixed(4)),
-          x1: Math.max(0, cx - w / 2),
-          y1: Math.max(0, cy - h / 2),
-          x2: Math.min(640, cx + w / 2),
-          y2: Math.min(640, cy + h / 2),
-          w,
-          h,
-        })
+      for (let i = 0; i < channelSize; i++) {
+        float32Data[i] = raw.data[i * 3] / 255.0
+        float32Data[channelSize + i] = raw.data[i * 3 + 1] / 255.0
+        float32Data[channelSize * 2 + i] = raw.data[i * 3 + 2] / 255.0
+      }
+
+      const tensor = new ort.Tensor("float32", float32Data, [1, 3, 640, 640])
+      const results = await this.yoloSession.run({ images: tensor })
+      const outData = results["output0"].data as Float32Array
+      const numAnchors = results["output0"].dims[2]
+
+      for (let a = 0; a < numAnchors; a++) {
+        const score = outData[4 * numAnchors + a]
+        if (score >= confThreshold) {
+          candidateDetections.push({
+            score: Number(score.toFixed(4)),
+            cx: outData[0 * numAnchors + a],
+            cy: outData[1 * numAnchors + a],
+            w: outData[2 * numAnchors + a],
+            h: outData[3 * numAnchors + a],
+          })
+        }
       }
     }
 
     // Sort descending by model confidence
     candidateDetections.sort((a, b) => b.score - a.score)
 
-    // Non-Maximum Suppression (IoU 0.45)
+    // Non-Maximum Suppression (IoU 0.45) in normalized image frame
     const finalBoxes: DetectionBoxResult[] = []
 
     function calculateIoU(
       b1: (typeof candidateDetections)[0],
       b2: (typeof candidateDetections)[0],
     ): number {
-      const xx1 = Math.max(b1.x1, b2.x1)
-      const yy1 = Math.max(b1.y1, b2.y1)
-      const xx2 = Math.min(b1.x2, b2.x2)
-      const yy2 = Math.min(b1.y2, b2.y2)
-      const w = Math.max(0, xx2 - xx1)
-      const h = Math.max(0, yy2 - yy1)
-      const inter = w * h
-      const a1 = (b1.x2 - b1.x1) * (b1.y2 - b1.y1)
-      const a2 = (b2.x2 - b2.x1) * (b2.y2 - b2.y1)
+      const xx1 = Math.max(b1.cx - b1.w / 2, b2.cx - b2.w / 2)
+      const yy1 = Math.max(b1.cy - b1.h / 2, b2.cy - b2.h / 2)
+      const xx2 = Math.min(b1.cx + b1.w / 2, b2.cx + b2.w / 2)
+      const yy2 = Math.min(b1.cy + b1.h / 2, b2.cy + b2.h / 2)
+      const interW = Math.max(0, xx2 - xx1)
+      const interH = Math.max(0, yy2 - yy1)
+      const inter = interW * interH
+      const a1 = b1.w * b1.h
+      const a2 = b2.w * b2.h
       return inter / (a1 + a2 - inter)
     }
 
     for (const det of candidateDetections) {
       let keep = true
       for (const fb of finalBoxes) {
-        // Map back to 640 coordinate frame for accurate IoU
-        const fbDet = {
-          x1: (fb.x / 100) * 640,
-          y1: (fb.y / 100) * 640,
-          x2: ((fb.x + fb.width) / 100) * 640,
-          y2: ((fb.y + fb.height) / 100) * 640,
-          w: (fb.width / 100) * 640,
-          h: (fb.height / 100) * 640,
+        // Map fb percentage coords back to 640 frame for accurate IoU
+        const fbScaledW = (fb.width / 100) * origW * scale
+        const fbScaledH = (fb.height / 100) * origH * scale
+        const fbCx = (fb.x / 100) * origW * scale + padX + fbScaledW / 2
+        const fbCy = (fb.y / 100) * origH * scale + padY + fbScaledH / 2
+        const fbBox = {
+          cx: fbCx,
+          cy: fbCy,
+          w: fbScaledW,
+          h: fbScaledH,
           score: fb.confidence,
         }
-        if (calculateIoU(det, fbDet) > 0.45) {
+
+        if (calculateIoU(det, fbBox) > 0.45) {
           keep = false
           break
         }
       }
 
       if (keep) {
+        // Unpad and scale back to original image coordinate percentages
+        const unpadX1 = det.cx - det.w / 2 - padX
+        const unpadY1 = det.cy - det.h / 2 - padY
+        const origX1 = unpadX1 / scale
+        const origY1 = unpadY1 / scale
+        const origBoxW = det.w / scale
+        const origBoxH = det.h / scale
+
+        const pctX = Number(Math.max(0, Math.min(100, (origX1 / origW) * 100)).toFixed(1))
+        const pctY = Number(Math.max(0, Math.min(100, (origY1 / origH) * 100)).toFixed(1))
+        const pctW = Number(Math.max(0, Math.min(100 - pctX, (origBoxW / origW) * 100)).toFixed(1))
+        const pctH = Number(Math.max(0, Math.min(100 - pctY, (origBoxH / origH) * 100)).toFixed(1))
+
         finalBoxes.push({
           id: `det-${finalBoxes.length + 1}`,
           category: "cavity",
           confidence: det.score,
-          x: Number(((det.x1 / 640) * 100).toFixed(1)),
-          y: Number(((det.y1 / 640) * 100).toFixed(1)),
-          width: Number(((det.w / 640) * 100).toFixed(1)),
-          height: Number(((det.h / 640) * 100).toFixed(1)),
+          x: pctX,
+          y: pctY,
+          width: pctW,
+          height: pctH,
           label: `POTHOLE ${(det.score * 100).toFixed(0)}%`,
         })
       }
@@ -942,7 +978,7 @@ export class AiDetectionService {
         depthNote: "No road damage detected for physical depth measurement.",
         inferenceDurationMs: duration,
         message:
-          "Road damage could not be confidently identified in this photograph. Please retake the photo ensuring the defect is centered and clearly visible, or request manual municipal review.",
+          "Road damage could not be confidently identified in this photograph. Please retake the photo ensuring the defect is centered and clearly visible.",
         imageHash,
         verificationToken: cleanRoadToken,
         isSubmissionAllowed: false,

@@ -104,3 +104,4 @@ export function isTriageAdmin(userRole: unknown): boolean {
   if (!norm) return false
   return norm === CanonicalRole.SUPER_ADMIN || norm === CanonicalRole.DEPARTMENT_ADMIN
 }
+

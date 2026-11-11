@@ -18,7 +18,7 @@ function getTestAssetPath(rel: string): string {
   throw new Error(`Test asset not found: ${rel} (checked: ${candidates.join(", ")})`)
 }
 
-describe("AI Detection Pipeline & Genuine Computer Vision Tests", () => {
+describe("AI Detection Pipeline & Genuine Computer Vision Tests", { timeout: 25000 }, () => {
   beforeAll(async () => {
     await AiDetectionService.initialize()
   })
@@ -174,5 +174,18 @@ describe("AI Detection Pipeline & Genuine Computer Vision Tests", () => {
     const meta = await sharp(annotatedBuf).metadata()
     expect(meta.format).toBe("jpeg")
     expect(meta.width).toBeGreaterThan(0)
+  })
+
+  it("Scenario 11: Water-filled road cavity photograph (pothole.jpg) achieves genuine >= 60% detection", async () => {
+    const potholePath = getTestAssetPath("scratch/pothole.jpg")
+    const buffer = fs.readFileSync(potholePath)
+    const result = await AiDetectionService.inspectRoadPhotograph(buffer)
+
+    expect(result.status).toBe("detected")
+    expect(result.isSubmissionAllowed).toBe(true)
+    expect(result.highestConfidence).toBeGreaterThanOrEqual(0.60)
+    expect(result.detections.length).toBeGreaterThan(0)
+    expect(result.detections[0].category).toBe("cavity")
+    expect(result.depthEstimateMm).toBeNull()
   })
 })

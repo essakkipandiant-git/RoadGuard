@@ -61,3 +61,4 @@ describe("Frontend Role Normalization & State Machine Tests", () => {
     expect(res.error).toBe("Unknown user role: arbitrary_role")
   })
 })
+

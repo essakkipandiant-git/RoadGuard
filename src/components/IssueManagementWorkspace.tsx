@@ -490,7 +490,7 @@ export default function IssueManagementWorkspace({
   const applyLocalAction = (currentIssue: RoadIssue, payload: any): RoadIssue => {
     const now = new Date().toISOString()
     const actorName = currentUser?.fullName || "System Administrator"
-    const actorRole = normalizeRole(currentUser?.role || currentUserRole) || "SUPER_ADMIN"
+    const actorRole = normalizeRole(currentUser?.role || activeRole) || "SUPER_ADMIN"
     let targetStatus: IssueStatus = currentIssue.status
     let assignedInspectorId = currentIssue.assignedInspectorId
     let assignedInspectorName = currentIssue.assignedInspectorName
